@@ -33,6 +33,7 @@ function llenarPlantilla_(doc, datos) {
   Object.keys(simples).forEach(function (clave) {
     secciones.forEach(function (s) { reemplazarMarcador_(s.elemento, clave, simples[clave]); });
   });
+  limpiarFinal_(cuerpo);
 
   return { encontrados: encontrados, sinLlenar: Object.keys(marcadoresEnSecciones_(secciones)) };
 }
@@ -110,15 +111,43 @@ function repetirParrafo_(cuerpo, clave, elementos) {
   const p = parrafoDelMarcador_(cuerpo, clave);
   if (!p) return;
   let indice = p.indice;
-  elementos.forEach(function (elemento) {
+  const nuevos = elementos.map(function (elemento) {
     const copia = p.parrafo.copy();
     const nuevo = p.parrafo.getType() === DocumentApp.ElementType.LIST_ITEM
       ? cuerpo.insertListItem(++indice, copia) : cuerpo.insertParagraph(++indice, copia);
     reemplazarMarcador_(nuevo, clave, elemento);
     const dosPuntos = String(elemento).indexOf(':');
     if (dosPuntos > 0 && dosPuntos < 80) nuevo.editAsText().setBold(0, dosPuntos, true);
+    return nuevo;
   });
+  // Entre elementos va poco espacio; el último conserva el de la plantilla (separa de la sección siguiente).
+  nuevos.slice(0, -1).forEach(function (n) { n.setSpacingAfter(Math.min(n.getSpacingAfter() || 0, 4)); });
   p.parrafo.removeFromParent();
+}
+
+/**
+ * Quita los párrafos vacíos del final del documento (dejaban una hoja en blanco). El último párrafo
+ * no se puede borrar (Google Docs lo exige, sobre todo después de una tabla): se deja de 1 pt.
+ */
+function limpiarFinal_(cuerpo) {
+  const vacio = function (e) {
+    if (e.getType() !== DocumentApp.ElementType.PARAGRAPH) return false;
+    const p = e.asParagraph();
+    for (let i = 0; i < p.getNumChildren(); i++) {
+      if (p.getChild(i).getType() !== DocumentApp.ElementType.TEXT) return false;   // trae imagen u otro objeto
+    }
+    return !p.getText().trim();
+  };
+  while (cuerpo.getNumChildren() > 1 && vacio(cuerpo.getChild(cuerpo.getNumChildren() - 1)) &&
+         vacio(cuerpo.getChild(cuerpo.getNumChildren() - 2))) {
+    cuerpo.getChild(cuerpo.getNumChildren() - 2).removeFromParent();
+  }
+  const ultimo = cuerpo.getChild(cuerpo.getNumChildren() - 1);
+  if (vacio(ultimo)) {
+    const a = {};
+    a[DocumentApp.Attribute.FONT_SIZE] = 1;
+    ultimo.asParagraph().setAttributes(a).setSpacingBefore(0).setSpacingAfter(0).setLineSpacing(1);
+  }
 }
 
 /** Quita el párrafo del marcador y el título de su sección (el párrafo anterior). */

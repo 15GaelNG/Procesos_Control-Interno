@@ -76,7 +76,7 @@ try {
   $p = $d.Paragraphs.Item(18); SinEspacios $p; Formato $p 9 0 $AZUL_OSCURO 0
   $cambios = $d.Tables.Add($p.Range, 2, 4)
   $cambios.Borders.Enable = 1
-  $anchos = @(62, 78, 230, 97.85)
+  $anchos = @(52, 62, 226, 127.85)   # «Responsable» cabe en un renglón
   $titulos = @('Versión', 'Fecha', 'Descripción del cambio', 'Responsable')
   $marcas = @('{{CAMBIO_VERSION}}', '{{CAMBIO_FECHA}}', '{{CAMBIO_DESCRIPCION}}', '{{CAMBIO_RESPONSABLE}}')
   for ($c = 1; $c -le 4; $c++) {
@@ -160,6 +160,16 @@ try {
   [void]$d.Fields.Add($r, 26)
   $ultimo = $pie.Range.Paragraphs.Item($pie.Range.Paragraphs.Count)
   $ultimo.Range.Font.Size = 1; $ultimo.LineSpacingRule = 4; $ultimo.LineSpacing = 1; SinEspacios $ultimo
+
+  # Renglones vacíos al final (la original traía dos después de la tabla de firmas): se pasaban a una
+  # hoja en blanco. Se deja solo el último (Word lo exige después de una tabla) y de 1 pt.
+  $ultimo = $d.Paragraphs.Last
+  while ($d.Paragraphs.Count -gt 1) {
+    $previo = $d.Paragraphs.Item($d.Paragraphs.Count - 1)
+    if ($previo.Range.Information(12) -or $previo.Range.Text.Trim() -ne '') { break }
+    $previo.Range.Delete() | Out-Null
+  }
+  $ultimo = $d.Paragraphs.Last; $ultimo.Range.Font.Size = 1; SinEspacios $ultimo; $ultimo.LineSpacingRule = 4; $ultimo.LineSpacing = 1
 
   # ── 6. Paginación ──
   # La original empezaba a contar en 0 (portada = 0) pero el total sí cuenta la portada: salía
