@@ -1,0 +1,5 @@
+# clasp sube solo el manifiesto y src/ (en el editor quedan como "src/Code", "src/config/Config"…,
+# y los HTML como "src/html/…", que es lo que espera PREFIJO_ARCHIVOS_HTML). Todo lo demás se queda fuera.
+**/**
+!appsscript.json
+!src/**

@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Proyectos de clasp (cada ambiente) y credenciales: NUNCA al repositorio
+.clasp.json
+.clasp.prod.json
+.clasprc.json
+
+# Editor / sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Temporales (incluye los ~$ que deja Word con un .docx abierto)
+*.tmp
+~$*

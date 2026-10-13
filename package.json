@@ -1,0 +1,16 @@
+{
+  "name": "procesos-control-interno",
+  "version": "0.1.0",
+  "description": "Sistema de Documentación de Procesos de Ciudad Maderas: captura guiada por actividades, apoyo de IA, revisión de Procesos y autorizaciones. Google Apps Script + Google Sheets + Drive.",
+  "private": true,
+  "scripts": {
+    "pruebas": "node tools/subir.js pruebas",
+    "produccion": "node tools/subir.js produccion",
+    "estado": "clasp status"
+  },
+  "author": "Jesús Gael Núñez Gutiérrez",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.12"
+  }
+}
