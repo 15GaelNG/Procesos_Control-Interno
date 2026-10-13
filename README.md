@@ -34,9 +34,16 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   │   ├── Config.gs          Constantes: nombre, carpeta del proyecto, ambientes, propiedades
 │   │   ├── Catalogos.gs       Perfiles, estados y transiciones, motivos de cambio
 │   │   └── Esquema.gs         Hojas y columnas de la base de datos (única fuente de verdad)
+│   ├── ia/
+│   │   ├── ClienteIA.gs       Única puerta a Gemini (modelo, tope diario, UsoIA)
+│   │   ├── Prompts.gs         Instrucciones del análisis
+│   │   ├── Analisis.gs        Validador: descarta lo que la IA no puede sustentar
+│   │   └── PruebasIA.gs       listarModelosIA() · probarIA()
 │   └── utils/
 │       ├── SheetUtils.gs      Leer y escribir por nombre de columna
+│       ├── Parametros.gs      Lectura de la hoja Config
 │       └── Ids.gs             Consecutivos con bloqueo (USR-0001, SOL-2026-0001…)
+├── tests/                 Pruebas en node (npm test)
 ├── tools/subir.js         Sube a pruebas o producción
 └── docs/                  Documentación
 ```

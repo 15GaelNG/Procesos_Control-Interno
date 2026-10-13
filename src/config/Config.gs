@@ -59,6 +59,19 @@ const PROP = {
 
 const ZONA_HORARIA = 'America/Mexico_City';
 
+// IA (ver docs/ia.md). El modelo se toma de Config → IA_MODELO; si está vacío, se usa el primero de
+// esta lista que la llave tenga disponible. Google cambia los nombres seguido: si ninguno aparece,
+// listarModelosIA() muestra cuáles hay y se captura uno en IA_MODELO.
+const IA_URL_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const IA_MODELOS_PREFERIDOS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash'
+];
+const IA_MAX_CARACTERES_ENTRADA = 60000;   // Tope de texto que se manda en una sola llamada.
+
 // Colores institucionales (los mismos que SIVET / Control Interno y la plantilla).
 const COLOR_AZUL = '#1E252B';
 const COLOR_DORADO = '#B4A169';

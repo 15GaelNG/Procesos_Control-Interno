@@ -54,6 +54,12 @@ const ESTADOS_OBSERVACION = ['ABIERTA', 'ATENDIDA', 'CERRADA'];
 const DECISIONES_PROPUESTA = ['PENDIENTE', 'ACEPTADA', 'EDITADA', 'RECHAZADA'];
 const DECISIONES_AUTORIZACION = ['PENDIENTE', 'AUTORIZADO', 'DEVUELTO'];
 
+// Preguntas complementarias de la IA (requerimiento §3.3). La de responsable la agrega el validador
+// (ia/Analisis.gs) cuando el texto no dice quién hace la actividad.
+const PREGUNTA_RESPONSABLE = '¿Qué puesto realiza esta actividad?';
+const TIPOS_PREGUNTA = ['responsable', 'entrada', 'documento', 'sistema', 'validacion', 'autorizacion',
+  'plazo', 'evidencia', 'excepcion', 'cierre', 'otro'];
+
 // Motivos del control de cambios (requerimiento §4.2). COMPLETA excluye a los demás.
 const MOTIVOS_CAMBIO = {
   CAMBIO_RESPONSABLE: 'Actualización por cambio de responsable',

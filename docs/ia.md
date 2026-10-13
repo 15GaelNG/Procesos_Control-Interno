@@ -69,7 +69,41 @@ Ni Claude ni nadie más puede crear la cuenta o la llave por ti: queda a nombre 
 | Sugerir pies de imagen | Opcional |
 | Sugerir motivos del control de cambios | Actualizaciones |
 
-## Pendiente (prueba de concepto, fase 0)
+## Archivos
 
-- Elegir el modelo (`IA_MODELO`) según calidad en español y la cuota disponible.
-- Probar las instrucciones con ejemplos reales de documentos aprobados que entregue Procesos.
+| Archivo | Qué hace |
+|---|---|
+| `src/ia/ClienteIA.gs` | Única puerta a Gemini: elige el modelo, aplica el tope diario, manda la llave en un encabezado, lee el JSON y registra `UsoIA` |
+| `src/ia/Prompts.gs` | Instrucciones del análisis, con las reglas del requerimiento §3.3 y §3.4 |
+| `src/ia/Analisis.gs` | **El validador:** decide qué de lo que propuso la IA tiene sustento (ver abajo) |
+| `src/ia/PruebasIA.gs` | `listarModelosIA()` y `probarIA()`, para correr desde el editor |
+| `tests/ia-analisis.test.js` | Pruebas del validador (`npm test`) |
+
+### Qué revisa el validador
+
+Lo que responde la IA **nunca se usa directo**. `validarAnalisis_()`:
+
+- Devuelve las actividades **siempre en el orden del colaborador** y con sus mismos IDs. Descarta las
+  que la IA invente y, si omite alguna, conserva el texto original.
+- Acepta un responsable **solo si su «evidencia» aparece en el texto de esa actividad** (sin importar
+  acentos ni mayúsculas). Si no aparece, lo descarta y pregunta «¿Qué puesto realiza esta actividad?».
+- Coteja el puesto contra el catálogo: si la IA se equivocó de ID pero el texto menciona un solo
+  puesto del catálogo, lo liga a ese. Si no está en el catálogo o hay dos posibles, pide confirmación.
+- Avisa si la redacción propuesta trae **cifras que no estaban** en el texto original (plazos, montos).
+- Solo deja responsabilidades de puestos confirmados en sus actividades, y definiciones de términos
+  que sí aparecen en el texto.
+- Limpia las preguntas: sin duplicados, con tipos válidos y ligadas solo a actividades existentes.
+
+## Prueba de concepto (fase 0)
+
+En el editor de Apps Script de **pruebas**:
+
+1. `listarModelosIA()` muestra qué modelos tiene la llave y cuál se usará.
+2. `probarIA()` analiza un proceso **de ejemplo inventado** («Alta de proveedores») que tiene huecos a
+   propósito: dos actividades no dicen quién las hace, no dice qué pasa si faltan documentos ni qué
+   sistema se usa. El registro muestra la propuesta, los responsables con su evidencia, las preguntas
+   y lo que el validador descartó.
+
+Pendiente:
+- Fijar el modelo (`IA_MODELO`) según la calidad en español y la cuota.
+- Probar con documentos aprobados reales que entregue Procesos.

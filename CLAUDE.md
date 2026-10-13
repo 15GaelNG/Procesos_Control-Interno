@@ -23,7 +23,9 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
 
 - Todo cambio va primero a **pruebas**; a producción solo cuando Gael lo valida y desde un commit.
 - **Nunca editar en el editor de Apps Script**: clasp reemplaza el proyecto completo.
-- No levantar servidores locales para probar: se prueba con node (`vm`) y Gael revisa en pruebas.
+- No levantar servidores locales para probar: se prueba con node (`npm test`, que carga los `.gs`
+  con `tests/cargar-gs.js`) y Gael revisa en pruebas. Lo que no use servicios de Google debe tener
+  su prueba.
 
 ## Reglas del código
 - Las constantes de nivel superior van en `src/config/`. Una constante declarada dos veces tira todo
