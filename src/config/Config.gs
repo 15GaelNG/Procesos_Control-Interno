@@ -61,16 +61,17 @@ const ZONA_HORARIA = 'America/Mexico_City';
 
 // IA (ver docs/ia.md). El modelo se toma de Config → IA_MODELO; si está vacío, se intentan en este
 // orden los que la llave tenga disponibles (hasta IA_MAX_MODELOS), pasando al siguiente si uno está
-// saturado o sin cuota. Primero los Flash ya estables (menos saturados que los recién salidos).
-// Google cambia los nombres seguido: listarModelosIA() muestra cuáles hay.
+// saturado o sin cuota. En la prueba del 13/10/2026 gemini-3.6-flash y gemini-3.5-flash dieron 503
+// (saturados en el nivel gratuito) y gemini-flash-latest respondió bien; gemini-2.5-flash va al final
+// porque Google anunció su retiro. listarModelosIA() muestra cuáles hay.
 const IA_URL_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const IA_MODELOS_PREFERIDOS = [
+  'gemini-flash-latest',
   'gemini-3.5-flash',
   'gemini-3.6-flash',
-  'gemini-flash-latest',
-  'gemini-2.5-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite'
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash'
 ];
 const IA_MAX_MODELOS = 4;
 const IA_MAX_CARACTERES_ENTRADA = 60000;   // Tope de texto que se manda en una sola llamada.
