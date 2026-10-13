@@ -35,8 +35,12 @@
 
 1. Entrar a **Google AI Studio** (aistudio.google.com) con la cuenta del proyecto. Si es la cuenta
    corporativa y no deja entrar, el administrador de Workspace tiene que habilitar el servicio.
-2. Crear una **llave de API** (de preferencia dos: una para pruebas y otra para producción, cada una
-   en su propio proyecto).
+2. Crear **dos llaves de API**, cada una en su propio proyecto (cada proyecto tiene su propia cuota):
+
+   | Ambiente | Proyecto en AI Studio | Nombre de la llave |
+   |---|---|---|
+   | Pruebas | `Procesos-Pruebas` | `Procesos PRUEBAS` |
+   | Producción | `Procesos-Produccion` | `Procesos PRODUCCION` |
 3. Guardar cada llave en su Apps Script: *Configuración del proyecto → Propiedades del script →*
    `IA_LLAVE`. **Nunca** en el código, la hoja o un chat.
 
