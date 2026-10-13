@@ -352,10 +352,6 @@ Procesos System/
 └── tools/                     subir.js (pruebas / producción)
 ```
 
-> En el repositorio la carpeta se llama `docs/`. En el equipo de Gael aparece como `Docs/` porque
-> Windows no dejó renombrarla mientras estaba abierta; da igual porque Windows no distingue
-> mayúsculas.
-
 ---
 
 ## 9. Preguntas abiertas
@@ -364,7 +360,8 @@ Procesos System/
 
 1. ~~Dominio y cuenta dueña~~ → resuelto (decisiones 4 y 5).
 2. ~~Proveedor de IA~~ → resuelto (decisión 6). Falta que Gael cree la llave en Google AI Studio.
-3. ~~Repo y ambientes~~ → resuelto (decisión 7). Falta crear el repo vacío en GitHub.
+3. ~~Repo y ambientes~~ → resuelto (decisión 7):
+   [15GaelNG/Procesos_Control-Interno](https://github.com/15GaelNG/Procesos_Control-Interno).
 4. ¿El módulo de Capital Humano de Control Interno tiene ya un catálogo de colaboradores, puestos y
    departamentos que podamos leer, en lugar de capturarlo otra vez?
 
