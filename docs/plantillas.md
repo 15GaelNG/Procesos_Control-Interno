@@ -42,3 +42,27 @@ Lo que se quiere averiguar:
 
 Con el resultado se decide si se sigue con Google Docs (plan A) o se genera el Word directamente
 desde su XML (plan B, ver [análisis §6.2](analisis-inicial.md#62-generación-del-wordpdf-y-la-marca-de-agua)).
+
+## Resultados de la primera prueba (13/10/2026)
+
+| Punto | Resultado |
+|---|---|
+| Marco, logo, portada y encabezado | ✔ Se conservan al convertir a Google Docs y en el PDF |
+| Marca de agua | ✔ La Preliminar la muestra en diagonal; la Final sale sin ella |
+| Cuerpo y tabla de firmas | ✔ Los textos se reemplazan |
+| Actividades con imagen en «04. Desarrollo» | ✔ Se insertan con buen tamaño |
+| Portada, encabezado y pie | ✘ No se pueden reemplazar (ver abajo) |
+| Letra Century Gothic en el PDF | ✘ La «M» mayúscula salió rota («EJE\PLO»). La fuente sí viene completa dentro del Word, así que el problema es del PDF de Google. Se agregó una prueba con todo el abecedario para medirlo |
+
+**Hallazgo importante de la plantilla:** los pies de página del Word están **vacíos**. El tipo de
+documento, el nombre y el departamento (arriba) y el código, la versión, la fecha y el número de
+página (abajo) **no están en el encabezado ni en el pie**: son cuadros de texto flotantes anclados al
+cuerpo de la página 2. Por eso:
+
+- el código no puede llenarlos (Google Docs los vuelve dibujos), y
+- **solo aparecen en la página 2**: si el documento crece, la página 3 en adelante sale sin nombre,
+  sin código y sin número de página. Además, «1 de 2» es texto fijo, no un número de página real.
+
+La plantilla necesita una **versión 2** con el mismo diseño, pero con esos datos dentro del encabezado
+y el pie reales (en tablas sin bordes), marcadores como `{{CODIGO}}` y número de página automático.
+Hay que corregirla con cualquiera de los dos planes.
