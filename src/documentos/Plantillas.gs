@@ -238,6 +238,14 @@ function insertarActividadesDeEjemplo_(cuerpo) {
       cuerpo.insertParagraph(++indice, 'Imagen 1. Captura de ejemplo').editAsText().setItalic(true).setFontSize(9);
     }
   });
+  // Prueba de letras: en la primera prueba la «M» mayúscula salió rota en el PDF («EJE\PLO»).
+  const letras = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ abcdefghijklmnñopqrstuvwxyz ÁÉÍÓÚÜ áéíóúü 0123456789 ¿? ¡! «» MANUAL Marzo';
+  cuerpo.insertParagraph(++indice, 'Prueba de letras (se borrará):').editAsText().setBold(true).setItalic(false);
+  [['Century Gothic', 'normal'], ['Century Gothic', 'negrita'], ['Century Gothic', 'cursiva'], ['Montserrat', 'normal'], ['Montserrat', 'negrita']]
+    .forEach(function (f) {
+      const t = cuerpo.insertParagraph(++indice, f[0] + ' ' + f[1] + ': ' + letras).editAsText();
+      t.setFontFamily(f[0]).setBold(f[1] === 'negrita').setItalic(f[1] === 'cursiva').setFontSize(10);
+    });
   return true;
 }
 
