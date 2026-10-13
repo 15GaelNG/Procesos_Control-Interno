@@ -9,9 +9,14 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
 
 ## Fuente de verdad
 - **El documento de requerimientos manda** (`docs/insumos/requerimientos.md`) sobre la infografía y
-  sobre lo platicado. Si algo no está claro, se pregunta y se anota en `docs/analisis-inicial.md`.
-- La marca «COPIA NO AUTORIZADA» se quita **solo con el Vo.Bo. final** (jefe directo / director),
-  nunca con la validación de Procesos. El final es un archivo nuevo desde la plantilla sin marca.
+  sobre lo platicado, **precisado por las respuestas de Procesos** (`docs/insumos/respuestas-procesos.md`),
+  que mandan donde lo contradicen. Las decisiones vigentes están en `docs/analisis-inicial.md`; si
+  algo no está claro, se pregunta y se anota ahí.
+- **Este sistema llega hasta el Vo.Bo. de Procesos.** Las autorizaciones del responsable y del
+  director se dan en el **sistema CH** (Capital Humano); aquí no se duplican.
+- La marca «COPIA NO AUTORIZADA» se quita **solo cuando CH reporta «Autorizado»**, nunca con la
+  validación de Procesos. El final es un archivo nuevo desde la plantilla sin marca.
+- Se construye primero el tipo **Procedimiento**; los demás tipos, cuando Procesos dé sus plantillas.
 - La IA **propone y la persona decide**; nunca inventa responsables, actividades, tiempos ni
   requisitos, y nunca reordena actividades por su cuenta (§3.3, §3.4).
 

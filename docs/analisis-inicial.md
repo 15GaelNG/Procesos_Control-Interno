@@ -1,27 +1,63 @@
 # Análisis inicial — Sistema de Documentación de Procesos
 
-> **Estado:** validado con Gael el 13/10/2026 (ver [Decisiones](#decisiones-tomadas)); pendientes
-> las reglas que debe definir Procesos.
+> **Estado:** validado con Gael y con las [respuestas de Procesos](#respuestas-de-procesos-13102026)
+> del 13/10/2026. Lo pendiente está en [preguntas abiertas](#9-preguntas-abiertas).
 > **Insumos analizados** (en `insumos/`):
 > - `requerimientos-sistema.docx` → transcrito en [requerimientos.md](insumos/requerimientos.md)
 > - `flujo-del-sistema.jpeg` → infografía del recorrido (12 pasos y 6 roles)
 > - `plantilla-ciudad-maderas.docx` → plantilla institucional (vistas: `plantilla-vista-portada.png`,
 >   `plantilla-vista-contenido.png`)
 >
-> Lo que sigue abierto está en [preguntas abiertas](#9-preguntas-abiertas).
+> - `respuestas-procesos.md` → respuestas del área de Procesos a las preguntas abiertas
 
 ## Decisiones tomadas
 
 | # | Decisión | Fecha |
 |---|---|---|
-| 1 | **El documento de requerimientos manda** sobre la infografía y sobre lo que se platicó de palabra. | 13/10/2026 |
-| 2 | **Marca de agua:** todo lo generado antes del **Vo.Bo. final** (jefe directo / director, §4.4) sale con «COPIA NO AUTORIZADA». La validación de Procesos no la quita. | 13/10/2026 |
+| 1 | **El documento de requerimientos manda** sobre la infografía y sobre lo que se platicó de palabra (precisado por la decisión 9). | 13/10/2026 |
+| 2 | **Marca de agua:** todo lo generado antes del **Vo.Bo. final** sale con «COPIA NO AUTORIZADA». La validación de Procesos no la quita. Por la decisión 10, el Vo.Bo. final es el del director **en el sistema CH**: el documento limpio se genera cuando CH reporta «Autorizado». | 13/10/2026 |
 | 3 | **Dos plantillas por tipo de documento:** preliminar (con marca) y final (sin marca). El final es un archivo nuevo; los preliminares no se tocan. | 13/10/2026 |
 | 4 | **Drive:** todo vive en la carpeta del proyecto, con un ambiente de **pruebas** y uno de **producción** ([ambientes.md](ambientes.md)). | 13/10/2026 |
 | 5 | **Propietario:** hoy `especialista2datos.ci`; en el futuro `procesos.ci`. Todo se diseñó para cambiarlo sin tocar código. | 13/10/2026 |
 | 6 | **IA:** API de Gemini en su nivel gratuito, detrás de una capa intercambiable ([ia.md](ia.md)). | 13/10/2026 |
 | 7 | **Repositorio en GitHub** y subida con clasp, como SIVET y Control Interno. | 13/10/2026 |
 | 8 | **Base de datos:** 22 hojas definidas en `src/config/Esquema.gs` ([base-de-datos.md](base-de-datos.md)). | 13/10/2026 |
+| 9 | **Las respuestas de Procesos precisan el requerimiento.** Donde lo contradicen, mandan las respuestas: vienen del mismo dueño del requerimiento y son más recientes. | 13/10/2026 |
+| 10 | **Este sistema llega hasta el Vo.Bo. de Procesos.** Elaboración, IA, revisión y observaciones se hacen aquí; las autorizaciones formales del responsable y del director **se quedan en el sistema CH** y no se duplican. Sustituye al perfil «Autorizador» (§1) y a la autorización «dentro del sistema» (§4.4). | 13/10/2026 |
+| 11 | **Código documental** `tipo-departamento+área-consecutivo` (ej. `P-CM01-001`). Prefijos: **M** Manual, **P** Procedimiento, **PRO** Protocolo, **PL** Política (además F Formato y DP Diagrama de proceso). Una actualización conserva el código. | 13/10/2026 |
+| 12 | **Se construye primero el tipo Procedimiento.** Manual, Protocolo y Política entran cuando Procesos entregue y valide sus plantillas. | 13/10/2026 |
+| 13 | **Plantilla v2 de Procedimiento:** mismo diseño, encabezado y pie reales (no cuadros de texto), y secciones de Responsabilidades (opcional), Definiciones (opcional) y **Control de cambios**. Procesos la valida antes de usarla ([plantillas.md](plantillas.md)). | 13/10/2026 |
+| 14 | **«Autorizado por» muestra solo al autorizador final** (normalmente el director), con nombre, cargo y fecha que vienen de CH. | 13/10/2026 |
+
+## Respuestas de Procesos (13/10/2026)
+
+Marco (área de Procesos) respondió las 11 preguntas en la página del análisis. La transcripción
+íntegra está en [respuestas-procesos.md](insumos/respuestas-procesos.md). Qué cambia:
+
+| Tema | Lo que dijo Procesos | Qué cambia en el sistema |
+|---|---|---|
+| **Sistema CH** | Es una plataforma independiente de Capital Humano con un módulo de Procesos. Ahí se cargan los documentos, se avisa por correo y se dan los Vo.Bo. del responsable y del director. CH no autoriza contenido. No todos los procesos están en CH. | **Este sistema termina en el Vo.Bo. de Procesos** (decisión 10). Después, el documento se envía a CH y aquí se espera su resultado. Hay que definir cómo se conectan los dos sistemas. |
+| **Autorizaciones** | Varían por tipo de documento, departamento y estructura, y las administra CH con sus reglas. El Vo.Bo. de Procesos no es la autorización oficial. | Sale del diseño la cadena de autorización interna (hoja `CadenasAutorizacion` y perfil `AUTORIZADOR`). Entran el estado «En autorización (CH)» y el registro del resultado que venga de CH. |
+| **«Autorizado por»** | Solo el autorizador final, con nombre y cargo. La trazabilidad completa queda en CH. | El recuadro de la plantilla no cambia (decisión 14). |
+| **Marca de agua** | (Se deriva de lo anterior.) | El PDF que se carga en CH para las firmas es el **preliminar con marca**. El archivo limpio se genera cuando CH reporta «Autorizado» (decisión 2). |
+| **Código** | `XX-XY-YYY`: tipo, departamento + área (`CM01`) y consecutivo, elegidos de catálogos. El consecutivo debe evitar duplicados contra los documentos existentes. Una actualización conserva el código. Pendiente: si el consecutivo cuenta por tipo + departamento + área. | Se corrigen los prefijos sembrados (Procedimiento es **P**; `PRO` es Protocolo). Nuevo catálogo de **áreas** por departamento. |
+| **Versiones** (propuesta por validar) | `0.0` desde la elaboración hasta la primera autorización. Mayores: 1.0, 2.0… Menores: 0.1, 1.1… El colaborador da motivo y descripción, y Procesos decide si es mayor o menor. La versión cambia solo al autorizarse. | Al dar el Vo.Bo., Procesos elige «mayor» o «menor» y el sistema calcula la versión propuesta. Se vuelve oficial cuando CH autoriza. |
+| **Plantillas** | Cada tipo tiene su propia estructura, con criterios comunes (encabezado, nombre, código, versión, objetivo y alcance, responsables, control de cambios). Hoy solo existe la de Procedimiento. | Decisión 12. Al elegir el tipo, el sistema usa su plantilla. |
+| **Secciones** | Responsabilidades (opcional), Definiciones (opcional), **Control de cambios** (obligatorio: versión, fecha, descripción y responsable). Fechas automáticas. Las fechas de autorización son las de CH. | Plantilla v2 (decisión 13). `HistorialCambios` necesita la columna del responsable de la modificación. |
+| **Desarrollo** | Número automático, responsable (**puesto o departamento**), descripción, imágenes debajo con pie y tamaño uniforme. Procesos compartirá un documento aprobado de ejemplo. | Coincide con lo diseñado. El responsable puede ser también un departamento. |
+| **Avisos** | Correo solo en cambios de estado relevantes: a Procesos al enviar y reenviar; al colaborador con observaciones y con el Vo.Bo.; a los dos con el resultado de CH. Incluye nombre, código, estado, responsable y liga. Recordatorios de pendientes. Sin duplicar los avisos de CH. | Módulo de avisos por estado y recordatorios. Cada documento necesita un **revisor de Procesos asignado**. |
+| **IA** | De acuerdo con Gemini. Quieren una IA activa: también revisar secuencia, duplicados y estructura, y apoyar a Procesos en la revisión. Solo enviar actividades y puestos; nada de nombres, datos personales, contraseñas ni información financiera. Piden que **TI valide** el nivel gratuito. | Filtro que oculta correos, teléfonos, cuentas, RFC/CURP y montos antes de enviar a la IA. Apoyo de IA también en la bandeja de Procesos. Validación de TI pendiente. |
+| **Inventario** | Existe (nombre, código, versión, departamento). La mayoría en Word, algunos en PDF. Proponen subir el documento existente y que la IA lo separe en actividades para que el colaborador las valide. | Importación con IA para las actualizaciones: Word directo y PDF con la lectura de texto de Google Drive. Se necesita el archivo del inventario. |
+
+### Cambios pendientes en el esquema de la base de datos
+
+Se harán al iniciar la fase 1, cuando se resuelva cómo se conecta con CH:
+
+- `TiposDocumento`: prefijos M, P, PRO, PL (F y DP inactivos hasta que Procesos diga si se documentan aquí).
+- Nueva hoja `Areas` (departamento, nombre, clave) para armar el código.
+- `Solicitudes`: revisor de Procesos asignado, tipo de cambio (mayor o menor), folio y estado en CH.
+- Se quita `CadenasAutorizacion`; `Autorizaciones` pasa a guardar lo que reporte CH.
+- `HistorialCambios`: responsable de la modificación.
 
 ---
 
@@ -57,35 +93,36 @@ registra automáticamente quién elaboró, revisó y autorizó.
 
 ## 3. El flujo como lo entendí
 
-### 3.1 Recorrido (infografía + requerimientos)
+### 3.1 Recorrido (actualizado con las respuestas de Procesos)
 
 ```
- COLABORADOR                                            PROCESOS            AUTORIZACIONES
- ───────────                                            ────────            ──────────────
+ COLABORADOR                          PROCESOS (este sistema)              SISTEMA CH
+ ───────────                          ───────────────────────              ──────────
  1 Inicio de sesión (perfil, nombre, puesto, depto. automáticos)
  2 Información general (tipo de solicitud, tipo de doc., nombre / doc. a actualizar)
  3 Desarrollo del proceso (inicio, actividades + imágenes, fin)
  4 Análisis con IA (redacción, responsables, objetivo, alcance, faltantes → preguntas)
- 5 Vista previa y confirmación ◄─────────────┐
- 6 Envío a revisión ──────────────────────►  7 ¿Requiere correcciones?
-                                             │   Sí → observaciones ──┘ (vuelve al paso 5)
-                                             │   No ↓
-                                             8 Vo.Bo. de Procesos ──► 9 Envío a «sistema CH»
-                                                                      10 Autorización del responsable
-                                                                      11 Autorización de Dirección
-                                                                      12 Publicación (versión vigente)
+ 5 Vista previa y confirmación ◄──────────┐
+ 6 Envío a revisión ─────────────────►  7 ¿Requiere correcciones?
+                                        │   Sí → observaciones ─┘ (vuelve al paso 5)
+                                        │   No ↓
+                                        8 Vo.Bo. de Procesos ─────────►  9 Carga en CH (PDF con marca)
+                                          (código, versión propuesta)    10 Vo.Bo. del responsable
+                                                                         11 Vo.Bo. del director
+ 13 Aviso del resultado ◄────────────── 12 Resultado de CH ◄─────────────┘
+    Autorizado → documento final sin marca y versión vigente en el inventario
 ```
 
-### 3.2 Estados de una solicitud (propuesta)
+### 3.2 Estados de una solicitud (actualizados con las respuestas de Procesos)
 
 | Estado | Quién la tiene | Sale hacia |
 |---|---|---|
 | `BORRADOR` | Colaborador | `CONFIRMADO` |
 | `CONFIRMADO` | Colaborador (ya puede generar preliminar) | `EN_REVISION` · vuelve a `BORRADOR` si edita algo |
-| `EN_REVISION` | Procesos | `DEVUELTO` · `EN_AUTORIZACION` · `NO_PROCEDENTE` |
+| `EN_REVISION` | Revisor de Procesos asignado | `DEVUELTO` · `EN_AUTORIZACION_CH` · `NO_PROCEDENTE` |
 | `DEVUELTO` | Colaborador (atiende observaciones) | `CONFIRMADO` → `EN_REVISION` |
-| `EN_AUTORIZACION` | Autorizador del nivel actual (responsable → Dirección) | siguiente nivel · `DEVUELTO` · `AUTORIZADO` |
-| `AUTORIZADO` / `PUBLICADO` | — (pasa al inventario documental como vigente) | — |
+| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director) | `AUTORIZADO` · rechazo (por definir con Procesos, pregunta D) |
+| `AUTORIZADO` | — (documento final sin marca; pasa al inventario como vigente) | — |
 | `NO_PROCEDENTE` | — (cerrada por Procesos con motivo, sin consumir código) | — |
 | `CANCELADO` | — (el colaborador desiste de un borrador) | — |
 
@@ -356,27 +393,33 @@ Procesos System/
 
 ## 9. Preguntas abiertas
 
+Las 12 preguntas originales quedaron resueltas por las decisiones 1–14 y las
+[respuestas de Procesos](#respuestas-de-procesos-13102026). Siguen abiertas:
+
 **Para Gael (decisiones técnicas):**
 
-1. ~~Dominio y cuenta dueña~~ → resuelto (decisiones 4 y 5).
-2. ~~Proveedor de IA~~ → resuelto (decisión 6). Falta que Gael cree la llave en Google AI Studio.
-3. ~~Repo y ambientes~~ → resuelto (decisión 7):
-   [15GaelNG/Procesos_Control-Interno](https://github.com/15GaelNG/Procesos_Control-Interno).
-4. ¿El módulo de Capital Humano de Control Interno tiene ya un catálogo de colaboradores, puestos y
+A. **Sistema CH:** ¿quién lo desarrolló, en qué está hecho y cómo podemos conectarnos (API, hoja de
+   Sheets, base de datos, correo)? Hay que **enviarle** el documento con el Vo.Bo. de Procesos y
+   **recibir** su resultado (autorizado o rechazado, quién y cuándo). Si no hay forma de conectarse,
+   el plan B es que Procesos registre en este sistema el resultado de CH.
+B. **TI:** validar el uso del nivel gratuito de Gemini (lo pidió Procesos).
+C. ¿El módulo de Capital Humano de Control Interno tiene un catálogo de colaboradores, puestos y
    departamentos que podamos leer, en lugar de capturarlo otra vez?
 
-**Para el área de Procesos (reglas de negocio):**
+**Para el área de Procesos:**
 
-5. ~~¿Cuándo se quita la marca de agua?~~ → resuelto (decisión 2).
-6. ¿Qué es el «sistema CH» y qué hace en el flujo? (punto 5.2)
-7. Cadena de autorización: ¿siempre responsable → Dirección? ¿quién es el responsable de cada área?
-   ¿qué nombre(s) van en «Autorizado por» de la plantilla?
-8. Estructura del código (`PRO-CM01-001`) y regla de versiones.
-9. Plantillas por tipo de documento y dónde van Responsabilidades, Definiciones y Control de
-   cambios. ¿Cómo debe verse cada actividad en «04. Desarrollo»?
-10. Ejemplos de documentos ya aprobados (sirven para enseñarle el estilo a la IA).
-11. Catálogo de departamentos y puestos, y lista de usuarios con su perfil.
-12. ¿Se avisa por correo en cada cambio de estado?
+D. **Rechazo en CH:** si el responsable o el director rechaza, ¿el documento regresa al colaborador
+   en este sistema con observaciones? ¿Quién las captura?
+E. **Revisor asignado:** ¿cómo se asigna cada documento a un colaborador de Procesos (por
+   departamento, a mano, por turnos)?
+F. **Consecutivo del código:** ¿cuenta por tipo + departamento + área o hay otro criterio? (lo dejaron
+   pendiente).
+G. **Catálogos:** departamentos y áreas con sus claves (`CM01`…), puestos, y lista de usuarios con su
+   perfil (colaborador, revisor, administrador).
+H. **Formato (F) y Diagrama de proceso (DP):** ¿también se documentan en este sistema?
+I. **Documentos que no están en CH:** ¿cómo se autorizan?
+J. **Insumos:** el archivo del inventario documental y un documento aprobado de ejemplo.
+K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; mayores y menores).
 
 ---
 
@@ -390,7 +433,7 @@ Procesos System/
 | **3. IA y confirmación** | Análisis, aclaraciones, propuestas aceptables, vista previa, confirmación con huella | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word/PDF con marca de agua desde la plantilla | Fase 3 · plantillas |
 | **5. Revisión de Procesos** | Bandeja, observaciones por apartado, devolver, no procedente, código, Vo.Bo. | Fase 4 · regla de códigos |
-| **6. Autorizaciones y publicación** | Cadena de autorización, documento final limpio, descarga protegida, inventario documental | Fase 5 · esquema de autorizaciones |
-| **7. Actualizaciones** | Partir de un documento vigente, control de cambios, historial de versiones | Fase 6 · inventario |
-| **8. Cierre** | Notificaciones, tablero, manual de usuario | — |
+| **6. Envío a CH y publicación** | Envío del documento con Vo.Bo. al sistema CH, recepción del resultado, documento final limpio, descarga protegida, inventario documental | Fase 5 · pregunta A (conexión con CH) |
+| **7. Actualizaciones** | Partir de un documento vigente o importar un Word/PDF existente con IA, control de cambios, historial de versiones | Fase 6 · inventario |
+| **8. Cierre** | Avisos por correo y recordatorios, tablero, manual de usuario | — |
 | Después | Inventario de Procesos (el otro tema que mencionaste) | — |

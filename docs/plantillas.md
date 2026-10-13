@@ -2,9 +2,10 @@
 
 ## La regla
 
-Todo archivo generado antes del **Vo.Bo. final** sale con «COPIA NO AUTORIZADA». El documento final
-**es un archivo nuevo** generado desde la plantilla sin marca; los preliminares nunca se tocan
-(requerimiento §4.4, decisiones 2 y 3 del [análisis](analisis-inicial.md#decisiones-tomadas)).
+Todo archivo generado antes del **Vo.Bo. final** sale con «COPIA NO AUTORIZADA», incluido el PDF que
+se carga en el sistema CH para las firmas. El documento final **es un archivo nuevo** generado desde
+la plantilla sin marca cuando CH reporta «Autorizado»; los preliminares nunca se tocan
+(requerimiento §4.4, decisiones 2, 3 y 10 del [análisis](analisis-inicial.md#decisiones-tomadas)).
 
 ## Una plantilla de Word, dos Google Docs
 
