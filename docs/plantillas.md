@@ -92,7 +92,8 @@ powershell -ExecutionPolicy Bypass -File tools\plantillas\crear-plantilla-v2.ps1
 | Letra **Montserrat** en lugar de Century Gothic | La «M» y la «W» de Century Gothic salen rotas en los PDF de Google (prueba de letras del 13/10). Montserrat sale completa y se parece mucho |
 | «ÚLTIMA ACTUALIZACIÓN» y «PÁGINA» con acento | Ortografía |
 
-Procesos debe **validarla** antes de usarla en producción.
+**Validada por Procesos (Marco) el 13/10/2026** con el PDF de prueba: 3 hojas, 26 de 26 marcadores
+llenos, «Definiciones» vacía se quitó y las secciones se renumeraron solas.
 
 > **Montserrat en Word:** los PDF y los Google Docs se ven bien porque Google trae Montserrat. Para
 > que el Word se vea igual en una computadora, esa computadora necesita tener Montserrat instalada

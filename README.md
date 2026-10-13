@@ -8,9 +8,10 @@ institucional, con la marca «COPIA NO AUTORIZADA» hasta el Vo.Bo. final.
 Construido 100% sobre **Google Apps Script** (`HtmlService`), con **Google Sheets** como base de
 datos, **Google Drive** para archivos y **Google Docs** para generar los documentos.
 
-> **Estado:** fase 1 (base). Ya están el esquema de la base de datos, el instalador y los dos
-> ambientes. Sigue la prueba de concepto de plantillas e IA. Ver el
-> [análisis inicial](docs/analisis-inicial.md#10-plan-por-fases).
+> **Estado:** fase 0 terminada (13/10/2026): IA y plantilla v2 probadas y validadas por Procesos.
+> Sigue la fase 1 (base): ya están los dos ambientes, el instalador y el esquema de la base de datos;
+> faltan el acceso con Google, los perfiles, los catálogos y la primera pantalla. Ver el
+> [plan por fases](docs/analisis-inicial.md#10-plan-por-fases).
 
 ## Documentación
 
