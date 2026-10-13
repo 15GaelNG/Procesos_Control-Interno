@@ -41,6 +41,10 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   `docs/base-de-datos.md` en el mismo commit. Columnas nuevas, siempre al final.
 - Se lee y escribe por **nombre de columna** (`leerTabla_`, `agregarFila_`, `actualizarFila_`).
 - Nada se borra físicamente: `ACTIVO = NO` o `ELIMINADA = SI`.
+- Plantillas: el contrato con el generador son los marcadores `{{...}}` de `MARCADORES_PLANTILLA`
+  (`src/config/Config.gs`). La plantilla v2 se genera con `tools/plantillas/crear-plantilla-v2.ps1`;
+  no se edita a mano. `tests/plantillas.test.js` revisa que el `.docx` y el contrato coincidan.
+- Los `.ps1` se guardan en UTF-8 **con BOM** (PowerShell 5 lee sin BOM como ANSI y rompe los acentos).
 - Los IDs de carpetas, ambiente y llave de la IA viven en las Propiedades del script, nunca en el
   código. La llave de la IA jamás va al repo, a la hoja ni al navegador.
 

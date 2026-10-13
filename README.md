@@ -36,7 +36,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   │   ├── Catalogos.gs       Perfiles, estados y transiciones, motivos de cambio
 │   │   └── Esquema.gs         Hojas y columnas de la base de datos (única fuente de verdad)
 │   ├── documentos/
-│   │   └── Plantillas.gs      prepararPlantillas() · probarPlantillas() · quitar la marca de agua
+│   │   ├── Plantillas.gs      prepararPlantillas() · probarPlantillas() · quitar la marca de agua
+│   │   └── Llenado.gs         llenarPlantilla_(): pone los datos en los marcadores {{...}}
 │   ├── ia/
 │   │   ├── ClienteIA.gs       Única puerta a Gemini (modelo, tope diario, UsoIA)
 │   │   ├── Prompts.gs         Instrucciones del análisis
@@ -46,8 +47,11 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │       ├── SheetUtils.gs      Leer y escribir por nombre de columna
 │       ├── Parametros.gs      Lectura de la hoja Config
 │       └── Ids.gs             Consecutivos con bloqueo (USR-0001, SOL-2026-0001…)
+├── plantillas/            Plantillas de Word con marcadores (Procedimiento.docx = v2)
 ├── tests/                 Pruebas en node (npm test)
-├── tools/subir.js         Sube a pruebas o producción
+├── tools/
+│   ├── subir.js             Sube a pruebas o producción
+│   └── plantillas/          crear-plantilla-v2.ps1 (arma la v2 con Word)
 └── docs/                  Documentación
 ```
 

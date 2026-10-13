@@ -82,6 +82,25 @@ const MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingm
 const SUFIJO_PRELIMINAR = ' - Preliminar';
 const SUFIJO_FINAL = ' - Final';
 const CARPETA_PRUEBAS_GENERACION = 'Pruebas de generación';
+const ANCHO_IMAGEN_DOCUMENTO = 420;   // puntos: ancho máximo de una imagen dentro de «Desarrollo»
+
+// Contrato entre la plantilla (plantillas/Procedimiento.docx) y el generador (documentos/Llenado.gs).
+// Cada marcador se escribe en la plantilla como {{CLAVE}}. Ver docs/plantillas.md#marcadores.
+const MARCADORES_PLANTILLA = {
+  // Se reemplazan por un texto, en cualquier parte (portada, encabezado, cuerpo, tablas, pie).
+  simples: ['NOMBRE_PORTADA', 'CODIGO', 'TIPO_DOCUMENTO', 'NOMBRE_DOCUMENTO', 'DEPARTAMENTO', 'VERSION',
+    'FECHA_ACTUALIZACION', 'OBJETIVO', 'ALCANCE',
+    'ELABORO_NOMBRE', 'ELABORO_PUESTO', 'FECHA_ELABORACION',
+    'REVISO_NOMBRE', 'REVISO_PUESTO', 'FECHA_REVISION',
+    'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'FECHA_AUTORIZACION',
+    'CAMBIO_VERSION', 'CAMBIO_FECHA', 'CAMBIO_DESCRIPCION', 'CAMBIO_RESPONSABLE'],
+  // Su párrafo se repite una vez por elemento de la lista.
+  listas: ['PUESTOS', 'RESPONSABILIDADES', 'DEFINICIONES'],
+  // Si su lista viene vacía se quita la sección completa (título incluido) y se renumeran las demás.
+  opcionales: ['RESPONSABILIDADES', 'DEFINICIONES'],
+  // Se sustituye por las actividades (número, responsable, descripción, imágenes con pie).
+  desarrollo: 'DESARROLLO'
+};
 
 // Colores institucionales (los mismos que SIVET / Control Interno y la plantilla).
 const COLOR_AZUL = '#1E252B';

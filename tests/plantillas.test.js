@@ -44,3 +44,24 @@ test('también quita una marca hecha como forma moderna (mc:AlternateContent) co
   assert.strictEqual(r.quitadas, 1);
   assert.strictEqual(r.xml, '<w:hdr><w:p><w:r><w:t>Antes</w:t></w:r><w:r><w:t>Después</w:t></w:r></w:p></w:hdr>');
 });
+
+// ─── Marcadores de la plantilla v2 (src/documentos/Llenado.gs) ───
+const { textoDocx } = require('./leer-docx');
+const llenado = cargarGs(['src/config/Config.gs', 'src/documentos/Llenado.gs'], {}, ['MARCADORES_PLANTILLA']);
+
+test('marcadoresEnTexto_ encuentra cada {{CLAVE}} una sola vez y en orden', function () {
+  const texto = '{{CODIGO}} · {{NOMBRE_DOCUMENTO}} · otra vez {{CODIGO}} · {{mal}} · {CODIGO} · {{FECHA_2026}}';
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(llenado.marcadoresEnTexto_(texto))), ['CODIGO', 'NOMBRE_DOCUMENTO', 'FECHA_2026']);
+  assert.strictEqual(llenado.marcadoresEnTexto_('sin marcadores').length, 0);
+});
+
+test('la plantilla v2 trae todos los marcadores que el sistema conoce y ninguno desconocido', function () {
+  // Se lee el .docx real (cuerpo, encabezados y pies): si alguien rehace la plantilla y se le olvida
+  // o se le rompe un marcador, esta prueba lo detecta.
+  const texto = textoDocx(path.join(__dirname, '..', 'plantillas', 'Procedimiento.docx'));
+  const enPlantilla = Array.from(llenado.marcadoresEnTexto_(texto));
+  const m = llenado.MARCADORES_PLANTILLA;
+  const conocidos = [].concat(m.simples, m.listas, [m.desarrollo]);
+  assert.deepStrictEqual(conocidos.filter(function (c) { return enPlantilla.indexOf(c) === -1; }), [], 'faltan en la plantilla');
+  assert.deepStrictEqual(enPlantilla.filter(function (c) { return conocidos.indexOf(c) === -1; }), [], 'la plantilla trae marcadores desconocidos');
+});

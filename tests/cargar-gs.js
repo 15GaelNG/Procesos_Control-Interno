@@ -6,9 +6,12 @@ const vm = require('vm');
 
 const RAIZ = path.join(__dirname, '..');
 
-function cargarGs(archivos, globales) {
+// Las funciones quedan visibles en el contexto; las constantes (const) no, así que las que la prueba
+// necesite se piden en `constantes` y se copian al contexto con el mismo nombre.
+function cargarGs(archivos, globales, constantes) {
   const contexto = vm.createContext(Object.assign({ console: console }, globales || {}));
-  const codigo = archivos.map(function (a) { return fs.readFileSync(path.join(RAIZ, a), 'utf8'); }).join('\n;\n');
+  const codigo = archivos.map(function (a) { return fs.readFileSync(path.join(RAIZ, a), 'utf8'); }).join('\n;\n') +
+    (constantes || []).map(function (c) { return '\n;this.' + c + ' = ' + c + ';'; }).join('');
   vm.runInContext(codigo, contexto, { filename: archivos.join(' + ') });
   return contexto;
 }

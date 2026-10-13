@@ -4,9 +4,9 @@
  *   prepararPlantillas()  → por cada Word (.docx) en la carpeta Plantillas del ambiente crea dos
  *                           Google Docs: «<nombre> - Preliminar» (tal cual, con «COPIA NO AUTORIZADA»)
  *                           y «<nombre> - Final» (el mismo Word sin la marca de agua).
- *   probarPlantillas()    → llena una copia de cada una con datos de EJEMPLO y la exporta a PDF y Word
- *                           en «Plantillas/Pruebas de generación», para revisar qué tanto conserva el
- *                           diseño y qué textos se pudieron reemplazar.
+ *   probarPlantillas()    → llena una copia de cada plantilla v2 (con marcadores {{...}}) con datos de
+ *                           EJEMPLO usando llenarPlantilla_ (documentos/Llenado.gs) y la exporta a PDF
+ *                           y Word en «Plantillas/Pruebas de generación».
  *
  * Así Procesos solo sube UN Word por tipo de documento (con la marca) y el sistema arma las dos
  * versiones. El final nunca se obtiene «borrando» la marca de un archivo ya generado: es otro
@@ -52,6 +52,7 @@ function probarPlantillas() {
     'Documentos generados con datos de ejemplo para revisar las plantillas. Se pueden borrar.');
   const sello = Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd HH.mm');
   const lineas = ['Resultados en: https://drive.google.com/drive/folders/' + destino.getId(), ''];
+  const esperados = MARCADORES_PLANTILLA.simples.concat(MARCADORES_PLANTILLA.listas, [MARCADORES_PLANTILLA.desarrollo]);
 
   const docs = carpeta.getFilesByType(MimeType.GOOGLE_DOCS);
   let total = 0;
@@ -59,10 +60,14 @@ function probarPlantillas() {
     const plantilla = docs.next();
     const nombre = plantilla.getName();
     if (!/ - (Preliminar|Final)$/.test(nombre)) continue;
+    if (!marcadoresEnTexto_(DocumentApp.openById(plantilla.getId()).getBody().getText()).length) {
+      lineas.push(nombre + ': se omite (no tiene marcadores {{...}}; es una plantilla anterior a la v2).', '');
+      continue;
+    }
     total++;
     const copia = plantilla.makeCopy('PRUEBA ' + sello + ' · ' + nombre, destino);
     const doc = DocumentApp.openById(copia.getId());
-    const reporte = llenarConEjemplo_(doc);
+    const reporte = llenarPlantilla_(doc, datosDeEjemplo_());
     doc.saveAndClose();
 
     const pdf = destino.createFile(copia.getAs(MimeType.PDF)).setName(copia.getName() + '.pdf');
@@ -72,16 +77,49 @@ function probarPlantillas() {
     lineas.push('  Google Doc: ' + urlDoc_(copia.getId()));
     lineas.push('  PDF:        ' + pdf.getUrl());
     lineas.push('  Word:       ' + docx.getUrl());
-    lineas.push('  Textos de la plantilla:');
-    reporte.textos.forEach(function (t) {
-      lineas.push('    ' + (t.reemplazos ? '✔' : '✘') + ' «' + t.buscar + '»' +
-        (t.reemplazos ? ' → ' + t.reemplazos + ' vez/veces en ' + t.secciones.join(', ') : ' — no se encontró (¿está en un cuadro de texto?)'));
+    lineas.push('  Marcadores de la plantilla:');
+    esperados.forEach(function (clave) {
+      const donde = reporte.encontrados[clave];
+      lineas.push('    ' + (donde ? '✔' : '✘') + ' {{' + clave + '}}' + (donde ? ' (' + donde.join(', ') + ')' : ' — no está en la plantilla'));
     });
-    lineas.push('  Desarrollo: ' + (reporte.desarrollo ? 'se insertaron 3 actividades de ejemplo con imagen' : '✘ no se encontró el título «Desarrollo»'));
+    Object.keys(reporte.encontrados).filter(function (c) { return esperados.indexOf(c) === -1; }).forEach(function (c) {
+      lineas.push('    ? {{' + c + '}} — está en la plantilla pero el sistema no lo conoce');
+    });
+    lineas.push('  Sin llenar al final: ' + (reporte.sinLlenar.length ? reporte.sinLlenar.join(', ') : 'ninguno'));
     lineas.push('');
   }
-  if (!total) lineas.push('No hay plantillas «- Preliminar» / «- Final». Corre primero prepararPlantillas().');
+  if (!total) lineas.push('No hay plantillas v2 «- Preliminar» / «- Final». Sube Procedimiento.docx y corre prepararPlantillas().');
   Logger.log(lineas.join('\n'));
+}
+
+/** Datos INVENTADOS para la prueba (el proceso de ejemplo de probarIA). */
+function datosDeEjemplo_() {
+  return {
+    simples: {
+      NOMBRE_PORTADA: 'ALTA DE PROVEEDORES', CODIGO: 'P-CM01-001', TIPO_DOCUMENTO: 'Procedimiento',
+      NOMBRE_DOCUMENTO: 'Alta de proveedores', DEPARTAMENTO: 'Compras', VERSION: '0.0', FECHA_ACTUALIZACION: '10/2026',
+      OBJETIVO: 'Registrar a los proveedores nuevos que solicitan las áreas, verificando su documentación fiscal y bancaria antes de autorizarlos. (EJEMPLO)',
+      ALCANCE: 'Inicia cuando un área solicita el alta de un proveedor y termina cuando el proveedor queda activo y se avisa al área. (EJEMPLO)',
+      ELABORO_NOMBRE: 'Persona de Ejemplo', ELABORO_PUESTO: 'Auxiliar de Compras', FECHA_ELABORACION: '13/10/2026',
+      REVISO_NOMBRE: 'Persona de Ejemplo', REVISO_PUESTO: 'Analista de Procesos', FECHA_REVISION: '14/10/2026',
+      AUTORIZO_NOMBRE: 'Persona de Ejemplo', AUTORIZO_PUESTO: 'Director de Administración', FECHA_AUTORIZACION: '',
+      CAMBIO_VERSION: '0.0', CAMBIO_FECHA: '10/2026', CAMBIO_DESCRIPCION: 'Emisión inicial del documento.', CAMBIO_RESPONSABLE: 'Auxiliar de Compras'
+    },
+    listas: {
+      PUESTOS: ['Compras: Auxiliar de Compras, Jefe de Compras', 'Área solicitante'],
+      RESPONSABILIDADES: [
+        'Auxiliar de Compras: recibir la solicitud, revisar la documentación y capturar los datos del proveedor.',
+        'Jefe de Compras: revisar la captura y autorizar el alta.'],
+      DEFINICIONES: []   // vacía a propósito: la sección debe desaparecer y renumerarse las demás
+    },
+    actividades: [
+      { responsable: 'Auxiliar de Compras', descripcion: 'Recibe la solicitud del área y revisa que incluya la constancia de situación fiscal y el estado de cuenta.',
+        imagenes: [{ blob: imagenDeEjemplo_(), pie: 'Bandeja de solicitudes (ejemplo)' }] },
+      { responsable: 'Auxiliar de Compras', descripcion: 'Captura los datos del proveedor en el sistema.', imagenes: [] },
+      { responsable: 'Jefe de Compras', descripcion: 'Revisa la captura y, si es correcta, autoriza el alta.', imagenes: [] },
+      { responsable: '', descripcion: 'Se avisa al área solicitante que el proveedor quedó registrado.', imagenes: [] }
+    ]
+  };
 }
 
 // ─────────────────────────────────── Marca de agua ───────────────────────────────────
@@ -162,93 +200,6 @@ function exportarDocx_(idDoc) {
   return resp.getBlob().setContentType(MIME_DOCX);
 }
 
-/**
- * Reemplaza los textos de ejemplo de la plantilla institucional y agrega actividades en
- * «Desarrollo». Revisa cuerpo, encabezados y pies (todas sus variantes: primera página, pares…).
- */
-function llenarConEjemplo_(doc) {
-  const textos = [
-    { buscar: 'NOMBRE DEL PROCESO', poner: 'ALTA DE PROVEEDORES' },
-    { buscar: 'Nombre del proceso o procedimiento', poner: 'Alta de proveedores' },
-    { buscar: 'Nombre del departamento', poner: 'Compras' },
-    { buscar: 'Proceso / Procedimiento', poner: 'Procedimiento' },
-    { buscar: 'Establecer los lineamientos estándar para la ejecución homogénea de procesos dentro de Ciudad Maderas, asegurando agilidad operativa y calidad en el servicio.',
-      poner: 'Describir cómo se registra un proveedor nuevo para que las áreas puedan solicitarle bienes o servicios. (TEXTO DE EJEMPLO)' },
-    { buscar: 'Aplica directamente para los desarrollos inmobiliarios, direcciones y áreas involucradas en la ejecución del procedimiento.',
-      poner: 'Aplica al departamento de Compras y a las áreas que solicitan el alta de un proveedor. (TEXTO DE EJEMPLO)' },
-    { buscar: 'Dirección de Operaciones Inmobiliarias', poner: 'Compras: Auxiliar de Compras, Jefe de Compras' },
-    { buscar: '[Nombre del Elaborador]', poner: 'Persona de Ejemplo · Auxiliar de Compras' },
-    { buscar: '[Nombre del Revisor]', poner: 'Persona de Ejemplo · Analista de Procesos' },
-    { buscar: '[Nombre del Autorizador]', poner: 'Persona de Ejemplo · Dirección' },
-    { buscar: 'PRO-CM01-001', poner: 'PRO-XX00-000' },
-    { buscar: 'MM/ AÑO', poner: '10/2026' },
-    { buscar: 'Código', poner: 'PRO-XX00-000' }
-  ];
-  const secciones = seccionesDelDocumento_(doc);
-  textos.forEach(function (t) {
-    t.reemplazos = 0;
-    t.secciones = [];
-    const patron = escaparRegex_(t.buscar);
-    secciones.forEach(function (s) {
-      let n = 0;
-      let encontrado = s.elemento.findText(patron);
-      while (encontrado) { n++; encontrado = s.elemento.findText(patron, encontrado); }
-      if (n) {
-        s.elemento.replaceText(patron, t.poner);
-        t.reemplazos += n;
-        if (t.secciones.indexOf(s.nombre) === -1) t.secciones.push(s.nombre);
-      }
-    });
-  });
-  return { textos: textos, desarrollo: insertarActividadesDeEjemplo_(doc.getBody()) };
-}
-
-/** Cuerpo + todos los encabezados y pies (DocumentApp solo expone el principal por getHeader()). */
-function seccionesDelDocumento_(doc) {
-  const secciones = [{ nombre: 'cuerpo', elemento: doc.getBody() }];
-  const raiz = doc.getBody().getParent();
-  let h = 0;
-  let f = 0;
-  for (let i = 0; i < raiz.getNumChildren(); i++) {
-    const hijo = raiz.getChild(i);
-    if (hijo.getType() === DocumentApp.ElementType.HEADER_SECTION) secciones.push({ nombre: 'encabezado ' + (++h), elemento: hijo.asHeaderSection() });
-    if (hijo.getType() === DocumentApp.ElementType.FOOTER_SECTION) secciones.push({ nombre: 'pie ' + (++f), elemento: hijo.asFooterSection() });
-  }
-  return secciones;
-}
-
-function insertarActividadesDeEjemplo_(cuerpo) {
-  const titulo = cuerpo.findText('Desarrollo');
-  if (!titulo) return false;
-  const parrafo = titulo.getElement().getParent();
-  let indice = cuerpo.getChildIndex(parrafo.getType() === DocumentApp.ElementType.PARAGRAPH ? parrafo : parrafo.getParent());
-  const actividades = [
-    ['Auxiliar de Compras', 'Recibe la solicitud del área y revisa que incluya la constancia de situación fiscal y el estado de cuenta.'],
-    ['(pendiente de confirmar)', 'Captura los datos del proveedor en el sistema.'],
-    ['Jefe de Compras', 'Revisa la captura y, si es correcta, autoriza el alta.']
-  ];
-  actividades.forEach(function (a, n) {
-    const encabezado = cuerpo.insertParagraph(++indice, 'Actividad ' + (n + 1) + ' · ' + a[0]);
-    encabezado.editAsText().setBold(true);
-    cuerpo.insertParagraph(++indice, a[1]).editAsText().setBold(false);
-    if (n === 0) {
-      const imagen = cuerpo.insertParagraph(++indice, '').appendInlineImage(imagenDeEjemplo_());
-      const ancho = 420;
-      imagen.setHeight(Math.round(imagen.getHeight() * ancho / imagen.getWidth())).setWidth(ancho);
-      cuerpo.insertParagraph(++indice, 'Imagen 1. Captura de ejemplo').editAsText().setItalic(true).setFontSize(9);
-    }
-  });
-  // Prueba de letras: en la primera prueba la «M» mayúscula salió rota en el PDF («EJE\PLO»).
-  const letras = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ abcdefghijklmnñopqrstuvwxyz ÁÉÍÓÚÜ áéíóúü 0123456789 ¿? ¡! «» MANUAL Marzo';
-  cuerpo.insertParagraph(++indice, 'Prueba de letras (se borrará):').editAsText().setBold(true).setItalic(false);
-  [['Century Gothic', 'normal'], ['Century Gothic', 'negrita'], ['Century Gothic', 'cursiva'], ['Montserrat', 'normal'], ['Montserrat', 'negrita']]
-    .forEach(function (f) {
-      const t = cuerpo.insertParagraph(++indice, f[0] + ' ' + f[1] + ': ' + letras).editAsText();
-      t.setFontFamily(f[0]).setBold(f[1] === 'negrita').setItalic(f[1] === 'cursiva').setFontSize(10);
-    });
-  return true;
-}
-
 /** Imagen PNG de relleno (una gráfica sencilla), para probar la inserción y el tamaño. */
 function imagenDeEjemplo_() {
   const datos = Charts.newDataTable().addColumn(Charts.ColumnType.STRING, 'Paso').addColumn(Charts.ColumnType.NUMBER, 'Valor')
@@ -276,8 +227,4 @@ function propiedadObligatoria_(clave) {
 
 function urlDoc_(id) {
   return 'https://docs.google.com/document/d/' + id + '/edit';
-}
-
-function escaparRegex_(texto) {
-  return texto.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
 }

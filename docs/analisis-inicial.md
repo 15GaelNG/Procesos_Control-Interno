@@ -28,6 +28,9 @@
 | 12 | **Se construye primero el tipo Procedimiento.** Manual, Protocolo y Política entran cuando Procesos entregue y valide sus plantillas. | 13/10/2026 |
 | 13 | **Plantilla v2 de Procedimiento:** mismo diseño, encabezado y pie reales (no cuadros de texto), y secciones de Responsabilidades (opcional), Definiciones (opcional) y **Control de cambios**. Procesos la valida antes de usarla ([plantillas.md](plantillas.md)). | 13/10/2026 |
 | 14 | **«Autorizado por» muestra solo al autorizador final** (normalmente el director), con nombre, cargo y fecha que vienen de CH. | 13/10/2026 |
+| 15 | **Sin conexión con el sistema CH.** Este sistema solo genera los archivos; Procesos los sube a CH. Cuando CH autoriza, **Procesos registra aquí** quién autorizó y cuándo, y con eso se genera el documento final sin marca (sustituye la pregunta A). | 13/10/2026 |
+| 16 | **Gemini en su nivel gratuito, aprobado por Gael** (sustituye la validación de TI que pidió Procesos). Se mantiene el filtro de datos personales. | 13/10/2026 |
+| 17 | **Letra Montserrat** en los documentos generados: en los PDF de Google, la «M» y la «W» de Century Gothic salen rotas ([plantillas.md](plantillas.md#plantilla-v2-de-procedimiento-13102026)). | 13/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 
@@ -36,7 +39,7 @@ Marco (área de Procesos) respondió las 11 preguntas en la página del análisi
 
 | Tema | Lo que dijo Procesos | Qué cambia en el sistema |
 |---|---|---|
-| **Sistema CH** | Es una plataforma independiente de Capital Humano con un módulo de Procesos. Ahí se cargan los documentos, se avisa por correo y se dan los Vo.Bo. del responsable y del director. CH no autoriza contenido. No todos los procesos están en CH. | **Este sistema termina en el Vo.Bo. de Procesos** (decisión 10). Después, el documento se envía a CH y aquí se espera su resultado. Hay que definir cómo se conectan los dos sistemas. |
+| **Sistema CH** | Es una plataforma independiente de Capital Humano con un módulo de Procesos. Ahí se cargan los documentos, se avisa por correo y se dan los Vo.Bo. del responsable y del director. CH no autoriza contenido. No todos los procesos están en CH. | **Este sistema termina en el Vo.Bo. de Procesos** (decisión 10). No hay conexión con CH: Procesos sube los archivos y registra aquí el resultado (decisión 15). |
 | **Autorizaciones** | Varían por tipo de documento, departamento y estructura, y las administra CH con sus reglas. El Vo.Bo. de Procesos no es la autorización oficial. | Sale del diseño la cadena de autorización interna (hoja `CadenasAutorizacion` y perfil `AUTORIZADOR`). Entran el estado «En autorización (CH)» y el registro del resultado que venga de CH. |
 | **«Autorizado por»** | Solo el autorizador final, con nombre y cargo. La trazabilidad completa queda en CH. | El recuadro de la plantilla no cambia (decisión 14). |
 | **Marca de agua** | (Se deriva de lo anterior.) | El PDF que se carga en CH para las firmas es el **preliminar con marca**. El archivo limpio se genera cuando CH reporta «Autorizado» (decisión 2). |
@@ -121,7 +124,7 @@ registra automáticamente quién elaboró, revisó y autorizó.
 | `CONFIRMADO` | Colaborador (ya puede generar preliminar) | `EN_REVISION` · vuelve a `BORRADOR` si edita algo |
 | `EN_REVISION` | Revisor de Procesos asignado | `DEVUELTO` · `EN_AUTORIZACION_CH` · `NO_PROCEDENTE` |
 | `DEVUELTO` | Colaborador (atiende observaciones) | `CONFIRMADO` → `EN_REVISION` |
-| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director) | `AUTORIZADO` · rechazo (por definir con Procesos, pregunta D) |
+| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director). Procesos registra aquí el resultado (decisión 15) | `AUTORIZADO` · rechazo (por definir con Procesos, pregunta D) |
 | `AUTORIZADO` | — (documento final sin marca; pasa al inventario como vigente) | — |
 | `NO_PROCEDENTE` | — (cerrada por Procesos con motivo, sin consumir código) | — |
 | `CANCELADO` | — (el colaborador desiste de un borrador) | — |
@@ -398,13 +401,9 @@ Las 12 preguntas originales quedaron resueltas por las decisiones 1–14 y las
 
 **Para Gael (decisiones técnicas):**
 
-A. **Sistema CH:** ¿quién lo desarrolló, en qué está hecho y cómo podemos conectarnos (API, hoja de
-   Sheets, base de datos, correo)? Hay que **enviarle** el documento con el Vo.Bo. de Procesos y
-   **recibir** su resultado (autorizado o rechazado, quién y cuándo). Si no hay forma de conectarse,
-   el plan B es que Procesos registre en este sistema el resultado de CH.
-B. **TI:** validar el uso del nivel gratuito de Gemini (lo pidió Procesos).
-C. ¿El módulo de Capital Humano de Control Interno tiene un catálogo de colaboradores, puestos y
-   departamentos que podamos leer, en lugar de capturarlo otra vez?
+A. ~~Conexión con el sistema CH~~ → resuelto: no hay conexión (decisión 15).
+B. ~~Validación de TI del nivel gratuito de Gemini~~ → resuelto (decisión 16).
+C. ~~Catálogo en Control Interno~~ → no existe; Gael compartirá el archivo de departamentos y áreas.
 
 **Para el área de Procesos:**
 
@@ -433,7 +432,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | **3. IA y confirmación** | Análisis, aclaraciones, propuestas aceptables, vista previa, confirmación con huella | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word/PDF con marca de agua desde la plantilla | Fase 3 · plantillas |
 | **5. Revisión de Procesos** | Bandeja, observaciones por apartado, devolver, no procedente, código, Vo.Bo. | Fase 4 · regla de códigos |
-| **6. Envío a CH y publicación** | Envío del documento con Vo.Bo. al sistema CH, recepción del resultado, documento final limpio, descarga protegida, inventario documental | Fase 5 · pregunta A (conexión con CH) |
+| **6. Resultado de CH y publicación** | Archivos para subir a CH, registro del resultado de CH por Procesos, documento final limpio, descarga protegida, inventario documental | Fase 5 · decisión 15 |
 | **7. Actualizaciones** | Partir de un documento vigente o importar un Word/PDF existente con IA, control de cambios, historial de versiones | Fase 6 · inventario |
 | **8. Cierre** | Avisos por correo y recordatorios, tablero, manual de usuario | — |
 | Después | Inventario de Procesos (el otro tema que mencionaste) | — |

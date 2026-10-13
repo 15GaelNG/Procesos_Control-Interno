@@ -67,3 +67,54 @@ cuerpo de la página 2. Por eso:
 La plantilla necesita una **versión 2** con el mismo diseño, pero con esos datos dentro del encabezado
 y el pie reales (en tablas sin bordes), marcadores como `{{CODIGO}}` y número de página automático.
 Hay que corregirla con cualquiera de los dos planes.
+
+## Plantilla v2 de Procedimiento (13/10/2026)
+
+Archivo: [`plantillas/Procedimiento.docx`](../plantillas/Procedimiento.docx). Se genera con
+`tools/plantillas/crear-plantilla-v2.ps1` (controla Word por COM a partir de la plantilla original de
+`docs/insumos/`), así que cualquier ajuste se hace en el script y se vuelve a generar:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\plantillas\crear-plantilla-v2.ps1
+```
+
+**Mismo diseño** que la original: marco, portada, logo, colores y marca de agua. Lo que cambia:
+
+| Cambio | Por qué |
+|---|---|
+| Encabezado (tipo, nombre, departamento) y pie (código, versión, fecha, página) dentro del encabezado y pie **reales** | Antes eran cuadros de texto de la página 2: no se repetían ni se podían llenar |
+| **Página x de y** automático | Antes «1 de 2» estaba escrito a mano. Se cuenta desde la portada (la portada es la 1) |
+| Portada con nombre y código en párrafos | Los cuadros de texto no se pueden llenar desde Google Docs |
+| Secciones nuevas: **4. Responsabilidades**, **5. Definiciones** (opcionales) y **7. Control de cambios** | Respuesta de Procesos (pregunta «secciones») |
+| Firmas con nombre, **puesto y fecha** | Requerimiento §4.1 |
+| Numeración pareja de secciones (1., 2., … en lugar de 1., 2., 3., 04., 05.) | Consistencia |
+| Títulos que no se quedan solos al final de la página | Antes «Control y Responsables» quedaba separado de su tabla |
+| Letra **Montserrat** en lugar de Century Gothic | La «M» y la «W» de Century Gothic salen rotas en los PDF de Google (prueba de letras del 13/10). Montserrat sale completa y se parece mucho |
+| «ÚLTIMA ACTUALIZACIÓN» y «PÁGINA» con acento | Ortografía |
+
+Procesos debe **validarla** antes de usarla en producción.
+
+> **Montserrat en Word:** los PDF y los Google Docs se ven bien porque Google trae Montserrat. Para
+> que el Word se vea igual en una computadora, esa computadora necesita tener Montserrat instalada
+> (es gratuita, de Google Fonts). Si no la tiene, Word la sustituye por otra letra parecida.
+
+### Marcadores
+
+El contrato entre la plantilla y el sistema es `MARCADORES_PLANTILLA` (`src/config/Config.gs`).
+`tests/plantillas.test.js` lee el `.docx` real y falla si a la plantilla le falta un marcador o trae
+uno que el sistema no conoce.
+
+| Marcador | Dónde | Se llena con |
+|---|---|---|
+| `{{NOMBRE_PORTADA}}` · `{{CODIGO}}` | Portada (el código también en el pie) | Nombre en mayúsculas y código documental |
+| `{{TIPO_DOCUMENTO}}` · `{{NOMBRE_DOCUMENTO}}` · `{{DEPARTAMENTO}}` | Encabezado | Datos generales |
+| `{{VERSION}}` · `{{FECHA_ACTUALIZACION}}` | Pie | Versión y mes/año |
+| `{{OBJETIVO}}` · `{{ALCANCE}}` | Secciones 1 y 2 | Textos confirmados |
+| `{{PUESTOS}}` | Sección 3 (viñeta) | **Lista:** una viñeta por departamento o puesto |
+| `{{RESPONSABILIDADES}}` · `{{DEFINICIONES}}` | Secciones 4 y 5 | **Lista opcional:** si viene vacía se quita la sección y se renumeran las demás. «Puesto: texto» pone el puesto en negritas |
+| `{{DESARROLLO}}` | Sección 6 | Las actividades: «Actividad n · Responsable», descripción e imágenes centradas con pie «Imagen n.m» |
+| `{{CAMBIO_VERSION}}` · `{{CAMBIO_FECHA}}` · `{{CAMBIO_DESCRIPCION}}` · `{{CAMBIO_RESPONSABLE}}` | Tabla de control de cambios | Por ahora un renglón; el historial completo se agrega con las actualizaciones (fase 7) |
+| `{{ELABORO_*}}` · `{{REVISO_*}}` · `{{AUTORIZO_*}}` · `{{FECHA_*}}` | Tabla de firmas | Nombre, puesto y fecha de cada acción. Autorizó y su fecha vienen de CH |
+
+El llenado está en `src/documentos/Llenado.gs` (`llenarPlantilla_`). Conserva el formato de cada
+marcador y nunca modifica la plantilla: siempre trabaja sobre una copia.
