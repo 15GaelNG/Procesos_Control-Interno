@@ -183,9 +183,13 @@ function insertarDesarrollo_(cuerpo, actividades) {
     nuevo('Actividad ' + (i + 1) + ' · ' + (a.responsable || 'Responsable por confirmar'), estilo(negrita)).setSpacingBefore(10).setSpacingAfter(2);
     nuevo(a.descripcion, estilo()).setSpacingAfter(4);
     (a.imagenes || []).forEach(function (img, j) {
-      const par = nuevo('', estilo(), DocumentApp.HorizontalAlignment.CENTER);
-      par.setText('');
+      // Google Docs no deja un párrafo con texto vacío: se crea con un espacio, se agrega la imagen
+      // y luego se quita el espacio (si no se puede, se queda; no se nota porque va centrado).
+      const par = nuevo(' ', estilo(), DocumentApp.HorizontalAlignment.CENTER);
       const imagen = par.appendInlineImage(img.blob);
+      try {
+        if (par.getChild(0).getType() === DocumentApp.ElementType.TEXT) par.getChild(0).removeFromParent();
+      } catch (e) { /* se queda el espacio */ }
       const ancho = Math.min(ANCHO_IMAGEN_DOCUMENTO, imagen.getWidth());
       imagen.setHeight(Math.round(imagen.getHeight() * ancho / imagen.getWidth())).setWidth(ancho);
       nuevo('Imagen ' + (i + 1) + '.' + (j + 1) + (img.pie ? '. ' + img.pie : ''), estilo(pie), DocumentApp.HorizontalAlignment.CENTER).setSpacingAfter(6);
