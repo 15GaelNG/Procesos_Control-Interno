@@ -33,6 +33,7 @@ function probarIA() {
 
   const lineas = [];
   lineas.push('MODELO: ' + r.modelo + ' · ' + r.duracionMs + ' ms · tokens: ' + r.tokensEntrada + ' entrada / ' + r.tokensSalida + ' salida');
+  lineas.push('INTENTOS: ' + r.intentos.join(' · '));
   lineas.push('');
   lineas.push('ACTIVIDADES (en el orden del colaborador):');
   a.actividades.forEach(function (act, i) {

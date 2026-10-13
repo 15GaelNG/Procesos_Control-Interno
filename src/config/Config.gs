@@ -59,18 +59,28 @@ const PROP = {
 
 const ZONA_HORARIA = 'America/Mexico_City';
 
-// IA (ver docs/ia.md). El modelo se toma de Config → IA_MODELO; si está vacío, se usa el primero de
-// esta lista que la llave tenga disponible. Google cambia los nombres seguido: si ninguno aparece,
-// listarModelosIA() muestra cuáles hay y se captura uno en IA_MODELO.
+// IA (ver docs/ia.md). El modelo se toma de Config → IA_MODELO; si está vacío, se intentan en este
+// orden los que la llave tenga disponibles (hasta IA_MAX_MODELOS), pasando al siguiente si uno está
+// saturado o sin cuota. Primero los Flash ya estables (menos saturados que los recién salidos).
+// Google cambia los nombres seguido: listarModelosIA() muestra cuáles hay.
 const IA_URL_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const IA_MODELOS_PREFERIDOS = [
-  'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3-flash-preview',
-  'gemini-2.5-flash'
+  'gemini-3.1-flash-lite'
 ];
+const IA_MAX_MODELOS = 4;
 const IA_MAX_CARACTERES_ENTRADA = 60000;   // Tope de texto que se manda en una sola llamada.
+
+// Plantillas (documentos/Plantillas.gs). Procesos sube un Word por tipo con la marca de agua y el
+// sistema crea «<nombre> - Preliminar» (con marca) y «<nombre> - Final» (sin marca) en Google Docs.
+const MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const SUFIJO_PRELIMINAR = ' - Preliminar';
+const SUFIJO_FINAL = ' - Final';
+const CARPETA_PRUEBAS_GENERACION = 'Pruebas de generación';
 
 // Colores institucionales (los mismos que SIVET / Control Interno y la plantilla).
 const COLOR_AZUL = '#1E252B';

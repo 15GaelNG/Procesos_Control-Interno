@@ -20,6 +20,7 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 | [docs/ambientes.md](docs/ambientes.md) | Pruebas y producción, estructura en Drive, instalación, propiedad de los archivos |
 | [docs/base-de-datos.md](docs/base-de-datos.md) | Cada hoja y cada columna |
 | [docs/ia.md](docs/ia.md) | Proveedor de IA, límites, privacidad y reglas para que no invente |
+| [docs/plantillas.md](docs/plantillas.md) | Plantilla preliminar y final, marca de agua y generación de Word/PDF |
 | [docs/insumos/](docs/insumos/) | Lo que entregó Procesos: [requerimientos](docs/insumos/requerimientos.md), infografía del flujo y plantilla |
 
 ## Estructura
@@ -34,6 +35,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   │   ├── Config.gs          Constantes: nombre, carpeta del proyecto, ambientes, propiedades
 │   │   ├── Catalogos.gs       Perfiles, estados y transiciones, motivos de cambio
 │   │   └── Esquema.gs         Hojas y columnas de la base de datos (única fuente de verdad)
+│   ├── documentos/
+│   │   └── Plantillas.gs      prepararPlantillas() · probarPlantillas() · quitar la marca de agua
 │   ├── ia/
 │   │   ├── ClienteIA.gs       Única puerta a Gemini (modelo, tope diario, UsoIA)
 │   │   ├── Prompts.gs         Instrucciones del análisis

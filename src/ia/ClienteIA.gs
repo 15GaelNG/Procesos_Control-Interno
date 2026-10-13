@@ -8,12 +8,16 @@
 
 /**
  * Manda instrucciones + texto y devuelve la respuesta ya convertida de JSON.
+ *
+ * Si Google está saturado (5xx) reintenta una vez; si el modelo no existe (404), no tiene cuota
+ * (429) o sigue saturado, prueba con el siguiente modelo disponible. Cada intento queda en UsoIA.
  * @param {Object} p
  * @param {string} p.operacion   Nombre corto para UsoIA (ANALISIS, REDACCION, PRUEBA…).
  * @param {string} p.sistema     Instrucciones del sistema (reglas fijas).
  * @param {string} p.usuario     El contenido a analizar.
  * @param {string} [p.idSolicitud]
- * @return {{datos: Object, modelo: string, tokensEntrada: number, tokensSalida: number, duracionMs: number}}
+ * @return {{datos: Object, modelo: string, tokensEntrada: number, tokensSalida: number,
+ *           duracionMs: number, intentos: string[]}}
  */
 function llamarIAJson_(p) {
   const llave = PropertiesService.getScriptProperties().getProperty(PROP.IA_LLAVE);
@@ -23,7 +27,36 @@ function llamarIAJson_(p) {
   }
   reservarLlamadaIA_();
 
-  const modelo = elegirModeloIA_(llave);
+  const intentos = [];
+  let ultimoError = null;
+  const modelos = modelosCandidatosIA_(llave);
+  for (let m = 0; m < modelos.length; m++) {
+    for (let vuelta = 1; vuelta <= 2; vuelta++) {
+      try {
+        const r = llamarModeloIA_(modelos[m], p, llave);
+        intentos.push(modelos[m] + ': OK');
+        r.intentos = intentos;
+        CacheService.getScriptCache().put('ia-modelo-elegido', modelos[m], 21600);
+        return r;
+      } catch (e) {
+        ultimoError = e;
+        intentos.push(modelos[m] + ': ' + (e.codigoHttp ? 'HTTP ' + e.codigoHttp : e.message));
+        if (e.codigoHttp >= 500 && vuelta === 1) { Utilities.sleep(2500); continue; }
+        break;
+      }
+    }
+    // 404 (no existe), 429 (sin cuota) y 5xx (saturado): se intenta con el siguiente modelo.
+    const cambiarModelo = ultimoError.codigoHttp === 404 || ultimoError.codigoHttp === 429 || ultimoError.codigoHttp >= 500;
+    if (!cambiarModelo) break;
+    CacheService.getScriptCache().remove('ia-modelo-elegido');
+  }
+  ultimoError.intentos = intentos;
+  ultimoError.message += ' (Intentos: ' + intentos.join(' · ') + ')';
+  throw ultimoError;
+}
+
+/** Una sola llamada a un modelo. Los errores HTTP llevan `codigoHttp`. */
+function llamarModeloIA_(modelo, p, llave) {
   const cuerpo = {
     systemInstruction: { parts: [{ text: p.sistema }] },
     contents: [{ role: 'user', parts: [{ text: p.usuario }] }],
@@ -45,7 +78,9 @@ function llamarIAJson_(p) {
     const json = leerJsonSeguro_(resp.getContentText());
     if (codigo !== 200) {
       resultado = 'HTTP ' + codigo;
-      throw new Error(mensajeErrorIA_(codigo, json));
+      const error = new Error(mensajeErrorIA_(codigo, json));
+      error.codigoHttp = codigo;
+      throw error;
     }
     const uso = json.usageMetadata || {};
     tokensEntrada = uso.promptTokenCount || 0;
@@ -100,20 +135,27 @@ function modelosDisponiblesIA_(llave) {
   return modelos;
 }
 
-/** El de Config → IA_MODELO o, si está vacío, el primero de IA_MODELOS_PREFERIDOS disponible. */
-function elegirModeloIA_(llave) {
+/**
+ * Modelos a intentar, en orden: el de Config → IA_MODELO (si está, es el único); si no, el último
+ * que funcionó y luego los de IA_MODELOS_PREFERIDOS que la llave tenga (máximo IA_MAX_MODELOS).
+ */
+function modelosCandidatosIA_(llave) {
   const configurado = obtenerConfig_('IA_MODELO', '');
-  if (configurado) return configurado;
+  if (configurado) return [configurado];
   const cache = CacheService.getScriptCache();
-  const guardado = cache.get('ia-modelo-elegido');
-  if (guardado) return guardado;
-  const disponibles = modelosDisponiblesIA_(llave).map(function (m) { return m.id; });
-  const elegido = IA_MODELOS_PREFERIDOS.filter(function (m) { return disponibles.indexOf(m) !== -1; })[0];
-  if (!elegido) {
+  let disponibles = cache.get('ia-modelos-disponibles');
+  disponibles = disponibles ? JSON.parse(disponibles) : modelosDisponiblesIA_(llave).map(function (m) { return m.id; });
+  cache.put('ia-modelos-disponibles', JSON.stringify(disponibles), 21600);
+  const candidatos = IA_MODELOS_PREFERIDOS.filter(function (m) { return disponibles.indexOf(m) !== -1; });
+  const ultimo = cache.get('ia-modelo-elegido');
+  if (ultimo && candidatos.indexOf(ultimo) !== -1) {
+    candidatos.splice(candidatos.indexOf(ultimo), 1);
+    candidatos.unshift(ultimo);
+  }
+  if (!candidatos.length) {
     throw new Error('Ninguno de los modelos preferidos está disponible. Corre listarModelosIA() y captura uno en Config → IA_MODELO.');
   }
-  cache.put('ia-modelo-elegido', elegido, 21600);
-  return elegido;
+  return candidatos.slice(0, IA_MAX_MODELOS);
 }
 
 /**
@@ -161,7 +203,7 @@ function mensajeErrorIA_(codigo, json) {
   if (codigo === 401 || codigo === 403) return 'La llave de la IA no es válida o no tiene permiso (' + codigo + '). Revisa IA_LLAVE.' + detalle;
   if (codigo === 404) return 'El modelo de IA no existe o ya no está disponible (404). Revisa Config → IA_MODELO o corre listarModelosIA().' + detalle;
   if (codigo === 429) return 'Se alcanzó el límite de uso de la IA (429). Espera un momento o mañana se renueva la cuota.' + detalle;
-  if (codigo >= 500) return 'El servicio de IA no está disponible por ahora (' + codigo + '). Intenta más tarde.';
+  if (codigo >= 500) return 'El servicio de IA está saturado o no disponible por ahora (' + codigo + '). Intenta más tarde.' + detalle;
   return 'Error de la IA (' + codigo + ').' + detalle;
 }
 
