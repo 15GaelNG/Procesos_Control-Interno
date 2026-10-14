@@ -30,11 +30,18 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 .
 ├── appsscript.json        Manifiesto (zona horaria, servicio avanzado de Drive, web app)
 ├── src/                   Todo lo que se sube a Apps Script (ver .claspignore)
-│   ├── Code.gs              doGet() e include()
-│   ├── SetupInicial.gs      instalarPruebas() · instalarProduccion() · verificarBase()
+│   ├── Code.gs              doGet(): entrega la web app con la sesión ya incluida · include()
+│   ├── SetupInicial.gs      instalarPruebas() · instalarProduccion() · verificarBase() (también actualizan la base)
+│   ├── services/
+│   │   └── Sesion.gs          Quién abrió la app: su correo de Google en Usuarios y sus perfiles
+│   ├── html/
+│   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro
+│   │   ├── styles.html        Estilos (los de SIVET / Control Interno)
+│   │   ├── views/             Una pantalla por archivo, como <template>
+│   │   └── js/app.html        Arranque, menú y navegación entre pantallas
 │   ├── config/
 │   │   ├── Config.gs          Constantes: nombre, carpeta del proyecto, ambientes, propiedades
-│   │   ├── Catalogos.gs       Perfiles, estados y transiciones, motivos de cambio
+│   │   ├── Catalogos.gs       Perfiles, estados y transiciones, tipos de cambio, motivos de cambio
 │   │   └── Esquema.gs         Hojas y columnas de la base de datos (única fuente de verdad)
 │   ├── documentos/
 │   │   ├── Plantillas.gs      prepararPlantillas() · probarPlantillas() · quitar la marca de agua
@@ -47,7 +54,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   └── utils/
 │       ├── SheetUtils.gs      Leer y escribir por nombre de columna
 │       ├── Parametros.gs      Lectura de la hoja Config
-│       └── Ids.gs             Consecutivos con bloqueo (USR-0001, SOL-2026-0001…)
+│       ├── Ids.gs             Consecutivos con bloqueo (USR-0001, SOL-2026-0001…)
+│       └── Seguridad.gs       soloEditor_(): las funciones del editor no se pueden llamar desde la app
 ├── plantillas/            Plantillas de Word con marcadores (Procedimiento.docx = v2)
 ├── tests/                 Pruebas en node (npm test)
 ├── tools/

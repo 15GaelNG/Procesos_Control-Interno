@@ -14,6 +14,7 @@
  */
 
 function prepararPlantillas() {
+  soloEditor_();
   const carpeta = DriveApp.getFolderById(propiedadObligatoria_('ID_CARPETA_PLANTILLAS'));
   const marca = obtenerConfig_('MARCA_AGUA_TEXTO', 'COPIA NO AUTORIZADA');
   const lineas = [];
@@ -47,6 +48,7 @@ function prepararPlantillas() {
 }
 
 function probarPlantillas() {
+  soloEditor_();
   const carpeta = DriveApp.getFolderById(propiedadObligatoria_('ID_CARPETA_PLANTILLAS'));
   const destino = asegurarCarpeta_(carpeta, CARPETA_PRUEBAS_GENERACION, null,
     'Documentos generados con datos de ejemplo para revisar las plantillas. Se pueden borrar.');
@@ -128,6 +130,7 @@ function datosDeEjemplo_() {
  * confirmar que los documentos crecen bien y que no nos acercamos al límite de 6 minutos de Apps Script.
  */
 function probarDocumentoLargo() {
+  soloEditor_();
   const carpeta = DriveApp.getFolderById(propiedadObligatoria_('ID_CARPETA_PLANTILLAS'));
   const plantilla = buscarDocPorNombre_(carpeta, 'Procedimiento' + SUFIJO_PRELIMINAR);
   if (!plantilla) throw new Error('No existe «Procedimiento - Preliminar». Corre primero prepararPlantillas().');

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/logo.png">
+  <script src="https://unpkg.com/lucide@0.513.0/dist/umd/lucide.min.js"></script>
+  <?!= include('styles'); ?>
+</head>
+<body>
+  <!-- Armazón de la app. Las pantallas viven en views/ como <template> y app.html las pinta en #vista. -->
+  <div id="aviso-ambiente" class="aviso-ambiente" hidden></div>
+
+  <div id="app" hidden>
+    <nav id="menu" aria-label="Menú principal">
+      <div class="menu-marca">
+        <img class="menu-logo" src="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/logo.png" alt="">
+        <div class="menu-titulo">
+          <strong>Procesos</strong>
+          <span>Documentación de procesos</span>
+        </div>
+      </div>
+      <div id="menu-opciones" class="menu-opciones"></div>
+      <div class="menu-relleno"></div>
+      <button type="button" class="menu-colapsar" id="btn-colapsar" title="Colapsar menú">
+        <i data-lucide="chevron-left" class="ico"></i><span class="menu-texto">Colapsar menú</span>
+      </button>
+    </nav>
+    <div id="menu-fondo" class="menu-fondo" hidden></div>
+
+    <main id="principal">
+      <header class="barra">
+        <div class="barra-izq">
+          <button type="button" class="btn-icono btn-menu-movil" id="btn-menu-movil" title="Menú" aria-label="Abrir menú">
+            <i data-lucide="menu" class="ico"></i>
+          </button>
+          <img class="barra-logo logo-claro" src="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/CMTC-Light.png" alt="Ciudad Maderas">
+          <img class="barra-logo logo-oscuro" src="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/CMTC-Dark.png" alt="Ciudad Maderas">
+        </div>
+        <div class="barra-der">
+          <div class="selector-tema" role="group" aria-label="Tema">
+            <button type="button" class="btn-tema" data-tema="light" title="Modo claro"><i data-lucide="sun" class="ico"></i></button>
+            <button type="button" class="btn-tema" data-tema="dark" title="Modo oscuro"><i data-lucide="moon" class="ico"></i></button>
+          </div>
+          <div class="barra-fecha" id="barra-fecha"></div>
+          <div class="barra-usuario">
+            <span class="avatar" id="usuario-iniciales"></span>
+            <div class="usuario-datos">
+              <strong id="usuario-nombre"></strong>
+              <span id="usuario-perfiles"></span>
+            </div>
+          </div>
+        </div>
+      </header>
+      <section id="vista" class="vista" tabindex="-1"></section>
+    </main>
+  </div>
+
+  <div id="sin-acceso" class="pantalla-completa" hidden></div>
+
+  <?!= include('views/inicio'); ?>
+  <?!= include('views/mis-solicitudes'); ?>
+  <?!= include('views/en-construccion'); ?>
+  <?!= include('views/sin-acceso'); ?>
+
+  <script>
+    /* Datos que el servidor mandó al abrir (Code.gs, datosIniciales_). */
+    const DATOS = <?!= datosIniciales ?>;
+  </script>
+  <?!= include('js/app'); ?>
+</body>
+</html>

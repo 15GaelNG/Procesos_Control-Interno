@@ -8,7 +8,10 @@
  * Reglas:
  *  - El nombre de la hoja y de cada columna es parte del contrato con el código: el código busca
  *    las columnas por su encabezado, no por su posición, pero renombrar uno lo rompe.
- *  - Columnas nuevas, siempre al final (instalarBase_ las agrega sin tocar los datos).
+ *  - En una hoja con datos, las columnas nuevas siempre van al final (instalarBase_ las agrega sin
+ *    tocar los datos). Una hoja sin datos se vuelve a encabezar en el orden de aquí.
+ *  - Lo que ya no se usa no se borra de golpe: va en `columnasRetiradas` o en HOJAS_RETIRADAS y la
+ *    instalación lo quita solo si está vacío (ver SetupInicial.gs).
  *  - Los IDs son texto con prefijo (USR-0001, SOL-2026-0001…) y nunca se reutilizan.
  *  - Nada se borra físicamente: las filas se desactivan (ACTIVO = NO) o se marcan (ELIMINADA = SI)
  *    para conservar la trazabilidad.
@@ -58,9 +61,10 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'UsuarioPerfiles', grupo: 'CATALOGOS',
-    descripcion: 'Perfiles de cada usuario (puede tener varios). Para AUTORIZADOR se indica el nivel y el departamento.',
-    columnas: ['ID_USUARIO_PERFIL', 'ID_USUARIO', 'PERFIL', 'ID_DEPARTAMENTO', 'NIVEL_AUTORIZACION',
-      'ACTIVO', 'FECHA_ALTA']
+    descripcion: 'Perfiles de cada usuario (puede tener varios). ID_DEPARTAMENTO limita el alcance; vacío = todos.',
+    columnas: ['ID_USUARIO_PERFIL', 'ID_USUARIO', 'PERFIL', 'ID_DEPARTAMENTO', 'ACTIVO', 'FECHA_ALTA'],
+    // Era para los autorizadores, que ya no existen aquí (decisión 10).
+    columnasRetiradas: ['NIVEL_AUTORIZACION']
   },
   {
     hoja: 'UsuarioDepartamentos', grupo: 'CATALOGOS',
@@ -69,8 +73,13 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'Departamentos', grupo: 'CATALOGOS',
-    descripcion: 'Catálogo institucional de departamentos.',
+    descripcion: 'Catálogo institucional de departamentos. CLAVE_CODIGO es su parte del código documental (CM en P-CM01-001).',
     columnas: ['ID_DEPARTAMENTO', 'NOMBRE', 'CLAVE_CODIGO', 'DIRECCION', 'ACTIVO']
+  },
+  {
+    hoja: 'Areas', grupo: 'CATALOGOS',
+    descripcion: 'Áreas de cada departamento. CLAVE_CODIGO es su parte del código documental (01 en P-CM01-001).',
+    columnas: ['ID_AREA', 'ID_DEPARTAMENTO', 'NOMBRE', 'CLAVE_CODIGO', 'ACTIVO']
   },
   {
     hoja: 'Puestos', grupo: 'CATALOGOS',
@@ -79,22 +88,18 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'TiposDocumento', grupo: 'CATALOGOS',
-    descripcion: 'Manual, Procedimiento, Protocolo, Política, con su prefijo de código y sus dos plantillas.',
-    columnas: ['ID_TIPO', 'NOMBRE', 'PREFIJO_CODIGO', 'ID_PLANTILLA_PRELIMINAR', 'ID_PLANTILLA_FINAL', 'ACTIVO'],
+    descripcion: 'Tipos de documento con su prefijo de código y sus dos plantillas. EN_SISTEMA = SI si ya se documenta aquí.',
+    columnas: ['ID_TIPO', 'NOMBRE', 'PREFIJO_CODIGO', 'ID_PLANTILLA_PRELIMINAR', 'ID_PLANTILLA_FINAL', 'ACTIVO',
+      'EN_SISTEMA'],
+    // Prefijos de la respuesta de Procesos (decisión 11). Solo Procedimiento tiene plantilla validada
+    // (decisión 12); Formato y Diagrama de proceso, hasta que Procesos diga si se documentan aquí.
     semilla: [
-      ['TD-01', 'Manual', '', '', '', 'SI'],
-      ['TD-02', 'Procedimiento', 'PRO', '', '', 'SI'],
-      ['TD-03', 'Protocolo', '', '', '', 'SI'],
-      ['TD-04', 'Política', '', '', '', 'SI']
-    ]
-  },
-  {
-    hoja: 'CadenasAutorizacion', grupo: 'CATALOGOS',
-    descripcion: 'Quién autoriza y en qué orden después del Vo.Bo. de Procesos. Vacío en tipo o departamento = aplica a todos.',
-    columnas: ['ID_CADENA', 'ID_TIPO', 'ID_DEPARTAMENTO', 'NIVEL', 'NOMBRE_NIVEL', 'ID_USUARIO', 'ACTIVO'],
-    semilla: [
-      ['CAD-01', '', '', 1, 'Responsable del área', '', 'SI'],
-      ['CAD-02', '', '', 2, 'Dirección', '', 'SI']
+      ['TD-01', 'Manual', 'M', '', '', 'SI', 'NO'],
+      ['TD-02', 'Procedimiento', 'P', '', '', 'SI', 'SI'],
+      ['TD-03', 'Protocolo', 'PRO', '', '', 'SI', 'NO'],
+      ['TD-04', 'Política', 'PL', '', '', 'SI', 'NO'],
+      ['TD-05', 'Formato', 'F', '', '', 'SI', 'NO'],
+      ['TD-06', 'Diagrama de proceso', 'DP', '', '', 'SI', 'NO']
     ]
   },
 
@@ -102,20 +107,21 @@ const ESQUEMA_BD = [
   {
     hoja: 'Documentos', grupo: 'OPERACION',
     descripcion: 'Inventario documental: un renglón por documento oficial con su versión vigente.',
-    columnas: ['ID_DOCUMENTO', 'CODIGO', 'NOMBRE', 'ID_TIPO', 'ID_DEPARTAMENTO', 'VERSION_VIGENTE',
+    columnas: ['ID_DOCUMENTO', 'CODIGO', 'NOMBRE', 'ID_TIPO', 'ID_DEPARTAMENTO', 'ID_AREA', 'VERSION_VIGENTE',
       'FECHA_VIGENCIA', 'ESTATUS', 'ID_SOLICITUD_VIGENTE', 'ID_ARCHIVO_WORD', 'ID_ARCHIVO_PDF',
       'CONTENIDO_ESTRUCTURADO', 'ORIGEN', 'FECHA_REGISTRO']
   },
   {
     hoja: 'Solicitudes', grupo: 'OPERACION',
-    descripcion: 'Cada trámite de documento nuevo o de actualización, de borrador a autorizado.',
+    descripcion: 'Cada trámite de documento nuevo o de actualización, de borrador hasta el resultado de CH.',
     columnas: ['ID_SOLICITUD', 'TIPO_SOLICITUD', 'ID_TIPO', 'ID_DOCUMENTO', 'NOMBRE_DOCUMENTO',
-      'ID_DEPARTAMENTO', 'ESTADO', 'NIVEL_AUTORIZACION_ACTUAL', 'INICIO_PROCESO', 'FIN_PROCESO',
-      'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES', 'MOTIVOS_CAMBIO', 'CODIGO', 'VERSION',
-      'REVISION', 'HUELLA_CONTENIDO', 'HUELLA_CONFIRMADA', 'FECHA_CONFIRMACION',
+      'ID_DEPARTAMENTO', 'ID_AREA', 'ESTADO', 'REVISOR_ASIGNADO_ID', 'INICIO_PROCESO', 'FIN_PROCESO',
+      'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES', 'MOTIVOS_CAMBIO', 'DESCRIPCION_CAMBIO',
+      'TIPO_CAMBIO', 'CODIGO', 'VERSION', 'REVISION', 'HUELLA_CONTENIDO', 'HUELLA_CONFIRMADA',
+      'FECHA_CONFIRMACION',
       'ELABORO_ID', 'ELABORO_NOMBRE', 'ELABORO_PUESTO', 'FECHA_ELABORACION',
       'REVISO_ID', 'REVISO_NOMBRE', 'REVISO_PUESTO', 'FECHA_REVISION',
-      'AUTORIZO_ID', 'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'FECHA_AUTORIZACION',
+      'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'FECHA_AUTORIZACION',
       'MOTIVO_CIERRE', 'ID_CARPETA', 'FECHA_ACTUALIZACION']
   },
   {
@@ -144,15 +150,16 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'Observaciones', grupo: 'OPERACION',
-    descripcion: 'Observaciones de Procesos o de los autorizadores, por apartado o por actividad.',
+    descripcion: 'Observaciones de Procesos, por apartado o por actividad.',
     columnas: ['ID_OBSERVACION', 'ID_SOLICITUD', 'REVISION', 'APARTADO', 'ID_ACTIVIDAD', 'AUTOR_ID',
       'AUTOR_NOMBRE', 'PERFIL', 'TEXTO', 'ESTADO', 'RESPUESTA', 'FECHA', 'FECHA_ATENCION']
   },
   {
-    hoja: 'Autorizaciones', grupo: 'OPERACION',
-    descripcion: 'Cada nivel de la cadena de autorización por solicitud, con nombre y puesto fijados al decidir.',
-    columnas: ['ID_AUTORIZACION', 'ID_SOLICITUD', 'REVISION', 'NIVEL', 'NOMBRE_NIVEL', 'ID_USUARIO',
-      'NOMBRE', 'PUESTO', 'DECISION', 'COMENTARIO', 'FECHA_ASIGNACION', 'FECHA_DECISION']
+    hoja: 'EnviosCH', grupo: 'OPERACION',
+    descripcion: 'Cada vez que Procesos sube el documento al sistema CH y el resultado que registra aquí (decisión 15).',
+    columnas: ['ID_ENVIO', 'ID_SOLICITUD', 'REVISION', 'FECHA_ENVIO', 'ENVIADO_POR', 'FOLIO_CH', 'RESULTADO',
+      'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'FECHA_AUTORIZACION', 'COMENTARIO', 'REGISTRADO_POR',
+      'FECHA_REGISTRO']
   },
   {
     hoja: 'Archivos', grupo: 'OPERACION',
@@ -170,8 +177,8 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'HistorialCambios', grupo: 'TRAZABILIDAD',
-    descripcion: 'Control de cambios oficial de cada documento. Solo se escribe al autorizar una versión (§4.2).',
-    columnas: ['ID_CAMBIO', 'ID_DOCUMENTO', 'VERSION', 'FECHA', 'MOTIVOS', 'DESCRIPCION',
+    descripcion: 'Control de cambios oficial de cada documento. Solo se escribe cuando CH autoriza una versión (§4.2).',
+    columnas: ['ID_CAMBIO', 'ID_DOCUMENTO', 'VERSION', 'FECHA', 'MOTIVOS', 'DESCRIPCION', 'RESPONSABLE',
       'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'ID_SOLICITUD']
   },
   {
@@ -185,4 +192,23 @@ const ESQUEMA_BD = [
     columnas: ['FECHA', 'USUARIO', 'ID_SOLICITUD', 'OPERACION', 'PROVEEDOR', 'MODELO',
       'TOKENS_ENTRADA', 'TOKENS_SALIDA', 'DURACION_MS', 'RESULTADO']
   }
+];
+
+// Hojas que ya no se usan. La instalación borra la que esté vacía o conserve solo su semilla original
+// sin cambios; si tiene otra cosa, la oculta con PREFIJO_HOJA_RETIRADA para que alguien la revise.
+const PREFIJO_HOJA_RETIRADA = '(retirada) ';
+const HOJAS_RETIRADAS = [
+  { hoja: 'CadenasAutorizacion', motivo: 'Las autorizaciones se quedan en el sistema CH (decisión 10).',
+    semillaOriginal: [
+      ['CAD-01', '', '', '1', 'Responsable del área', '', 'SI'],
+      ['CAD-02', '', '', '2', 'Dirección', '', 'SI']
+    ] },
+  { hoja: 'Autorizaciones', motivo: 'La sustituye EnviosCH: Procesos registra el resultado de CH (decisión 15).' }
+];
+
+// Valores sembrados que cambiaron. Se corrigen solo si la celda conserva el valor viejo (`de`): si
+// alguien ya lo cambió a mano, se respeta.
+const CORRECCIONES_BD = [
+  { hoja: 'TiposDocumento', id: 'TD-02', columna: 'PREFIJO_CODIGO', de: 'PRO', a: 'P',
+    motivo: 'Procedimiento es P; PRO es Protocolo (decisión 11).' }
 ];

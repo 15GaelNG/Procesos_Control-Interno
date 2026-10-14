@@ -9,7 +9,8 @@ documento en el mismo commit.**
 
 - **El nombre de cada hoja y de cada columna es contrato con el código.** El código busca columnas
   por su encabezado (no por posición), pero renombrar una lo rompe.
-- **Columnas nuevas, siempre al final.** La instalación las agrega sin tocar los datos.
+- **En una hoja con datos, las columnas nuevas van al final.** La instalación las agrega sin tocar
+  los datos ([cómo se actualiza](#cómo-se-actualiza)).
 - **IDs de texto con prefijo** (`USR-0001`, `SOL-2026-0001`). Los asigna `siguienteId_()` con
   bloqueo, a partir de la hoja `Consecutivos`. Nunca se reutilizan.
 - **Nada se borra:** los registros se desactivan (`ACTIVO = NO`) o se marcan (`ELIMINADA = SI`),
@@ -25,16 +26,45 @@ documento en el mismo commit.**
 ## Relaciones
 
 ```
-Usuarios ─┬─< UsuarioPerfiles            Departamentos ─< Puestos
-          └─< UsuarioDepartamentos >──── Departamentos
-TiposDocumento ─< CadenasAutorizacion
+Usuarios ─┬─< UsuarioPerfiles            Departamentos ─┬─< Areas
+          └─< UsuarioDepartamentos >────────────────────┤
+                                                        └─< Puestos
+TiposDocumento · Departamentos · Areas ──> código documental (P-CM01-001)
 Documentos (inventario) ─< Solicitudes ─┬─< Actividades ─< Imagenes
                        └─< HistorialCambios ├─< Aclaraciones · PropuestasIA · Observaciones
-                                            ├─< Autorizaciones · Archivos · Instantaneas
+                                            ├─< EnviosCH · Archivos · Instantaneas
                                             └─< Bitacora · UsoIA
 ```
 
+## Cómo se actualiza
+
+La estructura se actualiza corriendo otra vez `instalarPruebas()` / `instalarProduccion()`, que
+nunca borra datos:
+
+| Caso | Qué hace |
+|---|---|
+| Hoja nueva en el esquema | La crea |
+| Hoja **sin datos** cuyos encabezados no coinciden | Los reescribe en el orden del esquema |
+| Hoja **con datos** | Agrega al final las columnas que falten |
+| Columna en `columnasRetiradas` | La quita si está vacía; si tiene datos, la deja y avisa |
+| Hoja en `HOJAS_RETIRADAS` | La borra si está vacía o solo tiene su semilla original; si no, la oculta como «(retirada) …» |
+| Filas semilla | Agrega las que falten y llena sus celdas **vacías** (un valor cambiado a mano se respeta) |
+| `CORRECCIONES_BD` | Cambia un valor sembrado solo si la celda conserva el valor viejo |
+
+### Cambios de la fase 1 (14/10/2026), por las respuestas de Procesos
+
+- **Nueva hoja `Areas`** y `ID_AREA` en `Solicitudes` y `Documentos`, para armar el código
+  `P-CM01-001` (decisión 11).
+- **`TiposDocumento`:** prefijos M, P, PRO, PL, F y DP; columna `EN_SISTEMA` (solo Procedimiento por
+  ahora). Se corrige Procedimiento de `PRO` a `P`.
+- **Sin autorizaciones internas** (decisión 10): se retiran `CadenasAutorizacion`, `Autorizaciones`
+  y la columna `UsuarioPerfiles.NIVEL_AUTORIZACION`. Entra **`EnviosCH`** (decisión 15).
+- **`Solicitudes`:** revisor asignado, descripción y tipo de cambio (mayor/menor).
+- **`HistorialCambios`:** responsable de la modificación.
+
 ---
+
+## Configuración---
 
 ## Configuración
 
@@ -68,10 +98,10 @@ No se edita a mano.
 
 ### UsuarioPerfiles
 Una persona puede tener varios perfiles (§1). `ID_USUARIO_PERFIL` · `ID_USUARIO` · `PERFIL`
-(`COLABORADOR`, `REVISOR`, `AUTORIZADOR`, `ADMINISTRADOR`) · `ID_DEPARTAMENTO` (alcance; vacío =
-todos) · `NIVEL_AUTORIZACION` (solo autorizadores: 1 = responsable del área, 2 = Dirección) ·
-`ACTIVO` · `FECHA_ALTA`.
-Ser `ADMINISTRADOR` no da permiso de revisar ni autorizar.
+(`COLABORADOR`, `REVISOR`, `ADMINISTRADOR`) · `ID_DEPARTAMENTO` (alcance; vacío = todos) · `ACTIVO` ·
+`FECHA_ALTA`.
+Ser `ADMINISTRADOR` no da permiso de revisar. No hay perfil de autorizador: el responsable y el
+director autorizan en el sistema CH (decisión 10).
 
 ### UsuarioDepartamentos
 Departamentos por los que una persona puede elaborar documentos; si tiene varios, elige al crear la
@@ -79,55 +109,68 @@ solicitud (§2). `ID_USUARIO_DEPARTAMENTO` · `ID_USUARIO` · `ID_DEPARTAMENTO` 
 propone por defecto) · `ACTIVO`.
 
 ### Departamentos
-`ID_DEPARTAMENTO` · `NOMBRE` · `CLAVE_CODIGO` (la parte del código documental que identifica al área,
-p. ej. `CM01`; por confirmar con Procesos) · `DIRECCION` · `ACTIVO`.
+`ID_DEPARTAMENTO` · `NOMBRE` · `CLAVE_CODIGO` (su parte del código documental: `CM` en `P-CM01-001`) ·
+`DIRECCION` · `ACTIVO`.
+
+### Areas
+Áreas de cada departamento. `ID_AREA` · `ID_DEPARTAMENTO` · `NOMBRE` · `CLAVE_CODIGO` (su parte del
+código: `01` en `P-CM01-001`) · `ACTIVO`. El código de un documento es
+`PREFIJO_CODIGO` del tipo + `-` + clave del departamento + clave del área + `-` + consecutivo
+(decisión 11; el alcance del consecutivo está pendiente con Procesos, pregunta F).
 
 ### Puestos
 `ID_PUESTO` · `NOMBRE` · `ID_DEPARTAMENTO` · `SINONIMOS` (otras formas de llamarlo, separadas por
 coma: ayudan a la IA a reconocer al responsable) · `ACTIVO`.
 
 ### TiposDocumento
-`ID_TIPO` · `NOMBRE` · `PREFIJO_CODIGO` · `ID_PLANTILLA_PRELIMINAR` · `ID_PLANTILLA_FINAL` · `ACTIVO`.
-Viene sembrada con Manual, Procedimiento (`PRO`), Protocolo y Política; los demás prefijos y las
-plantillas se llenan cuando Procesos los defina. Cada tipo tiene **dos** plantillas: la preliminar
-con «COPIA NO AUTORIZADA» y la final sin marca.
+`ID_TIPO` · `NOMBRE` · `PREFIJO_CODIGO` · `ID_PLANTILLA_PRELIMINAR` · `ID_PLANTILLA_FINAL` · `ACTIVO` ·
+`EN_SISTEMA` (`SI` = ya se documenta en este sistema porque tiene plantilla validada).
 
-### CadenasAutorizacion
-Quién autoriza, y en qué orden, después del Vo.Bo. de Procesos. `ID_CADENA` · `ID_TIPO` ·
-`ID_DEPARTAMENTO` (vacío en los dos = aplica a todos) · `NIVEL` · `NOMBRE_NIVEL` · `ID_USUARIO`
-(vacío = se toma el autorizador de ese nivel en el departamento del documento) · `ACTIVO`.
-Viene sembrada con la cadena general: 1 Responsable del área → 2 Dirección. Para un tipo o
-departamento con otra cadena se agregan renglones específicos, que ganan sobre la general.
+| ID | Tipo | Prefijo | En el sistema |
+|---|---|---|---|
+| TD-01 | Manual | M | NO (falta su plantilla) |
+| TD-02 | Procedimiento | P | **SI** (plantilla v2) |
+| TD-03 | Protocolo | PRO | NO (falta su plantilla) |
+| TD-04 | Política | PL | NO (falta su plantilla) |
+| TD-05 | Formato | F | NO (pregunta H) |
+| TD-06 | Diagrama de proceso | DP | NO (pregunta H) |
+
+Cada tipo tiene **dos** plantillas: la preliminar con «COPIA NO AUTORIZADA» y la final sin marca.
 
 ---
+
+## Operación---
 
 ## Operación
 
 ### Documentos — inventario documental
 Un renglón por documento oficial. `ID_DOCUMENTO` · `CODIGO` · `NOMBRE` · `ID_TIPO` ·
-`ID_DEPARTAMENTO` · `VERSION_VIGENTE` · `FECHA_VIGENCIA` · `ESTATUS` (`VIGENTE` / `OBSOLETO`) ·
+`ID_DEPARTAMENTO` · `ID_AREA` · `VERSION_VIGENTE` · `FECHA_VIGENCIA` · `ESTATUS` (`VIGENTE` / `OBSOLETO`) ·
 `ID_SOLICITUD_VIGENTE` (la que lo autorizó) · `ID_ARCHIVO_WORD` · `ID_ARCHIVO_PDF` ·
 `CONTENIDO_ESTRUCTURADO` (`SI` si nació en el sistema y se puede actualizar actividad por actividad) ·
 `ORIGEN` (`SISTEMA` o `HISTORICO`, para los que se carguen del inventario actual de Procesos) ·
 `FECHA_REGISTRO`.
-Mientras una actualización está en curso, este renglón **no cambia**; solo se actualiza al autorizar.
+Mientras una actualización está en curso, este renglón **no cambia**; solo se actualiza cuando CH
+autoriza.
 
 ### Solicitudes
-Cada trámite, de borrador a autorizado.
+Cada trámite, de borrador hasta el resultado de CH.
 
 | Columnas | Qué guardan |
 |---|---|
 | `ID_SOLICITUD` | Folio interno `SOL-2026-0001`; existe aunque nunca se asigne código oficial |
 | `TIPO_SOLICITUD` · `ID_TIPO` · `ID_DOCUMENTO` | Nuevo o actualización; tipo de documento; documento que se actualiza |
-| `NOMBRE_DOCUMENTO` · `ID_DEPARTAMENTO` | Datos generales |
-| `ESTADO` · `NIVEL_AUTORIZACION_ACTUAL` | Dónde va (ver [flujos](analisis-inicial.md#32-estados-de-una-solicitud-propuesta)) |
+| `NOMBRE_DOCUMENTO` · `ID_DEPARTAMENTO` · `ID_AREA` | Datos generales (departamento y área arman el código) |
+| `ESTADO` · `REVISOR_ASIGNADO_ID` | Dónde va ([estados](analisis-inicial.md#32-estados-de-una-solicitud-actualizados-con-las-respuestas-de-procesos)) y qué revisor de Procesos la tiene |
 | `INICIO_PROCESO` · `FIN_PROCESO` | Respuestas a «¿Qué sucede para que inicie?» y «¿Cómo finaliza?» |
 | `OBJETIVO` · `ALCANCE` · `RESPONSABILIDADES` · `DEFINICIONES` | Textos derivados (los dos últimos en JSON) |
-| `MOTIVOS_CAMBIO` | Solo actualizaciones (§4.2) |
-| `CODIGO` · `VERSION` | Vacíos hasta que Procesos asigne código / hasta autorizar |
+| `MOTIVOS_CAMBIO` · `DESCRIPCION_CAMBIO` | Solo actualizaciones: motivos (§4.2) y qué cambió, como lo dice el colaborador |
+| `TIPO_CAMBIO` | `MAYOR` o `MENOR`; lo decide Procesos al dar el Vo.Bo. de una actualización |
+| `CODIGO` · `VERSION` | Se asignan con el Vo.Bo. de Procesos; la versión se vuelve oficial cuando CH autoriza |
 | `REVISION` | Vueltas de revisión (1, 2, 3…); no es la versión oficial |
 | `HUELLA_CONTENIDO` · `HUELLA_CONFIRMADA` · `FECHA_CONFIRMACION` | Huella del contenido actual y del que confirmó el colaborador; si no coinciden, hay que volver a confirmar (§3.5) |
-| `ELABORO_*` · `REVISO_*` · `AUTORIZO_*` y sus fechas | Nombre y puesto fijados al momento de cada acción (§4.1) |
+| `ELABORO_*` · `REVISO_*` y sus fechas | Nombre y puesto fijados al momento de cada acción (§4.1) |
+| `AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `FECHA_AUTORIZACION` | El autorizador final según CH, que registra Procesos (decisiones 14 y 15) |
 | `MOTIVO_CIERRE` | Por qué se cerró como no procedente |
 | `ID_CARPETA` · `FECHA_ACTUALIZACION` | Carpeta de la solicitud en Drive; último cambio |
 
@@ -157,16 +200,17 @@ colaborador que la sustenta) · `DECISION` (`PENDIENTE`, `ACEPTADA`, `EDITADA`, 
 `VALOR_FINAL` · `FECHA_PROPUESTA` · `FECHA_DECISION`.
 
 ### Observaciones
-De Procesos o de los autorizadores. `ID_OBSERVACION` · `ID_SOLICITUD` · `REVISION` · `APARTADO`
+De Procesos. `ID_OBSERVACION` · `ID_SOLICITUD` · `REVISION` · `APARTADO`
 (objetivo, alcance, actividad…) · `ID_ACTIVIDAD` · `AUTOR_ID` · `AUTOR_NOMBRE` · `PERFIL` · `TEXTO` ·
 `ESTADO` (`ABIERTA`, `ATENDIDA`, `CERRADA`) · `RESPUESTA` · `FECHA` · `FECHA_ATENCION`.
 
-### Autorizaciones
-Un renglón por nivel de la cadena y por vuelta. `ID_AUTORIZACION` · `ID_SOLICITUD` · `REVISION` ·
-`NIVEL` · `NOMBRE_NIVEL` · `ID_USUARIO` · `NOMBRE` · `PUESTO` (fijados al decidir) · `DECISION`
-(`PENDIENTE`, `AUTORIZADO`, `DEVUELTO`) · `COMENTARIO` · `FECHA_ASIGNACION` · `FECHA_DECISION`.
-Una decisión solo se acepta si corresponde al nivel actual real de la solicitud (evita dobles clics
-y saltos de nivel).
+### EnviosCH
+Cada vez que Procesos sube el documento al sistema CH, y lo que CH resolvió. No hay conexión con CH:
+Procesos registra aquí el resultado (decisión 15). `ID_ENVIO` · `ID_SOLICITUD` · `REVISION` ·
+`FECHA_ENVIO` · `ENVIADO_POR` · `FOLIO_CH` (si CH da uno) · `RESULTADO` (`PENDIENTE`, `AUTORIZADO`,
+`RECHAZADO`) · `AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `FECHA_AUTORIZACION` (el autorizador final,
+como viene en CH) · `COMENTARIO` (motivo de un rechazo) · `REGISTRADO_POR` · `FECHA_REGISTRO`.
+Con `AUTORIZADO` se genera el documento final sin marca de agua.
 
 ### Archivos
 Todo Word/PDF generado. `ID_ARCHIVO` · `ID_SOLICITUD` · `REVISION` · `TIPO` (`PRELIMINAR` / `FINAL`) ·
@@ -184,9 +228,9 @@ hoja no se llena de copias). `ID_INSTANTANEA` · `ID_SOLICITUD` · `REVISION` ·
 `ID_ARCHIVO_JSON` · `USUARIO` · `FECHA`.
 
 ### HistorialCambios
-Control de cambios oficial: solo se escribe al autorizar una versión (§4.2). `ID_CAMBIO` ·
-`ID_DOCUMENTO` · `VERSION` · `FECHA` · `MOTIVOS` · `DESCRIPCION` · `AUTORIZO_NOMBRE` ·
-`AUTORIZO_PUESTO` · `ID_SOLICITUD`.
+Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4.2). `ID_CAMBIO` ·
+`ID_DOCUMENTO` · `VERSION` · `FECHA` · `MOTIVOS` · `DESCRIPCION` · `RESPONSABLE` (de la modificación) ·
+`AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `ID_SOLICITUD`.
 
 ### Bitacora
 Toda acción relevante (§4.3). `FECHA` · `USUARIO` · `ACCION` · `ID_SOLICITUD` · `ESTADO_ANTERIOR` ·

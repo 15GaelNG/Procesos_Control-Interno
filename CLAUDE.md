@@ -38,7 +38,12 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   garantiza el orden de carga); dentro de funciones sí se puede.
 - Las funciones que el navegador no debe llamar terminan en `_`.
 - La base de datos se define solo en `src/config/Esquema.gs`; si cambia, se actualiza
-  `docs/base-de-datos.md` en el mismo commit. Columnas nuevas, siempre al final.
+  `docs/base-de-datos.md` en el mismo commit. En hojas con datos, columnas nuevas siempre al final;
+  lo que ya no se usa va en `columnasRetiradas` / `HOJAS_RETIRADAS` (se quita solo si está vacío) y
+  un valor sembrado que cambia, en `CORRECCIONES_BD`. La base se actualiza corriendo otra vez la
+  instalación.
+- Toda función del editor (sin `_` al final y que no sea de la app) empieza con `soloEditor_()`: la
+  web app corre como la cuenta dueña y cualquiera podría llamarla desde el navegador.
 - Se lee y escribe por **nombre de columna** (`leerTabla_`, `agregarFila_`, `actualizarFila_`).
 - Nada se borra físicamente: `ACTIVO = NO` o `ELIMINADA = SI`.
 - Plantillas: el contrato con el generador son los marcadores `{{...}}` de `MARCADORES_PLANTILLA`

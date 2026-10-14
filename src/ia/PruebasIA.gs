@@ -10,6 +10,7 @@
  */
 
 function listarModelosIA() {
+  soloEditor_();
   const llave = PropertiesService.getScriptProperties().getProperty(PROP.IA_LLAVE);
   if (!llave) throw new Error('Falta IA_LLAVE en las Propiedades del script.');
   const modelos = modelosDisponiblesIA_(llave);
@@ -25,6 +26,7 @@ function listarModelosIA() {
 }
 
 function probarIA() {
+  soloEditor_();
   const entrada = procesoDeEjemplo_();
   const prompt = construirPromptAnalisis_(entrada);
   const r = llamarIAJson_({ operacion: 'PRUEBA', sistema: prompt.sistema, usuario: prompt.usuario });

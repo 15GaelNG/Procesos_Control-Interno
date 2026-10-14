@@ -76,6 +76,32 @@ Procesos System/
    registrado. `verificarBase()` debe responder `"correcto": true`.
 5. En la hoja `Usuarios`, cambiar el `NOMBRE` del administrador (se registra con su correo).
 
+## Actualizar la base cuando cambia el esquema
+
+La misma función de instalación (`instalarPruebas` / `instalarProduccion`) actualiza la base: después
+de subir el código, se vuelve a **Ejecutar** y el registro dice qué hizo (hojas creadas o
+reacomodadas, columnas agregadas o quitadas, filas semilla, correcciones y hojas retiradas). Nunca
+borra datos; las reglas están en [base-de-datos.md](base-de-datos.md#cómo-se-actualiza). Al final,
+`verificarBase()` debe responder `"correcto": true`.
+
+## La web app
+
+`doGet` entrega la app; quien la abre se identifica con su cuenta de Google (solo cuentas de
+Ciudad Maderas) y debe estar dado de alta en `Usuarios` con `ACTIVO = SI`. Si no, ve un aviso para
+pedir acceso. En pruebas, una franja dorada arriba lo recuerda.
+
+**Primera implementación de un ambiente** (una sola vez, en el editor de Apps Script):
+
+1. **Implementar → Nueva implementación**, tipo **Aplicación web**.
+2. Descripción: «Web app»; **Ejecutar como: Yo** (la cuenta dueña); **Quién tiene acceso: cualquier
+   usuario de Ciudad Maderas**. Así lo pide `appsscript.json`.
+3. Copiar el **ID de implementación** y pegarlo en `tools/subir.js` (campo `implementacion` del
+   ambiente). Desde ahí, `npm run pruebas` publica cada cambio en el **mismo link**.
+
+Todas las funciones que se corren desde el editor (instalar, verificar, pruebas de la IA y de
+plantillas) llaman a `soloEditor_()`: si alguien intenta correrlas desde el navegador con la app
+abierta, se detienen.
+
 ## Propiedad de los archivos
 
 **Hoy** el propietario de todo es `especialista2datos.ci@ciudadmaderas.com`. **Más adelante** debe

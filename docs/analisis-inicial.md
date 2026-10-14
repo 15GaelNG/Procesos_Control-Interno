@@ -53,14 +53,15 @@ Marco (área de Procesos) respondió las 11 preguntas en la página del análisi
 | **IA** | De acuerdo con Gemini. Quieren una IA activa: también revisar secuencia, duplicados y estructura, y apoyar a Procesos en la revisión. Solo enviar actividades y puestos; nada de nombres, datos personales, contraseñas ni información financiera. Piden que **TI valide** el nivel gratuito. | Filtro que oculta correos, teléfonos, cuentas, RFC/CURP y montos antes de enviar a la IA. Apoyo de IA también en la bandeja de Procesos. Validación de TI pendiente. |
 | **Inventario** | Existe (nombre, código, versión, departamento). La mayoría en Word, algunos en PDF. Proponen subir el documento existente y que la IA lo separe en actividades para que el colaborador las valide. | Importación con IA para las actualizaciones: Word directo y PDF con la lectura de texto de Google Drive. Se necesita el archivo del inventario. |
 
-### Cambios pendientes en el esquema de la base de datos
+### Cambios en el esquema de la base de datos ✅ *14/10/2026*
 
-Se harán al iniciar la fase 1, cuando se resuelva cómo se conecta con CH:
+Hechos al iniciar la fase 1 (detalle en [base-de-datos.md](base-de-datos.md#cambios-de-la-fase-1-14102026-por-las-respuestas-de-procesos)):
 
-- `TiposDocumento`: prefijos M, P, PRO, PL (F y DP inactivos hasta que Procesos diga si se documentan aquí).
+- `TiposDocumento`: prefijos M, P, PRO, PL, F y DP, con la columna `EN_SISTEMA` (solo Procedimiento
+  por ahora; F y DP esperan la pregunta H).
 - Nueva hoja `Areas` (departamento, nombre, clave) para armar el código.
-- `Solicitudes`: revisor de Procesos asignado, tipo de cambio (mayor o menor), folio y estado en CH.
-- Se quita `CadenasAutorizacion`; `Autorizaciones` pasa a guardar lo que reporte CH.
+- `Solicitudes`: área, revisor de Procesos asignado, descripción y tipo de cambio (mayor o menor).
+- Se retiran `CadenasAutorizacion` y `Autorizaciones`; entra `EnviosCH` con lo que reporte CH.
 - `HistorialCambios`: responsable de la modificación.
 
 ---
@@ -313,7 +314,7 @@ eligió la API de Gemini en su nivel gratuito; sus límites y su política de da
 | Inicio / Mis solicitudes (estado de cada una, pendientes) | Todos |
 | Nueva solicitud: Información general → Desarrollo → Análisis IA → Vista previa y confirmación | Colaborador |
 | Bandeja de revisión: observaciones por apartado/actividad, devolver, no procedente, asignar código, Vo.Bo. | Revisor de Procesos |
-| Bandeja de autorización: consultar, observar, autorizar o devolver | Autorizador |
+| Envíos a CH: archivos para subir a CH y registro de su resultado (decisión 15) | Revisor de Procesos |
 | Inventario documental (consulta, versión vigente, historial) | Procesos / Admin (ampliable) |
 | Administración: usuarios y perfiles, catálogos, plantillas, parámetros | Administrador |
 
@@ -428,7 +429,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | Fase | Entregable | Depende de |
 |---|---|---|
 | **0. Definición y pruebas de concepto** ✅ *13/10/2026* | Respuestas de Procesos · IA con respuesta estructurada y validador (`probarIA`) · plantilla v2 validada, con y sin marca, en PDF y Word (`probarPlantillas`). La compresión de imágenes pasa a la fase 2, donde se usa | — |
-| **1. Base** | Repo, ambientes, `instalarBase()`, acceso con Google, perfiles, catálogos, esqueleto visual | Fase 0 |
+| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google y perfiles · catálogos (departamentos, áreas, puestos, usuarios) · carga del archivo de departamentos y áreas | Fase 0 · archivo de catálogos |
 | **2. Captura** | Información general, desarrollo por actividades, imágenes con Ctrl+V, guardado de borradores | Fase 1 |
 | **3. IA y confirmación** | Análisis, aclaraciones, propuestas aceptables, vista previa, confirmación con huella | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word/PDF con marca de agua desde la plantilla | Fase 3 · plantillas |

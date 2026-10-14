@@ -1,21 +1,44 @@
 /**
  * SISTEMA DE DOCUMENTACIÓN DE PROCESOS — entrada de la web app.
  *
- * El servidor está repartido en src/config, src/utils y (más adelante) src/services. Todos los
- * archivos .gs comparten el mismo ámbito global: una función de un archivo se llama desde cualquier
- * otro sin importar nada. Las funciones que el navegador NO debe poder llamar terminan en "_".
+ * El servidor está repartido en src/config, src/utils, src/services, src/ia y src/documentos. Todos
+ * los archivos .gs comparten el mismo ámbito global: una función de un archivo se llama desde
+ * cualquier otro sin importar nada. Las funciones que el navegador NO debe poder llamar terminan en "_".
+ *
+ * La app es de una sola página: doGet entrega el armazón (html/Index) con la sesión ya incluida, y
+ * el navegador cambia de pantalla sin volver a pedir la página.
  */
 
 function doGet() {
-  // Fase 1 sustituye esto por la app (Index.html). Por ahora solo confirma el ambiente.
-  const ambiente = PropertiesService.getScriptProperties().getProperty(PROP.AMBIENTE) || 'SIN INSTALAR';
-  const titulo = APP_NOMBRE + (ambiente === AMBIENTES.PRODUCCION.clave ? '' : ' · ' + ambiente);
-  return HtmlService.createHtmlOutput(
-      '<div style="font-family:sans-serif;padding:32px;color:' + COLOR_AZUL + '">' +
-      '<h2 style="margin:0 0 8px">' + APP_NOMBRE_LARGO + '</h2>' +
-      '<p style="margin:0;color:' + COLOR_DORADO + '">Ambiente: ' + ambiente + ' · en construcción</p></div>')
-    .setTitle(titulo)
+  const plantilla = HtmlService.createTemplateFromFile(PREFIJO_ARCHIVOS_HTML + 'Index');
+  const datos = datosIniciales_();
+  // "<" escapado para que ningún texto de la base pueda cerrar el <script> donde se inserta.
+  plantilla.datosIniciales = JSON.stringify(datos).replace(/</g, '\\u003c');
+  return plantilla.evaluate()
+    .setTitle(APP_NOMBRE + (datos.ambiente === AMBIENTES.PRODUCCION.clave ? '' : ' · ' + datos.ambiente))
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/** Lo que la app necesita al abrir: ambiente, sesión y catálogos fijos para pintar estados y perfiles. */
+function datosIniciales_() {
+  const ambiente = PropertiesService.getScriptProperties().getProperty(PROP.AMBIENTE) || 'SIN INSTALAR';
+  let sesion;
+  let error = '';
+  try {
+    sesion = sesionActual_();
+  } catch (e) {
+    sesion = { registrado: false, correo: '', perfiles: [] };
+    error = 'No se pudo leer la base de datos: ' + e.message;
+  }
+  return {
+    app: APP_NOMBRE_LARGO,
+    ambiente: ambiente,
+    urlApp: ScriptApp.getService().getUrl(),
+    sesion: sesion,
+    error: error,
+    nombresPerfil: NOMBRES_PERFIL,
+    nombresEstado: NOMBRES_ESTADO
+  };
 }
 
 /** Inserta el contenido de un archivo HTML (estilos, scripts, vistas) dentro de otro. */
