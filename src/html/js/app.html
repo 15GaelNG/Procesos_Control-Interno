@@ -1,45 +1,35 @@
 <script>
   /*
-   * app — arranque, menú, tema y navegación entre pantallas (una sola página).
+   * app — arranque, menú, tema, «ver como» y navegación entre pantallas (una sola página).
+   *
+   * Las pantallas que ve cada quien las decide el servidor (MODULOS_APP en Catalogos.gs, según sus
+   * perfiles) y llegan en DATOS.modulos; aquí solo se pintan.
    *
    * Ojo, reglas de los .html de Apps Script (ver CLAUDE.md): aquí los comentarios van con barra-asterisco,
    * ninguna URL dentro del JS, y nada de barra-asterisco dentro de un texto.
    */
 
-  /* Opciones del menú. `fase` = cuándo llega la pantalla; sin `fase`, ya existe. Los permisos por
-     perfil se agregan en el punto 2 de la fase 1. */
-  const MODULOS = [
-    { id: 'inicio', nombre: 'Inicio', icono: 'house' },
-    { seccion: 'Documentar' },
-    { id: 'mis-solicitudes', nombre: 'Mis solicitudes', icono: 'folder-open',
-      descripcion: 'Tus documentos en elaboración y en qué etapa va cada uno.' },
-    { id: 'nueva', nombre: 'Nueva solicitud', icono: 'file-plus-2', fase: 'la fase 2',
-      descripcion: 'Documenta un proceso nuevo o actualiza uno vigente, actividad por actividad.' },
-    { seccion: 'Área de Procesos' },
-    { id: 'revision', nombre: 'Bandeja de revisión', icono: 'clipboard-check', fase: 'la fase 5',
-      descripcion: 'Revisar, hacer observaciones, asignar código y dar el Vo.Bo.' },
-    { id: 'envios-ch', nombre: 'Envíos a CH', icono: 'send', fase: 'la fase 6',
-      descripcion: 'Archivos para subir al sistema CH y registro de su resultado.' },
-    { id: 'inventario', nombre: 'Inventario documental', icono: 'library', fase: 'la fase 6',
-      descripcion: 'Documentos vigentes, su versión y su historial de cambios.' },
-    { seccion: 'Administración' },
-    { id: 'usuarios', nombre: 'Usuarios y perfiles', icono: 'users', fase: 'esta fase (fase 1)',
-      descripcion: 'Quién entra al sistema y con qué perfil.' },
-    { id: 'catalogos', nombre: 'Catálogos', icono: 'list-tree', fase: 'esta fase (fase 1)',
-      descripcion: 'Departamentos, áreas, puestos y tipos de documento.' }
-  ];
-
-  const estado = { vista: 'inicio' };
+  const estado = {
+    vista: 'inicio',
+    sesion: DATOS.sesion,
+    modulos: DATOS.modulos,
+    comoUsuario: ''
+  };
 
   /* ─────────── Utilidades ─────────── */
   function $(selector, raiz) { return (raiz || document).querySelector(selector); }
   function guardar(clave, valor) { try { localStorage.setItem('procesos.' + clave, valor); } catch (e) { /* sin almacenamiento */ } }
   function leer(clave) { try { return localStorage.getItem('procesos.' + clave); } catch (e) { return null; } }
+  function guardarPestana(clave, valor) { try { sessionStorage.setItem('procesos.' + clave, valor); } catch (e) { /* sin almacenamiento */ } }
+  function leerPestana(clave) { try { return sessionStorage.getItem('procesos.' + clave); } catch (e) { return null; } }
   function pintarIconos() { if (window.lucide) lucide.createIcons(); }
   function clonar(idPlantilla) { return document.getElementById(idPlantilla).content.cloneNode(true); }
-  function modulo(id) { return MODULOS.filter(function (m) { return m.id === id; })[0]; }
+  function modulo(id) { return estado.modulos.filter(function (m) { return m.id === id; })[0]; }
+  function nombresPerfiles(perfiles) {
+    return perfiles.map(function (p) { return DATOS.nombresPerfil[p] || p; }).join(' · ');
+  }
   function iniciales(nombre) {
-    const partes = String(nombre || '').replace(/@.*$/, '').split(/[\s._-]+/).filter(Boolean);
+    const partes = String(nombre || '').replace(/@.*$/, '').replace(/\(.*\)/, '').split(/[\s._-]+/).filter(Boolean);
     return ((partes[0] || '?').charAt(0) + (partes[1] || '').charAt(0)).toUpperCase();
   }
   function primerNombre(nombre) {
@@ -62,13 +52,14 @@
   function pintarMenu() {
     const contenedor = $('#menu-opciones');
     contenedor.textContent = '';
-    MODULOS.forEach(function (m) {
-      if (m.seccion) {
+    let seccion = '';
+    estado.modulos.forEach(function (m) {
+      if (m.seccion && m.seccion !== seccion) {
+        seccion = m.seccion;
         const s = document.createElement('div');
         s.className = 'menu-seccion';
         s.textContent = m.seccion;
         contenedor.appendChild(s);
-        return;
       }
       const b = document.createElement('button');
       b.type = 'button';
@@ -122,38 +113,105 @@
     $('[data-campo="icono"]', f).setAttribute('data-lucide', m.icono);
     $('[data-campo="titulo"]', f).textContent = m.nombre;
     $('[data-campo="descripcion"]', f).textContent = m.descripcion || '';
-    $('[data-campo="fase"]', f).textContent = 'Esta pantalla llega en ' + m.fase + '. Mientras tanto puedes ver cómo va quedando el resto del sistema.';
+    $('[data-campo="fase"]', f).textContent = 'Esta pantalla llega en ' + m.fase + '.';
+    const lista = $('[data-campo="acciones"]', f);
+    (m.acciones || []).forEach(function (a) {
+      const li = document.createElement('li');
+      li.innerHTML = '<i data-lucide="check" class="ico"></i><span></span>';
+      $('span', li).textContent = a;
+      lista.appendChild(li);
+    });
+    $('[data-campo="bloque-acciones"]', f).hidden = !(m.acciones || []).length;
     return f;
   }
 
   function vistaInicio() {
     const f = clonar('vista-inicio');
-    const nombre = primerNombre(DATOS.sesion.nombre);
+    const nombre = primerNombre(estado.sesion.nombre);
     $('[data-campo="saludo"]', f).textContent = nombre ? '¡Hola, ' + nombre + '!' : '¡Hola!';
     const chips = $('[data-campo="perfiles"]', f);
-    DATOS.sesion.perfiles.forEach(function (p) {
+    estado.sesion.perfiles.forEach(function (p) {
       const c = document.createElement('span');
       c.className = 'chip';
       c.textContent = DATOS.nombresPerfil[p] || p;
       chips.appendChild(c);
     });
     const accesos = $('[data-campo="accesos"]', f);
-    MODULOS.filter(function (m) { return m.id && m.id !== 'inicio'; }).forEach(function (m) {
+    const disponibles = estado.modulos.filter(function (m) { return m.id !== 'inicio'; });
+    disponibles.forEach(function (m) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'acceso';
-      b.innerHTML = '<span class="acceso-icono"><i class="ico"></i></span><div><strong></strong><span></span></div>';
+      b.innerHTML = '<span class="acceso-icono"><i class="ico"></i></span>' +
+        '<span class="acceso-texto"><strong></strong><span class="acceso-desc"></span><span class="chip"></span></span>';
       $('i', b).setAttribute('data-lucide', m.icono);
       $('strong', b).textContent = m.nombre;
-      $('div span', b).textContent = m.descripcion || '';
-      const chip = document.createElement('span');
-      chip.className = m.fase ? 'chip dorado' : 'chip exito';
+      $('.acceso-desc', b).textContent = m.descripcion || '';
+      const chip = $('.chip', b);
+      chip.classList.add(m.fase ? 'dorado' : 'exito');
       chip.textContent = m.fase ? 'Llega en ' + m.fase : 'Disponible';
-      $('div', b).appendChild(chip);
       b.addEventListener('click', function () { ir(m.id, true); });
       accesos.appendChild(b);
     });
+    $('[data-campo="sin-accesos"]', f).hidden = disponibles.length > 0;
     return f;
+  }
+
+  /* ─────────── Usuario, aviso del ambiente y «ver como» ─────────── */
+  function pintarUsuario() {
+    const s = estado.sesion;
+    $('#usuario-nombre').textContent = s.nombre;
+    $('#usuario-perfiles').textContent = nombresPerfiles(s.perfiles) || 'Sin perfil asignado';
+    $('#usuario-iniciales').textContent = iniciales(s.nombre);
+    const aviso = $('#aviso-ambiente');
+    if (DATOS.ambiente === 'PRODUCCION') return;
+    $('#aviso-texto').textContent = s.verComo
+      ? 'Pruebas · viendo como ' + s.nombre + ' · ' + (nombresPerfiles(s.perfiles) || 'sin perfil')
+      : 'Ambiente de ' + DATOS.ambiente + ' · los datos no son reales';
+    $('#btn-volver-yo').hidden = !s.verComo;
+    aviso.classList.toggle('viendo-como', !!s.verComo);
+    aviso.hidden = false;
+    document.body.classList.add('con-aviso');
+  }
+
+  function prepararVerComo() {
+    if (!DATOS.verComo.length) return;
+    const lista = $('#ver-como-lista');
+    const yo = DATOS.verComo.filter(function (u) { return u.idUsuario === DATOS.sesion.idUsuario; });
+    const otros = DATOS.verComo.filter(function (u) { return u.idUsuario !== DATOS.sesion.idUsuario; });
+    yo.concat(otros).forEach(function (u) {
+      const o = document.createElement('option');
+      o.value = u.idUsuario === DATOS.sesion.idUsuario ? '' : u.idUsuario;
+      o.textContent = (o.value ? u.nombre : 'Yo · ' + u.nombre) + ' — ' + (nombresPerfiles(u.perfiles) || 'sin perfil');
+      lista.appendChild(o);
+    });
+    lista.value = '';
+    lista.addEventListener('change', function () { verComo(lista.value); });
+    $('#btn-volver-yo').addEventListener('click', function () { verComo(''); });
+    $('#ver-como').hidden = false;
+  }
+
+  /* El servidor valida el cambio (apiSesion → sesionEfectiva_) y devuelve la sesión y sus pantallas. */
+  function verComo(idUsuario) {
+    const lista = $('#ver-como-lista');
+    const anterior = estado.comoUsuario;
+    lista.disabled = true;
+    estado.comoUsuario = idUsuario;
+    return llamar('apiSesion').then(function (r) {
+      estado.sesion = r.sesion;
+      estado.modulos = r.modulos;
+      guardarPestana('verComo', idUsuario);
+      pintarUsuario();
+      pintarMenu();
+      ir(modulo(estado.vista) ? estado.vista : 'inicio', false);
+    }).catch(function (e) {
+      estado.comoUsuario = anterior;
+      guardarPestana('verComo', anterior);
+      alert('No se pudo cambiar de usuario: ' + e.message);
+    }).then(function () {
+      lista.value = estado.comoUsuario;
+      lista.disabled = false;
+    });
   }
 
   /* ─────────── Sin acceso ─────────── */
@@ -184,19 +242,10 @@
       b.addEventListener('click', function () { aplicarTema(b.dataset.tema); guardar('tema', b.dataset.tema); });
     });
 
-    if (DATOS.ambiente !== 'PRODUCCION') {
-      const aviso = $('#aviso-ambiente');
-      aviso.textContent = 'Ambiente de ' + DATOS.ambiente + ' · los datos no son reales';
-      aviso.hidden = false;
-      document.body.classList.add('con-aviso');
-    }
+    if (!DATOS.sesion.registrado) { pintarUsuarioSinAcceso(); mostrarSinAcceso(); return; }
 
-    if (!DATOS.sesion.registrado) { mostrarSinAcceso(); return; }
-
-    $('#usuario-nombre').textContent = DATOS.sesion.nombre;
-    $('#usuario-perfiles').textContent = DATOS.sesion.perfiles
-      .map(function (p) { return DATOS.nombresPerfil[p] || p; }).join(' · ') || 'Sin perfil asignado';
-    $('#usuario-iniciales').textContent = iniciales(DATOS.sesion.nombre);
+    pintarUsuario();
+    prepararVerComo();
     const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     $('#barra-fecha').textContent = hoy.charAt(0).toUpperCase() + hoy.slice(1);
 
@@ -212,12 +261,24 @@
     $('#app').hidden = false;
 
     /* Atrás / adelante del navegador, y abrir directo una pantalla con ?vista=... */
+    const abrirInicial = function (id) {
+      ir(id, false);
+      const guardado = leerPestana('verComo');
+      if (guardado && DATOS.verComo.length) verComo(guardado);
+    };
     if (window.google && google.script) {
       google.script.history.setChangeHandler(function (e) { ir((e.state && e.state.vista) || 'inicio', false); });
-      google.script.url.getLocation(function (ubicacion) { ir(ubicacion.parameter.vista || 'inicio', false); });
+      google.script.url.getLocation(function (ubicacion) { abrirInicial(ubicacion.parameter.vista || 'inicio'); });
     } else {
-      ir('inicio', false);
+      abrirInicial('inicio');
     }
+  }
+
+  /* Quien no está dado de alta solo ve el aviso del ambiente (si es de pruebas). */
+  function pintarUsuarioSinAcceso() {
+    if (DATOS.ambiente === 'PRODUCCION') return;
+    $('#aviso-texto').textContent = 'Ambiente de ' + DATOS.ambiente + ' · los datos no son reales';
+    $('#aviso-ambiente').hidden = false;
   }
 
   arrancar();

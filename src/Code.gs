@@ -19,26 +19,35 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
-/** Lo que la app necesita al abrir: ambiente, sesión y catálogos fijos para pintar estados y perfiles. */
+/**
+ * Lo que la app necesita al abrir: ambiente, sesión, las pantallas que le tocan y catálogos fijos
+ * para pintar estados y perfiles. En PRUEBAS, a un administrador también le llega la lista de
+ * usuarios para «ver como».
+ */
 function datosIniciales_() {
-  const ambiente = PropertiesService.getScriptProperties().getProperty(PROP.AMBIENTE) || 'SIN INSTALAR';
-  let sesion;
-  let error = '';
-  try {
-    sesion = sesionActual_();
-  } catch (e) {
-    sesion = { registrado: false, correo: '', perfiles: [] };
-    error = 'No se pudo leer la base de datos: ' + e.message;
-  }
-  return {
+  const ambiente = ambienteActual_();
+  const datos = {
     app: APP_NOMBRE_LARGO,
     ambiente: ambiente,
     urlApp: ScriptApp.getService().getUrl(),
-    sesion: sesion,
-    error: error,
+    sesion: sesionVacia_(''),
+    modulos: [],
+    verComo: [],
+    error: '',
     nombresPerfil: NOMBRES_PERFIL,
     nombresEstado: NOMBRES_ESTADO
   };
+  try {
+    const correo = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
+    const usuarios = leerTabla_('Usuarios');
+    const perfiles = leerTabla_('UsuarioPerfiles');
+    datos.sesion = correo ? buscarSesion_(correo, usuarios, perfiles) : sesionVacia_('');
+    datos.modulos = datos.sesion.registrado ? modulosDe_(datos.sesion.perfiles) : [];
+    if (puedeVerComo_(ambiente, datos.sesion)) datos.verComo = usuariosParaVerComo_(usuarios, perfiles);
+  } catch (e) {
+    datos.error = 'No se pudo leer la base de datos: ' + e.message;
+  }
+  return datos;
 }
 
 /** Inserta el contenido de un archivo HTML (estilos, scripts, vistas) dentro de otro. */

@@ -16,7 +16,8 @@ const fs = require('fs');
 // `implementacion` es el ID de la implementación de la web app (Implementar → Gestionar
 // implementaciones). Mientras esté vacío, solo se sube el código.
 const AMBIENTES = {
-  pruebas: { nombre: 'PRUEBAS', proyecto: '.clasp.json', implementacion: '' },
+  pruebas: { nombre: 'PRUEBAS', proyecto: '.clasp.json',
+    implementacion: 'AKfycbzWShA86OdUiycoA6Jmlhn49o7WSjHWrxVTOSnnavc-ZPXTGSOJ0P0VQKYZCQzRg-YH' },
   produccion: { nombre: 'PRODUCCION', proyecto: '.clasp.prod.json', implementacion: '' }
 };
 

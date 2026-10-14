@@ -22,6 +22,58 @@ const NOMBRES_PERFIL = {
   ADMINISTRADOR: 'Administrador'
 };
 
+// Pantallas de la app y qué perfiles las ven (requerimiento §1, ajustado por la decisión 10).
+// `perfiles` vacío = todos. `fase` = cuándo llega (sin `fase`, ya existe). `acciones` es lo que ese
+// perfil podrá hacer ahí; se muestra mientras la pantalla está en construcción, para validarlo con
+// Procesos. Los perfiles van como texto: una constante no debe leer otra al declararse.
+const MODULOS_APP = [
+  { id: 'inicio', nombre: 'Inicio', icono: 'house', perfiles: [] },
+  { id: 'mis-solicitudes', seccion: 'Documentar', nombre: 'Mis solicitudes', icono: 'folder-open',
+    perfiles: ['COLABORADOR'],
+    descripcion: 'Tus documentos en elaboración y en qué etapa va cada uno.',
+    acciones: ['Ver tus documentos y el estado de cada uno', 'Continuar un borrador',
+      'Atender las observaciones de Procesos', 'Descargar el preliminar con «COPIA NO AUTORIZADA»'] },
+  { id: 'nueva', seccion: 'Documentar', nombre: 'Nueva solicitud', icono: 'file-plus-2', fase: 'la fase 2',
+    perfiles: ['COLABORADOR'],
+    descripcion: 'Documenta un proceso nuevo o actualiza uno vigente, actividad por actividad.',
+    acciones: ['Elegir si es un documento nuevo o la actualización de uno vigente',
+      'Capturar cómo inicia, cada actividad con su responsable e imágenes, y cómo termina',
+      'Pedir a la IA que mejore la redacción y responder sus preguntas (fase 3)',
+      'Confirmar el borrador y enviarlo a revisión de Procesos'] },
+  { id: 'revision', seccion: 'Área de Procesos', nombre: 'Bandeja de revisión', icono: 'clipboard-check',
+    fase: 'la fase 5', perfiles: ['REVISOR'],
+    descripcion: 'Revisar, hacer observaciones, asignar código y dar el Vo.Bo.',
+    acciones: ['Ver las solicitudes que tienes asignadas', 'Hacer observaciones por apartado o por actividad',
+      'Devolver al colaborador o cerrar como no procedente', 'Asignar código y versión, y dar el Vo.Bo. de Procesos'] },
+  { id: 'envios-ch', seccion: 'Área de Procesos', nombre: 'Envíos a CH', icono: 'send', fase: 'la fase 6',
+    perfiles: ['REVISOR'],
+    descripcion: 'Archivos para subir al sistema CH y registro de su resultado.',
+    acciones: ['Descargar el PDF y el Word con marca de agua para subirlos a CH',
+      'Registrar lo que resolvió CH: autorizado (quién y cuándo) o rechazado',
+      'Con «autorizado», generar el documento final sin marca de agua'] },
+  { id: 'inventario', seccion: 'Área de Procesos', nombre: 'Inventario documental', icono: 'library',
+    fase: 'la fase 6', perfiles: ['REVISOR', 'ADMINISTRADOR'],
+    descripcion: 'Documentos vigentes, su versión y su historial de cambios.',
+    acciones: ['Consultar los documentos vigentes con su código y versión',
+      'Ver el historial de versiones y el control de cambios', 'Descargar el documento oficial'] },
+  { id: 'usuarios', seccion: 'Administración', nombre: 'Usuarios y perfiles', icono: 'users',
+    fase: 'esta fase (fase 1)', perfiles: ['ADMINISTRADOR'],
+    descripcion: 'Quién entra al sistema y con qué perfil.',
+    acciones: ['Dar de alta a las personas con su correo de Ciudad Maderas', 'Asignar uno o varios perfiles',
+      'Indicar por qué departamentos puede documentar cada quien', 'Dar de baja sin borrar su historial'] },
+  { id: 'catalogos', seccion: 'Administración', nombre: 'Catálogos', icono: 'list-tree',
+    fase: 'esta fase (fase 1)', perfiles: ['ADMINISTRADOR'],
+    descripcion: 'Departamentos, áreas, puestos y tipos de documento.',
+    acciones: ['Departamentos y áreas con su clave para el código (P-CM01-001)',
+      'Puestos: la IA los usa para reconocer al responsable de cada actividad',
+      'Tipos de documento y sus prefijos', 'Importar el archivo de departamentos y áreas'] },
+  { id: 'plantillas', seccion: 'Administración', nombre: 'Plantillas y parámetros', icono: 'sliders-horizontal',
+    fase: 'la fase 4', perfiles: ['ADMINISTRADOR'],
+    descripcion: 'Plantilla de cada tipo de documento y ajustes del sistema.',
+    acciones: ['Subir la plantilla de cada tipo de documento (preliminar y final)',
+      'Ajustar la marca de agua, las imágenes y el uso de la IA'] }
+];
+
 const TIPOS_SOLICITUD = {
   NUEVO: 'NUEVO',
   ACTUALIZACION: 'ACTUALIZACION'

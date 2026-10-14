@@ -429,7 +429,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | Fase | Entregable | Depende de |
 |---|---|---|
 | **0. Definición y pruebas de concepto** ✅ *13/10/2026* | Respuestas de Procesos · IA con respuesta estructurada y validador (`probarIA`) · plantilla v2 validada, con y sin marca, en PDF y Word (`probarPlantillas`). La compresión de imágenes pasa a la fase 2, donde se usa | — |
-| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google y perfiles · catálogos (departamentos, áreas, puestos, usuarios) · carga del archivo de departamentos y áreas | Fase 0 · archivo de catálogos |
+| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google, perfiles y «Ver como» para pruebas ✅ · catálogos (departamentos, áreas, puestos, usuarios) · carga del archivo de departamentos y áreas | Fase 0 · archivo de catálogos |
 | **2. Captura** | Información general, desarrollo por actividades, imágenes con Ctrl+V, guardado de borradores | Fase 1 |
 | **3. IA y confirmación** | Análisis, aclaraciones, propuestas aceptables, vista previa, confirmación con huella | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word/PDF con marca de agua desde la plantilla | Fase 3 · plantillas |

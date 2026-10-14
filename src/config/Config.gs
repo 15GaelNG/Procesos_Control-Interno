@@ -107,6 +107,16 @@ const MARCADORES_PLANTILLA = {
   desarrollo: 'DESARROLLO'
 };
 
+// Usuarios de prueba (solo en el ambiente de PRUEBAS; ver UsuariosDePrueba.gs). Usan el dominio
+// reservado .test, que no existe: ningún aviso por correo les puede llegar a una persona real.
+const USUARIOS_DE_PRUEBA = [
+  { correo: 'colaborador.uno@procesos.test', nombre: 'Ana López (prueba)', perfiles: ['COLABORADOR'] },
+  { correo: 'colaborador.dos@procesos.test', nombre: 'Luis Ramírez (prueba)', perfiles: ['COLABORADOR'] },
+  { correo: 'revisor@procesos.test', nombre: 'Paola Méndez (prueba)', perfiles: ['REVISOR'] },
+  { correo: 'revisor.colaborador@procesos.test', nombre: 'Carlos Ruiz (prueba)', perfiles: ['REVISOR', 'COLABORADOR'] },
+  { correo: 'administrador@procesos.test', nombre: 'Sofía Torres (prueba)', perfiles: ['ADMINISTRADOR'] }
+];
+
 // Colores institucionales (los mismos que SIVET / Control Interno y la plantilla).
 const COLOR_AZUL = '#1E252B';
 const COLOR_DORADO = '#B4A169';

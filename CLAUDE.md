@@ -44,6 +44,11 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   instalación.
 - Toda función del editor (sin `_` al final y que no sea de la app) empieza con `soloEditor_()`: la
   web app corre como la cuenta dueña y cualquiera podría llamarla desde el navegador.
+- El navegador solo llama funciones `api…` de `src/ClientApi.gs`. Cada una recibe primero
+  `comoUsuario`, pide la sesión con `sesionEfectiva_(comoUsuario)` (nunca con `sesionActual_` ni
+  confiando en lo que mande el navegador) y revisa permisos con `requierePerfil_`.
+- Qué pantallas ve cada perfil: `MODULOS_APP` (`src/config/Catalogos.gs`), probado en
+  `tests/base.test.js`.
 - Se lee y escribe por **nombre de columna** (`leerTabla_`, `agregarFila_`, `actualizarFila_`).
 - Nada se borra físicamente: `ACTIVO = NO` o `ELIMINADA = SI`.
 - Plantillas: el contrato con el generador son los marcadores `{{...}}` de `MARCADORES_PLANTILLA`

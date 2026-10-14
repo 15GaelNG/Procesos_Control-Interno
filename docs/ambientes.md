@@ -98,6 +98,30 @@ pedir acceso. En pruebas, una franja dorada arriba lo recuerda.
 3. Copiar el **ID de implementación** y pegarlo en `tools/subir.js` (campo `implementacion` del
    ambiente). Desde ahí, `npm run pruebas` publica cada cambio en el **mismo link**.
 
+### Perfiles y «Ver como» (solo pruebas)
+
+Cada perfil ve solo sus pantallas (`MODULOS_APP` en `src/config/Catalogos.gs`):
+
+| Perfil | Pantallas |
+|---|---|
+| Colaborador | Mis solicitudes · Nueva solicitud |
+| Revisor de Procesos | Bandeja de revisión · Envíos a CH · Inventario documental |
+| Administrador | Inventario documental · Usuarios y perfiles · Catálogos · Plantillas y parámetros |
+
+Quien tiene varios perfiles ve lo de todos. Ser administrador no da la bandeja de revisión (§1).
+
+Para probar cada perfil sin una cuenta de Google por persona:
+
+1. En el editor del proyecto de **pruebas**, correr `crearUsuariosDePrueba()`. Da de alta a los
+   usuarios de `USUARIOS_DE_PRUEBA` (`src/config/Config.gs`): dos colaboradores, una revisora, un
+   revisor que también es colaborador y una administradora. Sus correos son `@procesos.test`, un
+   dominio que no existe, así que ningún aviso le llega a nadie.
+2. En la app, un **administrador** ve arriba **«Ver como»** y elige a cualquier usuario activo. La
+   franja de arriba se pone verde y dice como quién está viendo; **«Volver a mi usuario»** regresa.
+
+El servidor revisa cada cambio (`sesionEfectiva_`): solo en el ambiente de pruebas y solo si la
+cuenta real es administradora. Queda en la `Bitacora` (acción `VER_COMO`). En producción no existe.
+
 Todas las funciones que se corren desde el editor (instalar, verificar, pruebas de la IA y de
 plantillas) llaman a `soloEditor_()`: si alguien intenta correrlas desde el navegador con la app
 abierta, se detienen.

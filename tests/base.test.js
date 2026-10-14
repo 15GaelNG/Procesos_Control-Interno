@@ -4,9 +4,10 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { cargarGs } = require('./cargar-gs');
 
-const gs = cargarGs(['src/config/Catalogos.gs', 'src/config/Esquema.gs', 'src/SetupInicial.gs', 'src/services/Sesion.gs'],
+const gs = cargarGs(['src/config/Config.gs', 'src/config/Catalogos.gs', 'src/config/Esquema.gs', 'src/SetupInicial.gs',
+  'src/services/Sesion.gs'],
   {}, ['ESQUEMA_BD', 'GRUPOS_BD', 'HOJAS_RETIRADAS', 'CORRECCIONES_BD', 'PERFILES', 'ESTADOS', 'TRANSICIONES',
-    'NOMBRES_ESTADO', 'NOMBRES_PERFIL']);
+    'NOMBRES_ESTADO', 'NOMBRES_PERFIL', 'MODULOS_APP', 'USUARIOS_DE_PRUEBA']);
 const plano = function (v) { return JSON.parse(JSON.stringify(v)); };
 const hoja = function (nombre) { return gs.ESQUEMA_BD.filter(function (d) { return d.hoja === nombre; })[0]; };
 
@@ -123,13 +124,87 @@ const PERFILES_FILAS = [
   { ID_USUARIO: 'USR-0002', PERFIL: 'COLABORADOR', ACTIVO: 'SI' }
 ];
 
-test('buscarSesion_: reconoce el correo sin importar mayúsculas y da sus perfiles activos y vigentes', function () {
+test('buscarSesion_: reconoce el correo sin importar mayúsculas y da sus perfiles activos y vigentes, sin repetir', function () {
   const s = gs.buscarSesion_('especialista2datos.ci@ciudadmaderas.com', USUARIOS, PERFILES_FILAS);
   assert.deepStrictEqual(plano(s), { registrado: true, correo: 'especialista2datos.ci@ciudadmaderas.com',
-    idUsuario: 'USR-0001', nombre: 'Gael Núñez', perfiles: ['ADMINISTRADOR', 'REVISOR'] });
+    idUsuario: 'USR-0001', nombre: 'Gael Núñez', perfiles: ['REVISOR', 'ADMINISTRADOR'] });
 });
 
 test('buscarSesion_: un usuario dado de baja o que no existe no entra', function () {
   assert.strictEqual(gs.buscarSesion_('baja@ciudadmaderas.com', USUARIOS, PERFILES_FILAS).registrado, false);
   assert.strictEqual(gs.buscarSesion_('nadie@ciudadmaderas.com', USUARIOS, PERFILES_FILAS).registrado, false);
+});
+
+// ─────────────────────────────── Ver como (solo PRUEBAS) ───────────────────────────────
+
+const USUARIOS_VC = USUARIOS.concat([
+  { ID_USUARIO: 'USR-0003', CORREO: 'colaborador.uno@procesos.test', NOMBRE: 'Ana López (prueba)', ACTIVO: 'SI' }
+]);
+const PERFILES_VC = PERFILES_FILAS.concat([{ ID_USUARIO: 'USR-0003', PERFIL: 'COLABORADOR', ACTIVO: 'SI' }]);
+const ADMIN = gs.buscarSesion_('especialista2datos.ci@ciudadmaderas.com', USUARIOS_VC, PERFILES_VC);
+const COLAB = gs.buscarSesion_('colaborador.uno@procesos.test', USUARIOS_VC, PERFILES_VC);
+
+test('ver como: un administrador en PRUEBAS entra como otro usuario y queda registrado quién está detrás', function () {
+  const s = gs.elegirSesion_('PRUEBAS', ADMIN, 'USR-0003', USUARIOS_VC, PERFILES_VC);
+  assert.strictEqual(s.correo, 'colaborador.uno@procesos.test');
+  assert.deepStrictEqual(plano(s.perfiles), ['COLABORADOR']);
+  assert.strictEqual(s.verComo.correoReal, 'especialista2datos.ci@ciudadmaderas.com');
+});
+
+test('ver como: no existe en PRODUCCIÓN ni para quien no es administrador', function () {
+  assert.throws(function () { gs.elegirSesion_('PRODUCCION', ADMIN, 'USR-0003', USUARIOS_VC, PERFILES_VC); }, /administrador, en el ambiente de pruebas/);
+  assert.throws(function () { gs.elegirSesion_('PRUEBAS', COLAB, 'USR-0001', USUARIOS_VC, PERFILES_VC); }, /administrador/);
+  assert.ok(!gs.puedeVerComo_('PRODUCCION', ADMIN));
+});
+
+test('ver como: no se puede entrar como un usuario dado de baja o inexistente', function () {
+  assert.throws(function () { gs.elegirSesion_('PRUEBAS', ADMIN, 'USR-0002', USUARIOS_VC, PERFILES_VC); }, /dado de baja/);
+  assert.throws(function () { gs.elegirSesion_('PRUEBAS', ADMIN, 'USR-9999', USUARIOS_VC, PERFILES_VC); }, /no existe/);
+});
+
+test('usuariosParaVerComo_: solo activos, ordenados por nombre y con sus perfiles', function () {
+  const lista = plano(gs.usuariosParaVerComo_(USUARIOS_VC, PERFILES_VC));
+  assert.deepStrictEqual(lista.map(function (u) { return u.idUsuario; }), ['USR-0003', 'USR-0001']);
+  assert.deepStrictEqual(lista[1].perfiles, ['REVISOR', 'ADMINISTRADOR']);
+});
+
+// ─────────────────────────────── Pantallas por perfil ───────────────────────────────
+
+const ids = function (perfiles) { return plano(gs.modulosDe_(perfiles)).map(function (m) { return m.id; }); };
+
+test('cada perfil ve solo sus pantallas (requerimiento §1 y decisión 10)', function () {
+  assert.deepStrictEqual(ids(['COLABORADOR']), ['inicio', 'mis-solicitudes', 'nueva']);
+  assert.deepStrictEqual(ids(['REVISOR']), ['inicio', 'revision', 'envios-ch', 'inventario']);
+  assert.deepStrictEqual(ids(['ADMINISTRADOR']), ['inicio', 'inventario', 'usuarios', 'catalogos', 'plantillas']);
+  assert.deepStrictEqual(ids([]), ['inicio']);
+});
+
+test('ser administrador no da la bandeja de revisión; tener dos perfiles suma lo de ambos', function () {
+  assert.ok(ids(['ADMINISTRADOR']).indexOf('revision') === -1);
+  assert.deepStrictEqual(ids(['REVISOR', 'COLABORADOR']), ['inicio', 'mis-solicitudes', 'nueva', 'revision', 'envios-ch', 'inventario']);
+});
+
+test('requierePerfil_ detiene a quien no tiene el perfil', function () {
+  assert.strictEqual(gs.requierePerfil_(COLAB, ['COLABORADOR']), COLAB);
+  assert.throws(function () { gs.requierePerfil_(COLAB, ['REVISOR']); }, /perfil no permite/);
+  assert.throws(function () { gs.requierePerfil_({ registrado: false, perfiles: [] }, ['COLABORADOR']); }, /dada de alta/);
+});
+
+test('las pantallas tienen ID único, perfiles que existen, y las que están en construcción dicen qué harán', function () {
+  const vistos = {};
+  gs.MODULOS_APP.forEach(function (m) {
+    assert.ok(!vistos[m.id], 'repetido ' + m.id);
+    vistos[m.id] = true;
+    m.perfiles.forEach(function (p) { assert.ok(gs.PERFILES[p], m.id + ': perfil ' + p); });
+    if (m.fase) assert.ok(m.acciones && m.acciones.length, m.id + ' sin acciones');
+  });
+});
+
+test('los usuarios de prueba usan el dominio reservado .test y perfiles que existen', function () {
+  gs.USUARIOS_DE_PRUEBA.forEach(function (u) {
+    assert.ok(/@[a-z.]+\.test$/.test(u.correo), u.correo);
+    u.perfiles.forEach(function (p) { assert.ok(gs.PERFILES[p], u.correo + ': ' + p); });
+  });
+  const todos = [].concat.apply([], gs.USUARIOS_DE_PRUEBA.map(function (u) { return u.perfiles; }));
+  Object.keys(gs.PERFILES).forEach(function (p) { assert.ok(todos.indexOf(p) !== -1, 'ningún usuario de prueba es ' + p); });
 });

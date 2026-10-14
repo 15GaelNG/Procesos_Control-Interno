@@ -9,7 +9,10 @@
 </head>
 <body>
   <!-- Armazón de la app. Las pantallas viven en views/ como <template> y app.html las pinta en #vista. -->
-  <div id="aviso-ambiente" class="aviso-ambiente" hidden></div>
+  <div id="aviso-ambiente" class="aviso-ambiente" hidden>
+    <span id="aviso-texto"></span>
+    <button type="button" class="aviso-boton" id="btn-volver-yo" hidden>Volver a mi usuario</button>
+  </div>
 
   <div id="app" hidden>
     <nav id="menu" aria-label="Menú principal">
@@ -43,6 +46,11 @@
             <button type="button" class="btn-tema" data-tema="dark" title="Modo oscuro"><i data-lucide="moon" class="ico"></i></button>
           </div>
           <div class="barra-fecha" id="barra-fecha"></div>
+          <label class="ver-como" id="ver-como" title="Usar el sistema como otro usuario (solo en pruebas)" hidden>
+            <i data-lucide="user-round-cog" class="ico"></i>
+            <span class="ver-como-texto">Ver como</span>
+            <select id="ver-como-lista" aria-label="Ver como"></select>
+          </label>
           <div class="barra-usuario">
             <span class="avatar" id="usuario-iniciales"></span>
             <div class="usuario-datos">
@@ -67,6 +75,7 @@
     /* Datos que el servidor mandó al abrir (Code.gs, datosIniciales_). */
     const DATOS = <?!= datosIniciales ?>;
   </script>
+  <?!= include('js/api'); ?>
   <?!= include('js/app'); ?>
 </body>
 </html>

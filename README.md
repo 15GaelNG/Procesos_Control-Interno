@@ -32,13 +32,15 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 ├── src/                   Todo lo que se sube a Apps Script (ver .claspignore)
 │   ├── Code.gs              doGet(): entrega la web app con la sesión ya incluida · include()
 │   ├── SetupInicial.gs      instalarPruebas() · instalarProduccion() · verificarBase() (también actualizan la base)
+│   ├── ClientApi.gs         Única puerta del navegador al servidor (funciones api…)
+│   ├── UsuariosDePrueba.gs  crearUsuariosDePrueba(): un usuario por perfil, solo en pruebas
 │   ├── services/
-│   │   └── Sesion.gs          Quién abrió la app: su correo de Google en Usuarios y sus perfiles
+│   │   └── Sesion.gs          Quién abrió la app, sus perfiles, sus pantallas y «Ver como» (pruebas)
 │   ├── html/
 │   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro
 │   │   ├── styles.html        Estilos (los de SIVET / Control Interno)
 │   │   ├── views/             Una pantalla por archivo, como <template>
-│   │   └── js/app.html        Arranque, menú y navegación entre pantallas
+│   │   └── js/                api.html (llamadas al servidor) · app.html (arranque, menú, «Ver como», navegación)
 │   ├── config/
 │   │   ├── Config.gs          Constantes: nombre, carpeta del proyecto, ambientes, propiedades
 │   │   ├── Catalogos.gs       Perfiles, estados y transiciones, tipos de cambio, motivos de cambio

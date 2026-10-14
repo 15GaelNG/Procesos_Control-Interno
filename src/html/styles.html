@@ -71,6 +71,15 @@
     background: var(--dorado); color: #06263A; font-size: 12px; font-weight: 600; letter-spacing: .3px;
   }
   body.con-aviso #app { padding-top: 26px; }
+  .aviso-ambiente { padding: 0 12px; }
+  #aviso-texto { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aviso-ambiente.viendo-como { background: #1e7d4f; color: #fff; }
+  .aviso-boton {
+    border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 999px;
+    padding: 0 10px; font-size: 11px; line-height: 18px; font-weight: 600; margin-left: 8px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .aviso-boton:hover { background: rgba(255,255,255,.18); }
 
   /* ─────────── Estructura: menú lateral + contenido ─────────── */
   #app { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -151,6 +160,19 @@
   }
   .btn-menu-movil { display: none; }
 
+  /* «Ver como» (solo administradores en pruebas) */
+  .ver-como {
+    display: flex; align-items: center; gap: 7px; padding: 4px 6px 4px 12px; border-radius: 999px;
+    border: 1px dashed var(--dorado); background: var(--dorado-suave); color: var(--dorado-hover);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .ver-como .ico { width: 16px; height: 16px; }
+  .ver-como select {
+    max-width: 230px; border: 0; border-radius: 999px; padding: 5px 8px; font-family: inherit; font-size: 12px;
+    background: var(--superficie); color: var(--texto); cursor: pointer;
+  }
+  .ver-como select:disabled { opacity: .6; cursor: wait; }
+
   .vista { flex: 1; overflow-y: auto; padding: 26px 28px 40px; outline: none; }
   .vista-ancho { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 
@@ -203,9 +225,17 @@
     width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     background: var(--primario-suave); color: var(--primario);
   }
-  .acceso strong { display: block; font-size: 13.5px; }
-  .acceso span { display: block; font-size: 12px; color: var(--texto-suave); margin-top: 3px; line-height: 1.45; }
+  .acceso-texto { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+  .acceso strong { font-size: 13.5px; }
+  .acceso-desc { font-size: 12px; color: var(--texto-suave); margin-top: 3px; line-height: 1.45; }
   .acceso .chip { margin-top: 8px; }
+
+  /* Lo que podrá hacer cada perfil en una pantalla en construcción */
+  .acciones { border-top: 1px solid var(--borde); padding-top: 18px; max-width: 560px; margin: 0 auto; }
+  .acciones h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+  .acciones ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .acciones li { display: flex; gap: 10px; align-items: flex-start; color: var(--texto-suave); line-height: 1.5; }
+  .acciones li .ico { width: 16px; height: 16px; margin-top: 3px; color: var(--exito); }
 
   /* Estados vacíos y pantallas en construcción */
   .vacio { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 46px 20px; }
@@ -227,6 +257,8 @@
   @media (max-width: 1000px) {
     .pasos { grid-template-columns: repeat(2, 1fr); }
     .barra-fecha { display: none; }
+    .ver-como-texto { display: none; }
+    .ver-como select { max-width: 170px; }
   }
   @media (max-width: 860px) {
     #menu {
@@ -249,5 +281,9 @@
     .tarjeta { padding: 16px; }
     .pasos { grid-template-columns: 1fr; }
     .bienvenida h1 { font-size: 19px; }
+    .barra-logo.logo-claro, .barra-logo.logo-oscuro { height: 24px; }
+    .ver-como { padding: 3px 4px 3px 8px; }
+    .ver-como select { max-width: 120px; }
+    .aviso-ambiente { font-size: 11px; }
   }
 </style>
