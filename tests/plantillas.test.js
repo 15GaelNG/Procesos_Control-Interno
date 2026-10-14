@@ -65,3 +65,19 @@ test('la plantilla v2 trae todos los marcadores que el sistema conoce y ninguno 
   assert.deepStrictEqual(conocidos.filter(function (c) { return enPlantilla.indexOf(c) === -1; }), [], 'faltan en la plantilla');
   assert.deepStrictEqual(enPlantilla.filter(function (c) { return conocidos.indexOf(c) === -1; }), [], 'la plantilla trae marcadores desconocidos');
 });
+
+// ─── Tamaño de las imágenes en «Desarrollo» ───
+const tam = cargarGs(['src/config/Config.gs', 'src/documentos/Llenado.gs']);
+const t = function (a, b) { return JSON.parse(JSON.stringify(tam.tamanoImagen_(a, b))); };
+
+test('una imagen ancha se reduce al ancho máximo sin deformarse', function () {
+  assert.deepStrictEqual(t(1600, 900), { ancho: 560, alto: 315 });
+});
+
+test('una captura de celular (vertical) se limita por el alto para no salirse de la hoja', function () {
+  assert.deepStrictEqual(t(1080, 2400), { ancho: 270, alto: 600 });
+});
+
+test('una imagen chica no se agranda', function () {
+  assert.deepStrictEqual(t(300, 120), { ancho: 300, alto: 120 });
+});

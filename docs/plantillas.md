@@ -119,3 +119,20 @@ uno que el sistema no conoce.
 
 El llenado está en `src/documentos/Llenado.gs` (`llenarPlantilla_`). Conserva el formato de cada
 marcador y nunca modifica la plantilla: siempre trabaja sobre una copia.
+
+## Documentos largos y cortos, e imágenes
+
+- **El documento crece con el contenido.** No hay nada de tamaño fijo: las actividades e imágenes se
+  insertan donde está `{{DESARROLLO}}`, el texto pasa solo a la hoja siguiente, el encabezado y el pie
+  se repiten y «Página x de y» se calcula. Un proceso corto sale de 3 hojas (portada + 2).
+- **Imágenes por actividad:** varias por actividad (tope en `Config → IMG_MAX_POR_ACTIVIDAD`), debajo
+  de la descripción, centradas y con pie «Imagen n.m». Ligadas a su actividad por ID, así que
+  reordenar actividades no las revuelve. El colaborador las sube o las pega con Ctrl+V (fase 2); el
+  navegador las optimiza antes de subirlas (ancho máx. 1600 px, ~300 KB).
+- **Tamaño en el documento** (`tamanoImagen_`, probado en `tests/plantillas.test.js`): caben en
+  **560 × 600 px** de Google Docs (≈ 5.8 × 6.25 pulgadas) sin deformarse y nunca se agrandan. Las
+  horizontales ocupan casi todo el ancho para que se lea la letra chica; las verticales (capturas de
+  celular) se limitan por el alto para no salirse de la hoja.
+- **Prueba de carga:** `probarDocumentoLargo()` genera un procedimiento de 40 actividades con imágenes
+  horizontales y verticales, y reporta hojas, peso y cuánto tarda cada paso (llenar, PDF, Word), para
+  confirmar que queda lejos del límite de 6 minutos de Apps Script.

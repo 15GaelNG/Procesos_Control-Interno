@@ -82,7 +82,12 @@ const MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingm
 const SUFIJO_PRELIMINAR = ' - Preliminar';
 const SUFIJO_FINAL = ' - Final';
 const CARPETA_PRUEBAS_GENERACION = 'Pruebas de generación';
-const ANCHO_IMAGEN_DOCUMENTO = 420;   // puntos: ancho máximo de una imagen dentro de «Desarrollo»
+// Tamaño máximo de una imagen en «Desarrollo», en píxeles de Google Docs (96 por pulgada).
+// El área de texto mide 6.5 × 8 pulgadas (624 × ~770 px). Ancho 560 px ≈ 5.8": casi todo el ancho,
+// para que se lean las capturas con letra chica. Alto 600 px ≈ 6.25": deja lugar al título de la
+// actividad y al pie; sin este tope una captura de celular (vertical) se saldría de la hoja.
+const ANCHO_IMAGEN_DOCUMENTO = 560;
+const ALTO_IMAGEN_DOCUMENTO = 600;
 
 // Contrato entre la plantilla (plantillas/Procedimiento.docx) y el generador (documentos/Llenado.gs).
 // Cada marcador se escribe en la plantilla como {{CLAVE}}. Ver docs/plantillas.md#marcadores.

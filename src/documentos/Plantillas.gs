@@ -122,6 +122,63 @@ function datosDeEjemplo_() {
   };
 }
 
+/**
+ * Prueba de un procedimiento LARGO (40 actividades, imágenes horizontales y verticales) sobre
+ * «Procedimiento - Preliminar»: mide cuánto tarda cada paso y cuántas hojas salen. Sirve para
+ * confirmar que los documentos crecen bien y que no nos acercamos al límite de 6 minutos de Apps Script.
+ */
+function probarDocumentoLargo() {
+  const carpeta = DriveApp.getFolderById(propiedadObligatoria_('ID_CARPETA_PLANTILLAS'));
+  const plantilla = buscarDocPorNombre_(carpeta, 'Procedimiento' + SUFIJO_PRELIMINAR);
+  if (!plantilla) throw new Error('No existe «Procedimiento - Preliminar». Corre primero prepararPlantillas().');
+  const destino = asegurarCarpeta_(carpeta, CARPETA_PRUEBAS_GENERACION, null, null);
+  const reloj = Date.now();
+  const tiempos = [];
+  const marcar = function (paso) { tiempos.push(paso + ': ' + ((Date.now() - reloj) / 1000).toFixed(1) + ' s'); };
+
+  const horizontal = imagenDeEjemplo_();
+  const vertical = Charts.newColumnChart().setDataTable(Charts.newDataTable()
+      .addColumn(Charts.ColumnType.STRING, 'Paso').addColumn(Charts.ColumnType.NUMBER, 'Valor')
+      .addRow(['A', 4]).addRow(['B', 7]).build())
+    .setTitle('Captura de celular (vertical)').setDimensions(540, 1200).build().getAs('image/png');
+  const datos = datosDeEjemplo_();
+  datos.actividades = [];
+  let imagenes = 0;
+  for (let i = 1; i <= 40; i++) {
+    const imgs = [];
+    if (i % 3 === 0) imgs.push({ blob: horizontal.copyBlob(), pie: 'Pantalla horizontal' });
+    if (i % 5 === 0) imgs.push({ blob: vertical.copyBlob(), pie: 'Captura de celular' });
+    imagenes += imgs.length;
+    datos.actividades.push({ responsable: i % 4 === 0 ? 'Jefe de Compras' : 'Auxiliar de Compras',
+      descripcion: 'Descripción de ejemplo de la actividad ' + i + '. ' +
+        'Se revisa la información, se registra en el sistema correspondiente y se valida que esté completa antes de continuar. '.repeat(1 + (i % 3)),
+      imagenes: imgs });
+  }
+  marcar('preparar datos');
+
+  const copia = plantilla.makeCopy('PRUEBA LARGA ' + Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd HH.mm'), destino);
+  const doc = DocumentApp.openById(copia.getId());
+  const reporte = llenarPlantilla_(doc, datos);
+  doc.saveAndClose();
+  marcar('llenar y guardar');
+  const pdf = destino.createFile(copia.getAs(MimeType.PDF)).setName(copia.getName() + '.pdf');
+  marcar('exportar PDF');
+  const docx = destino.createFile(exportarDocx_(copia.getId())).setName(copia.getName() + '.docx');
+  marcar('exportar Word');
+
+  const hojas = (pdf.getBlob().getDataAsString('ISO-8859-1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+  Logger.log([
+    'DOCUMENTO LARGO: 40 actividades, ' + imagenes + ' imágenes (horizontales y verticales)',
+    '  Hojas del PDF: ' + hojas,
+    '  Peso: PDF ' + Math.round(pdf.getSize() / 1024) + ' KB · Word ' + Math.round(docx.getSize() / 1024) + ' KB',
+    '  Tiempos acumulados: ' + tiempos.join(' · '),
+    '  Sin llenar: ' + (reporte.sinLlenar.length ? reporte.sinLlenar.join(', ') : 'ninguno'),
+    '  Google Doc: ' + urlDoc_(copia.getId()),
+    '  PDF:        ' + pdf.getUrl(),
+    '  Word:       ' + docx.getUrl()
+  ].join('\n'));
+}
+
 // ─────────────────────────────────── Marca de agua ───────────────────────────────────
 
 /**

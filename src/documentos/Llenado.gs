@@ -64,6 +64,16 @@ function marcadoresEnSecciones_(secciones) {
   return encontrados;
 }
 
+/**
+ * Tamaño de una imagen dentro del documento: cabe en ANCHO × ALTO máximos sin deformarse y nunca se
+ * agranda (una imagen chica se queda de su tamaño). Sin servicios de Google (se prueba en node).
+ */
+function tamanoImagen_(ancho, alto) {
+  if (!ancho || !alto) return { ancho: ancho || 0, alto: alto || 0 };
+  const escala = Math.min(1, ANCHO_IMAGEN_DOCUMENTO / ancho, ALTO_IMAGEN_DOCUMENTO / alto);
+  return { ancho: Math.round(ancho * escala), alto: Math.round(alto * escala) };
+}
+
 /** Claves de los {{MARCADORES}} de un texto, sin repetir. Sin servicios de Google (se prueba en node). */
 function marcadoresEnTexto_(texto) {
   const claves = [];
@@ -219,8 +229,8 @@ function insertarDesarrollo_(cuerpo, actividades) {
       try {
         if (par.getChild(0).getType() === DocumentApp.ElementType.TEXT) par.getChild(0).removeFromParent();
       } catch (e) { /* se queda el espacio */ }
-      const ancho = Math.min(ANCHO_IMAGEN_DOCUMENTO, imagen.getWidth());
-      imagen.setHeight(Math.round(imagen.getHeight() * ancho / imagen.getWidth())).setWidth(ancho);
+      const t = tamanoImagen_(imagen.getWidth(), imagen.getHeight());
+      imagen.setWidth(t.ancho).setHeight(t.alto);
       nuevo('Imagen ' + (i + 1) + '.' + (j + 1) + (img.pie ? '. ' + img.pie : ''), estilo(pie), DocumentApp.HorizontalAlignment.CENTER).setSpacingAfter(6);
     });
   });
