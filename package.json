@@ -7,6 +7,7 @@
     "pruebas": "node tools/subir.js pruebas",
     "produccion": "node tools/subir.js produccion",
     "estado": "clasp status",
+    "catalogo": "node tools/catalogo/convertir-catalogo.js",
     "test": "node --test \"tests/*.test.js\""
   },
   "author": "Jesús Gael Núñez Gutiérrez",

@@ -1,0 +1,38 @@
+<template id="vista-catalogos">
+  <div class="vista-ancho">
+    <div>
+      <h1 class="titulo-vista"><i data-lucide="list-tree" class="ico"></i>Catálogos</h1>
+      <p class="subtitulo">Departamentos, áreas y subáreas del catálogo de Procesos, con la clave que forma el código de cada documento.</p>
+    </div>
+
+    <div class="tarjeta codigo-ejemplo">
+      <span class="codigo-ejemplo-titulo">Así se forma el código</span>
+      <div class="codigo-partes">
+        <span class="codigo-parte"><strong>P</strong><small>Tipo</small></span>
+        <span class="codigo-guion">-</span>
+        <span class="codigo-parte"><strong>CI</strong><small>Depto.</small></span>
+        <span class="codigo-parte"><strong>04</strong><small>Área</small></span>
+        <span class="codigo-guion">-</span>
+        <span class="codigo-parte"><strong>001</strong><small>Consecutivo</small></span>
+      </div>
+      <p>Las subáreas no cambian el código: usan la clave de su área.</p>
+    </div>
+
+    <div class="tarjeta">
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar departamento, área, subárea o clave (p. ej. CI04)">
+        </label>
+        <label class="interruptor">
+          <input type="checkbox" data-campo="inactivas">
+          <span>Mostrar dadas de baja</span>
+        </label>
+      </div>
+      <div class="chips" data-campo="resumen"></div>
+      <div data-campo="contenido" class="catalogo-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando catálogo…</p></div>
+      </div>
+    </div>
+  </div>
+</template>

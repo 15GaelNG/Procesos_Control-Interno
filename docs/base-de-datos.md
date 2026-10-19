@@ -51,6 +51,11 @@ nunca borra datos:
 | Filas semilla | Agrega las que falten y llena sus celdas **vacías** (un valor cambiado a mano se respeta) |
 | `CORRECCIONES_BD` | Cambia un valor sembrado solo si la celda conserva el valor viejo |
 
+### Catálogo de Procesos (19/10/2026)
+
+- `Areas` con `OBSERVACIONES`; nueva hoja **`Subareas`**; `ID_SUBAREA` en `Solicitudes` y
+  `Documentos`. Los datos se cargan con `importarCatalogoInicial()` ([catalogos.md](catalogos.md)).
+
 ### Cambios de la fase 1 (14/10/2026), por las respuestas de Procesos
 
 - **Nueva hoja `Areas`** y `ID_AREA` en `Solicitudes` y `Documentos`, para armar el código
@@ -109,14 +114,22 @@ solicitud (§2). `ID_USUARIO_DEPARTAMENTO` · `ID_USUARIO` · `ID_DEPARTAMENTO` 
 propone por defecto) · `ACTIVO`.
 
 ### Departamentos
-`ID_DEPARTAMENTO` · `NOMBRE` · `CLAVE_CODIGO` (su parte del código documental: `CM` en `P-CM01-001`) ·
-`DIRECCION` · `ACTIVO`.
+`ID_DEPARTAMENTO` (`DEP-001`) · `NOMBRE` · `CLAVE_CODIGO` (su nomenclatura en el código documental: `CI`
+en `P-CI04-001`) · `DIRECCION` · `ACTIVO`.
 
 ### Areas
-Áreas de cada departamento. `ID_AREA` · `ID_DEPARTAMENTO` · `NOMBRE` · `CLAVE_CODIGO` (su parte del
-código: `01` en `P-CM01-001`) · `ACTIVO`. El código de un documento es
+Áreas de cada departamento. `ID_AREA` (`ARE-0001`) · `ID_DEPARTAMENTO` · `NOMBRE` · `CLAVE_CODIGO`
+(su parte del código, a dos dígitos: `04` en `P-CI04-001`) · `ACTIVO` · `OBSERVACIONES` (notas del
+catálogo de Procesos: de dónde salió la clave, decisiones pendientes). El código de un documento es
 `PREFIJO_CODIGO` del tipo + `-` + clave del departamento + clave del área + `-` + consecutivo
-(decisión 11; el alcance del consecutivo está pendiente con Procesos, pregunta F).
+(decisión 11; el alcance del consecutivo está pendiente con Procesos, pregunta F). Se cargan con
+`importarCatalogoInicial()` ([catalogos.md](catalogos.md)).
+
+### Subareas
+Subáreas de un área (catálogo de Procesos). **No cambian el código**: heredan la clave de su área
+(Procesos es subárea de Análisis de Datos y Procesos y usa `CI04`). `ID_SUBAREA` (`SUB-0001`) ·
+`ID_AREA` · `NOMBRE` · `CLAVE_ANTERIOR` (el cuerpo que tenía antes de volverse subárea, p. ej. `CI02`) ·
+`ACTIVO` · `OBSERVACIONES`. Sirven para saber de qué equipo es cada documento.
 
 ### Puestos
 `ID_PUESTO` · `NOMBRE` · `ID_DEPARTAMENTO` · `SINONIMOS` (otras formas de llamarlo, separadas por
@@ -145,7 +158,7 @@ Cada tipo tiene **dos** plantillas: la preliminar con «COPIA NO AUTORIZADA» y 
 
 ### Documentos — inventario documental
 Un renglón por documento oficial. `ID_DOCUMENTO` · `CODIGO` · `NOMBRE` · `ID_TIPO` ·
-`ID_DEPARTAMENTO` · `ID_AREA` · `VERSION_VIGENTE` · `FECHA_VIGENCIA` · `ESTATUS` (`VIGENTE` / `OBSOLETO`) ·
+`ID_DEPARTAMENTO` · `ID_AREA` · `ID_SUBAREA` · `VERSION_VIGENTE` · `FECHA_VIGENCIA` · `ESTATUS` (`VIGENTE` / `OBSOLETO`) ·
 `ID_SOLICITUD_VIGENTE` (la que lo autorizó) · `ID_ARCHIVO_WORD` · `ID_ARCHIVO_PDF` ·
 `CONTENIDO_ESTRUCTURADO` (`SI` si nació en el sistema y se puede actualizar actividad por actividad) ·
 `ORIGEN` (`SISTEMA` o `HISTORICO`, para los que se carguen del inventario actual de Procesos) ·
@@ -160,7 +173,7 @@ Cada trámite, de borrador hasta el resultado de CH.
 |---|---|
 | `ID_SOLICITUD` | Folio interno `SOL-2026-0001`; existe aunque nunca se asigne código oficial |
 | `TIPO_SOLICITUD` · `ID_TIPO` · `ID_DOCUMENTO` | Nuevo o actualización; tipo de documento; documento que se actualiza |
-| `NOMBRE_DOCUMENTO` · `ID_DEPARTAMENTO` · `ID_AREA` | Datos generales (departamento y área arman el código) |
+| `NOMBRE_DOCUMENTO` · `ID_DEPARTAMENTO` · `ID_AREA` · `ID_SUBAREA` | Datos generales (departamento y área arman el código; la subárea es opcional) |
 | `ESTADO` · `REVISOR_ASIGNADO_ID` | Dónde va ([estados](analisis-inicial.md#32-estados-de-una-solicitud-actualizados-con-las-respuestas-de-procesos)) y qué revisor de Procesos la tiene |
 | `INICIO_PROCESO` · `FIN_PROCESO` | Respuestas a «¿Qué sucede para que inicie?» y «¿Cómo finaliza?» |
 | `OBJETIVO` · `ALCANCE` · `RESPONSABILIDADES` · `DEFINICIONES` | Textos derivados (los dos últimos en JSON) |

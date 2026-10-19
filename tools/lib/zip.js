@@ -1,5 +1,5 @@
-// Lector mínimo de .docx (un ZIP) para las pruebas: devuelve el texto de las partes de Word sin
-// dependencias externas. Solo maneja lo que produce Word: entradas guardadas o comprimidas con deflate.
+// Lector mínimo de ZIP (.docx y .xlsx son ZIP) sin dependencias externas, para las pruebas y las
+// herramientas. Solo maneja lo que producen Word y Excel: entradas guardadas o comprimidas con deflate.
 const fs = require('fs');
 const zlib = require('zlib');
 

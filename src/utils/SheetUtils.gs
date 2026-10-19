@@ -43,6 +43,17 @@ function agregarFila_(nombre, objeto) {
   return hoja.getLastRow();
 }
 
+/** Agrega varios renglones en una sola escritura (mucho más rápido que agregarFila_ en un ciclo). */
+function agregarFilas_(nombre, objetos) {
+  if (!objetos.length) return;
+  const hoja = obtenerHoja_(nombre);
+  const encabezados = leerEncabezados_(hoja);
+  const filas = objetos.map(function (o) {
+    return encabezados.map(function (col) { return o[col] === undefined ? '' : o[col]; });
+  });
+  hoja.getRange(hoja.getLastRow() + 1, 1, filas.length, encabezados.length).setValues(filas);
+}
+
 /** Actualiza solo las columnas indicadas de un renglón existente. */
 function actualizarFila_(nombre, numeroFila, cambios) {
   const hoja = obtenerHoja_(nombre);

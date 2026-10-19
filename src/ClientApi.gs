@@ -16,3 +16,9 @@ function apiSesion(comoUsuario) {
   }
   return { sesion: sesion, modulos: sesion.registrado ? modulosDe_(sesion.perfiles) : [] };
 }
+
+/** Pantalla «Catálogos»: departamentos → áreas → subáreas. */
+function apiCatalogoAreas(comoUsuario) {
+  requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  return arbolCatalogo_(leerTabla_('Departamentos'), leerTabla_('Areas'), leerTabla_('Subareas'));
+}

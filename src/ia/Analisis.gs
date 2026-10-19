@@ -160,12 +160,3 @@ function aparece_(fragmento, texto) {
   const f = normalizar_(fragmento);
   return !!f && normalizar_(texto).indexOf(f) !== -1;
 }
-
-function normalizar_(s) {
-  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9ñ]+/g, ' ').trim();
-}
-
-function texto_(v) {
-  return v === null || v === undefined ? '' : String(v).trim();
-}

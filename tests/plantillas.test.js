@@ -46,7 +46,7 @@ test('también quita una marca hecha como forma moderna (mc:AlternateContent) co
 });
 
 // ─── Marcadores de la plantilla v2 (src/documentos/Llenado.gs) ───
-const { textoDocx } = require('./leer-docx');
+const { textoDocx } = require('../tools/lib/zip');
 const llenado = cargarGs(['src/config/Config.gs', 'src/documentos/Llenado.gs'], {}, ['MARCADORES_PLANTILLA']);
 
 test('marcadoresEnTexto_ encuentra cada {{CLAVE}} una sola vez y en orden', function () {

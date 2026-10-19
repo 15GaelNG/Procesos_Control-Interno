@@ -16,6 +16,11 @@
     comoUsuario: ''
   };
 
+  /* Pantallas que piden datos al servidor al abrirse: id del módulo → función que recibe el contenedor. */
+  const PANTALLAS = {
+    catalogos: iniciarCatalogos
+  };
+
   /* ─────────── Utilidades ─────────── */
   function $(selector, raiz) { return (raiz || document).querySelector(selector); }
   function guardar(clave, valor) { try { localStorage.setItem('procesos.' + clave, valor); } catch (e) { /* sin almacenamiento */ } }
@@ -100,6 +105,7 @@
     vista.appendChild(construirVista(m));
     vista.scrollTop = 0;
     pintarIconos();
+    if (!m.fase && PANTALLAS[m.id]) PANTALLAS[m.id](vista);
     abrirMenuMovil(false);
     if (guardarHistorial && window.google && google.script && google.script.history) {
       google.script.history.push({ vista: m.id }, { vista: m.id });

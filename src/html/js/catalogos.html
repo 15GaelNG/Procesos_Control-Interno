@@ -1,0 +1,119 @@
+<script>
+  /*
+   * Pantalla «Catálogos»: departamentos → áreas → subáreas (apiCatalogoAreas).
+   * Búsqueda por nombre o clave sin importar acentos; las dadas de baja se ocultan salvo que se pidan.
+   */
+  function iniciarCatalogos(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    const buscar = raiz.querySelector('[data-campo="buscar"]');
+    const inactivas = raiz.querySelector('[data-campo="inactivas"]');
+    const resumen = raiz.querySelector('[data-campo="resumen"]');
+    let arbol = null;
+
+    const comparable = function (t) {
+      return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+    };
+    const el = function (etiqueta, clase, texto) {
+      const n = document.createElement(etiqueta);
+      if (clase) n.className = clase;
+      if (texto !== undefined) n.textContent = texto;
+      return n;
+    };
+    const vacio = function (icono, titulo, texto) {
+      const v = el('div', 'vacio');
+      v.innerHTML = '<span class="vacio-icono"><i class="ico"></i></span><h2></h2><p></p>';
+      v.querySelector('i').setAttribute('data-lucide', icono);
+      v.querySelector('h2').textContent = titulo;
+      v.querySelector('p').textContent = texto;
+      return v;
+    };
+
+    function pintarResumen() {
+      resumen.textContent = '';
+      let areas = 0, subareas = 0, bajas = 0;
+      arbol.forEach(function (d) {
+        d.areas.forEach(function (a) {
+          areas++;
+          if (!a.activo) bajas++;
+          subareas += a.subareas.length;
+        });
+      });
+      [[arbol.length + ' departamentos', ''], [areas + ' áreas', ''], [subareas + ' subáreas', ''],
+        [bajas + ' dadas de baja', 'dorado']].forEach(function (c) {
+        resumen.appendChild(el('span', 'chip ' + c[1], c[0]));
+      });
+    }
+
+    function filaArea(a) {
+      const fila = el('div', 'catalogo-fila' + (a.activo ? '' : ' inactiva'));
+      fila.appendChild(el('span', 'catalogo-cuerpo', a.cuerpo));
+      const datos = el('div', 'catalogo-datos');
+      const nombre = el('div', 'catalogo-nombre', a.nombre);
+      if (!a.activo) nombre.appendChild(el('span', 'chip dorado', 'Baja'));
+      datos.appendChild(nombre);
+      if (a.subareas.length) {
+        const subs = el('div', 'catalogo-subareas');
+        a.subareas.filter(function (s) { return s.activo || inactivas.checked; }).forEach(function (s) {
+          const chip = el('span', 'chip subarea', s.nombre);
+          if (s.claveAnterior && s.claveAnterior !== a.cuerpo) chip.title = 'Clave anterior: ' + s.claveAnterior;
+          subs.appendChild(chip);
+        });
+        datos.appendChild(subs);
+      }
+      if (a.observaciones) datos.appendChild(el('div', 'catalogo-nota', a.observaciones));
+      fila.appendChild(datos);
+      return fila;
+    }
+
+    function pintar() {
+      const q = comparable(buscar.value);
+      contenido.textContent = '';
+      if (!arbol.length) {
+        contenido.appendChild(vacio('database', 'Aún no se carga el catálogo',
+          'En el editor de Apps Script del ambiente, corre importarCatalogoInicial() para cargar el archivo de Procesos.'));
+        pintarIconos();
+        return;
+      }
+      let mostrados = 0;
+      arbol.forEach(function (d) {
+        const coincideDepto = !q || comparable(d.nombre).indexOf(q) !== -1 || comparable(d.clave) === q;
+        const areas = d.areas.filter(function (a) {
+          if (!a.activo && !inactivas.checked) return false;
+          if (coincideDepto) return true;
+          return comparable(a.nombre).indexOf(q) !== -1 || comparable(a.cuerpo).indexOf(q) !== -1 ||
+            a.subareas.some(function (s) { return comparable(s.nombre).indexOf(q) !== -1 || comparable(s.claveAnterior) === q; });
+        });
+        if (!areas.length) return;
+        mostrados++;
+        const bloque = el('details', 'catalogo-depto');
+        bloque.open = !!q;
+        const titulo = el('summary', 'catalogo-titulo');
+        titulo.appendChild(el('span', 'catalogo-clave', d.clave));
+        titulo.appendChild(el('span', 'catalogo-depto-nombre', d.nombre));
+        titulo.appendChild(el('span', 'catalogo-conteo', areas.length + (areas.length === 1 ? ' área' : ' áreas')));
+        bloque.appendChild(titulo);
+        const lista = el('div', 'catalogo-areas');
+        areas.forEach(function (a) { lista.appendChild(filaArea(a)); });
+        bloque.appendChild(lista);
+        contenido.appendChild(bloque);
+      });
+      if (!mostrados) contenido.appendChild(vacio('search-x', 'Sin resultados', 'Nada coincide con «' + buscar.value + '».'));
+      pintarIconos();
+    }
+
+    buscar.addEventListener('input', function () { if (arbol) pintar(); });
+    inactivas.addEventListener('change', function () { if (arbol) pintar(); });
+
+    llamar('apiCatalogoAreas').then(function (r) {
+      if (!contenido.isConnected) return;
+      arbol = r;
+      pintarResumen();
+      pintar();
+    }).catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      contenido.appendChild(vacio('triangle-alert', 'No se pudo cargar el catálogo', e.message));
+      pintarIconos();
+    });
+  }
+</script>

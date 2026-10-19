@@ -56,8 +56,11 @@ test('prefijos del código documental según Procesos (decisión 11) y solo Proc
 
 test('el código se puede armar: departamentos y áreas tienen su clave', function () {
   assert.ok(hoja('Departamentos').columnas.indexOf('CLAVE_CODIGO') !== -1);
-  assert.deepStrictEqual(plano(hoja('Areas').columnas), ['ID_AREA', 'ID_DEPARTAMENTO', 'NOMBRE', 'CLAVE_CODIGO', 'ACTIVO']);
-  ['Solicitudes', 'Documentos'].forEach(function (h) { assert.ok(hoja(h).columnas.indexOf('ID_AREA') !== -1, h); });
+  assert.deepStrictEqual(plano(hoja('Areas').columnas), ['ID_AREA', 'ID_DEPARTAMENTO', 'NOMBRE', 'CLAVE_CODIGO', 'ACTIVO', 'OBSERVACIONES']);
+  assert.deepStrictEqual(plano(hoja('Subareas').columnas), ['ID_SUBAREA', 'ID_AREA', 'NOMBRE', 'CLAVE_ANTERIOR', 'ACTIVO', 'OBSERVACIONES']);
+  ['Solicitudes', 'Documentos'].forEach(function (h) {
+    ['ID_AREA', 'ID_SUBAREA'].forEach(function (c) { assert.ok(hoja(h).columnas.indexOf(c) !== -1, h + '.' + c); });
+  });
 });
 
 // ─────────────────────────────── Estados ───────────────────────────────

@@ -79,7 +79,12 @@ const ESQUEMA_BD = [
   {
     hoja: 'Areas', grupo: 'CATALOGOS',
     descripcion: 'Áreas de cada departamento. CLAVE_CODIGO es su parte del código documental (01 en P-CM01-001).',
-    columnas: ['ID_AREA', 'ID_DEPARTAMENTO', 'NOMBRE', 'CLAVE_CODIGO', 'ACTIVO']
+    columnas: ['ID_AREA', 'ID_DEPARTAMENTO', 'NOMBRE', 'CLAVE_CODIGO', 'ACTIVO', 'OBSERVACIONES']
+  },
+  {
+    hoja: 'Subareas', grupo: 'CATALOGOS',
+    descripcion: 'Subáreas de un área. No cambian el código: heredan la clave de su área (catálogo de Procesos).',
+    columnas: ['ID_SUBAREA', 'ID_AREA', 'NOMBRE', 'CLAVE_ANTERIOR', 'ACTIVO', 'OBSERVACIONES']
   },
   {
     hoja: 'Puestos', grupo: 'CATALOGOS',
@@ -107,16 +112,16 @@ const ESQUEMA_BD = [
   {
     hoja: 'Documentos', grupo: 'OPERACION',
     descripcion: 'Inventario documental: un renglón por documento oficial con su versión vigente.',
-    columnas: ['ID_DOCUMENTO', 'CODIGO', 'NOMBRE', 'ID_TIPO', 'ID_DEPARTAMENTO', 'ID_AREA', 'VERSION_VIGENTE',
-      'FECHA_VIGENCIA', 'ESTATUS', 'ID_SOLICITUD_VIGENTE', 'ID_ARCHIVO_WORD', 'ID_ARCHIVO_PDF',
+    columnas: ['ID_DOCUMENTO', 'CODIGO', 'NOMBRE', 'ID_TIPO', 'ID_DEPARTAMENTO', 'ID_AREA', 'ID_SUBAREA',
+      'VERSION_VIGENTE', 'FECHA_VIGENCIA', 'ESTATUS', 'ID_SOLICITUD_VIGENTE', 'ID_ARCHIVO_WORD', 'ID_ARCHIVO_PDF',
       'CONTENIDO_ESTRUCTURADO', 'ORIGEN', 'FECHA_REGISTRO']
   },
   {
     hoja: 'Solicitudes', grupo: 'OPERACION',
     descripcion: 'Cada trámite de documento nuevo o de actualización, de borrador hasta el resultado de CH.',
     columnas: ['ID_SOLICITUD', 'TIPO_SOLICITUD', 'ID_TIPO', 'ID_DOCUMENTO', 'NOMBRE_DOCUMENTO',
-      'ID_DEPARTAMENTO', 'ID_AREA', 'ESTADO', 'REVISOR_ASIGNADO_ID', 'INICIO_PROCESO', 'FIN_PROCESO',
-      'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES', 'MOTIVOS_CAMBIO', 'DESCRIPCION_CAMBIO',
+      'ID_DEPARTAMENTO', 'ID_AREA', 'ID_SUBAREA', 'ESTADO', 'REVISOR_ASIGNADO_ID', 'INICIO_PROCESO',
+      'FIN_PROCESO', 'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES', 'MOTIVOS_CAMBIO', 'DESCRIPCION_CAMBIO',
       'TIPO_CAMBIO', 'CODIGO', 'VERSION', 'REVISION', 'HUELLA_CONTENIDO', 'HUELLA_CONFIRMADA',
       'FECHA_CONFIRMACION',
       'ELABORO_ID', 'ELABORO_NOMBRE', 'ELABORO_PUESTO', 'FECHA_ELABORACION',

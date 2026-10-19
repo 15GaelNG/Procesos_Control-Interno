@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { cargarGs } = require('./cargar-gs');
 
-const gs = cargarGs(['src/config/Catalogos.gs', 'src/ia/Analisis.gs', 'src/ia/ClienteIA.gs']);
+const gs = cargarGs(['src/config/Catalogos.gs', 'src/utils/Texto.gs', 'src/ia/Analisis.gs', 'src/ia/ClienteIA.gs']);
 // Lo que devuelve el contexto aislado se pasa por JSON para comparar con deepStrictEqual.
 const plano = function (v) { return JSON.parse(JSON.stringify(v)); };
 

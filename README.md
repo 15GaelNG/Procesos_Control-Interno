@@ -22,6 +22,7 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 | [docs/base-de-datos.md](docs/base-de-datos.md) | Cada hoja y cada columna |
 | [docs/ia.md](docs/ia.md) | Proveedor de IA, límites, privacidad y reglas para que no invente |
 | [docs/plantillas.md](docs/plantillas.md) | Plantilla preliminar y final, marca de agua y generación de Word/PDF |
+| [docs/catalogos.md](docs/catalogos.md) | Departamentos, áreas y subáreas: cómo se cargan y qué quedó pendiente con Procesos |
 | [docs/insumos/](docs/insumos/) | Lo que entregó Procesos: [requerimientos](docs/insumos/requerimientos.md), infografía del flujo y plantilla |
 
 ## Estructura
@@ -35,7 +36,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   ├── ClientApi.gs         Única puerta del navegador al servidor (funciones api…)
 │   ├── UsuariosDePrueba.gs  crearUsuariosDePrueba(): un usuario por perfil, solo en pruebas
 │   ├── services/
-│   │   └── Sesion.gs          Quién abrió la app, sus perfiles, sus pantallas y «Ver como» (pruebas)
+│   │   ├── Sesion.gs          Quién abrió la app, sus perfiles, sus pantallas y «Ver como» (pruebas)
+│   │   └── Catalogos.gs       importarCatalogoInicial() y el árbol departamentos → áreas → subáreas
 │   ├── html/
 │   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro
 │   │   ├── styles.html        Estilos (los de SIVET / Control Interno)
@@ -44,7 +46,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   ├── config/
 │   │   ├── Config.gs          Constantes: nombre, carpeta del proyecto, ambientes, propiedades
 │   │   ├── Catalogos.gs       Perfiles, estados y transiciones, tipos de cambio, motivos de cambio
-│   │   └── Esquema.gs         Hojas y columnas de la base de datos (única fuente de verdad)
+│   │   ├── Esquema.gs         Hojas y columnas de la base de datos (única fuente de verdad)
+│   │   └── CatalogoInicial.gs Departamentos, áreas y subáreas de Procesos (GENERADO con npm run catalogo)
 │   ├── documentos/
 │   │   ├── Plantillas.gs      prepararPlantillas() · probarPlantillas() · quitar la marca de agua
 │   │   └── Llenado.gs         llenarPlantilla_(): pone los datos en los marcadores {{...}}
@@ -62,6 +65,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 ├── tests/                 Pruebas en node (npm test)
 ├── tools/
 │   ├── subir.js             Sube a pruebas o producción
+│   ├── catalogo/            convertir-catalogo.js: Excel de Procesos → CatalogoInicial.gs
+│   ├── lib/                 Lectores de ZIP y .xlsx sin dependencias
 │   └── plantillas/          crear-plantilla-v2.ps1 (arma la v2 con Word)
 └── docs/                  Documentación
 ```

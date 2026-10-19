@@ -405,7 +405,8 @@ Las 12 preguntas originales quedaron resueltas por las decisiones 1–14 y las
 
 A. ~~Conexión con el sistema CH~~ → resuelto: no hay conexión (decisión 15).
 B. ~~Validación de TI del nivel gratuito de Gemini~~ → resuelto (decisión 16).
-C. ~~Catálogo en Control Interno~~ → no existe; Gael compartirá el archivo de departamentos y áreas.
+C. ~~Catálogo en Control Interno~~ → no existe; Procesos entregó el catálogo de departamentos, áreas y
+   subáreas (19/10/2026, [catalogos.md](catalogos.md)). Lo que el archivo deja pendiente está ahí.
 
 **Para el área de Procesos:**
 
@@ -415,8 +416,9 @@ E. **Revisor asignado:** ¿cómo se asigna cada documento a un colaborador de Pr
    departamento, a mano, por turnos)?
 F. **Consecutivo del código:** ¿cuenta por tipo + departamento + área o hay otro criterio? (lo dejaron
    pendiente).
-G. **Catálogos:** departamentos y áreas con sus claves (`CM01`…), puestos, y lista de usuarios con su
-   perfil (colaborador, revisor, administrador).
+G. **Catálogos:** ~~departamentos y áreas~~ (entregado); faltan **puestos** y la lista de usuarios con su
+   perfil (colaborador, revisor, administrador). Además, los pendientes del catálogo
+   ([catalogos.md](catalogos.md#pendientes-para-procesos)).
 H. **Formato (F) y Diagrama de proceso (DP):** ¿también se documentan en este sistema?
 I. **Documentos que no están en CH:** ¿cómo se autorizan?
 J. **Insumos:** el archivo del inventario documental y un documento aprobado de ejemplo.
@@ -429,7 +431,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | Fase | Entregable | Depende de |
 |---|---|---|
 | **0. Definición y pruebas de concepto** ✅ *13/10/2026* | Respuestas de Procesos · IA con respuesta estructurada y validador (`probarIA`) · plantilla v2 validada, con y sin marca, en PDF y Word (`probarPlantillas`). La compresión de imágenes pasa a la fase 2, donde se usa | — |
-| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google, perfiles y «Ver como» para pruebas ✅ · catálogos (departamentos, áreas, puestos, usuarios) · carga del archivo de departamentos y áreas | Fase 0 · archivo de catálogos |
+| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google, perfiles y «Ver como» para pruebas ✅ · carga del catálogo de departamentos, áreas y subáreas y pantalla de consulta ✅ · usuarios y perfiles · puestos | Fase 0 · archivo de catálogos |
 | **2. Captura** | Información general, desarrollo por actividades, imágenes con Ctrl+V, guardado de borradores | Fase 1 |
 | **3. IA y confirmación** | Análisis, aclaraciones, propuestas aceptables, vista previa, confirmación con huella | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word/PDF con marca de agua desde la plantilla | Fase 3 · plantillas |
