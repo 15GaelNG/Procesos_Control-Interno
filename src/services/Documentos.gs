@@ -5,11 +5,12 @@
  *                           (documentos/Llenado.gs), exporta PDF y Word a la carpeta de la solicitud y lo
  *                           registra en Archivos. Cada vez es un archivo NUEVO: los preliminares nunca se
  *                           reemplazan ni se les quita la leyenda (§4.4).
+ *   generarFinal_()       → el documento FINAL, sin marca: otro archivo desde la plantilla sin marca, solo
+ *                           cuando Procesos registró que CH lo autorizó (§4.4, decisiones 15 y 24).
  *   archivosSolicitud_()  → los archivos generados, marcando cuáles ya no corresponden al contenido.
  *   descargarArchivo_()   → el archivo para el navegador, revisando el permiso en el servidor (§4.4).
  *
- * El documento final (sin marca) se genera en la fase 6, cuando Procesos registra que CH autorizó.
- * Lo puro (datos del documento, quién puede generar) está probado en tests/documentos.test.js.
+ * Lo puro (datos del documento, quién puede generar o descargar) está probado en tests/documentos.test.js.
  */
 
 // ─────────────────────────────── Qué va en el documento ───────────────────────────────
@@ -23,7 +24,8 @@ function datosDocumento_(det, fila, formatear, ahora) {
   const fecha = function (v) { return marcaDe_(v) ? formatear(new Date(marcaDe_(v)), 'dd/MM/yyyy') : ''; };
   const nuevo = fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.NUEVO;
   const version = String(fila.VERSION || '').trim() || (nuevo ? '0.0' : '');
-  const mesAnio = formatear(ahora, 'MM/yyyy');
+  // Ya autorizado, la fecha del documento es la de CH (respuestas de Procesos); antes, la de generación.
+  const mesAnio = formatear(marcaDe_(fila.FECHA_AUTORIZACION) ? new Date(marcaDe_(fila.FECHA_AUTORIZACION)) : ahora, 'MM/yyyy');
   return {
     simples: {
       NOMBRE_PORTADA: det.nombre.toUpperCase(),
@@ -72,6 +74,17 @@ function puedeGenerarPreliminar_(sesion, fila) {
     [ESTADOS.EN_REVISION, ESTADOS.EN_AUTORIZACION_CH].indexOf(fila.ESTADO) !== -1;
 }
 
+/**
+ * ¿Puede esta sesión descargar el archivo? Quien puede ver la solicitud (quien la elaboró, Procesos y
+ * Soporte CI); el documento final, además, el administrador desde el inventario. Se revisa en el
+ * servidor (§4.4).
+ */
+function puedeDescargar_(sesion, fila, archivo) {
+  if (!sesion || !sesion.registrado) return false;
+  if (permisoSolicitud_(sesion, fila).ver) return true;
+  return archivo.TIPO === 'FINAL' && sesion.perfiles.indexOf('ADMINISTRADOR') !== -1;
+}
+
 /** Nombre de los archivos: «P-CI04-001 Alta de proveedores - Preliminar (2026-10-21 10.30)». */
 function nombreArchivo_(det, tipo, sello) {
   const limpio = String(det.nombre).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
@@ -110,12 +123,37 @@ function generarPreliminar_(sesion, idSolicitud) {
     throw new Error(fila.ESTADO === ESTADOS.BORRADOR || fila.ESTADO === ESTADOS.DEVUELTO
       ? 'Primero confirma en la vista previa que el documento describe tu proceso.' : 'No puedes generar el documento de esta solicitud.');
   }
+  return generarArchivos_(sesion, fila, 'PRELIMINAR');
+}
+
+/**
+ * El documento final sin marca de agua: solo con la solicitud AUTORIZADA (CH ya autorizó y Procesos lo
+ * registró). Se puede volver a generar (p. ej. si se corrigió la plantilla): el inventario apunta al último.
+ */
+function generarFinal_(sesion, idSolicitud) {
+  const fila = filaSolicitud_(idSolicitud);
+  if (!puedeOperarCH_(sesion, fila)) throw new Error('El documento final lo genera Procesos (y nunca de una solicitud que elaboró).');
+  if (fila.ESTADO !== ESTADOS.AUTORIZADO) throw new Error('El documento final solo se genera cuando CH ya lo autorizó.');
+  const r = generarArchivos_(sesion, fila, 'FINAL');
+  const doc = leerTabla_('Documentos').filter(function (d) { return d.ID_SOLICITUD_VIGENTE === idSolicitud; })[0];
+  if (doc) actualizarFila_('Documentos', doc._fila, { ID_ARCHIVO_PDF: r.pdf, ID_ARCHIVO_WORD: r.docx });
+  return r;
+}
+
+/**
+ * Copia la plantilla del tipo (PRELIMINAR con «COPIA NO AUTORIZADA» o FINAL sin marca), la llena, exporta
+ * PDF y Word a Solicitudes/<folio>/Documentos y los registra en Archivos. Siempre archivos NUEVOS.
+ */
+function generarArchivos_(sesion, fila, cual) {
+  const idSolicitud = fila.ID_SOLICITUD;
+  const final = cual === 'FINAL';
   const t = tablasSolicitud_();
   const imagenes = leerTabla_('Imagenes');
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), imagenes, t, { editar: false }, formatoFecha_);
   const huella = huellaDeDetalle_(det);
-  if (fila.ESTADO === ESTADOS.CONFIRMADO && huella !== String(fila.HUELLA_CONFIRMADA)) {
-    throw new Error('El contenido cambió después de confirmar. Revisa la vista previa y vuelve a confirmar.');
+  if ((fila.ESTADO === ESTADOS.CONFIRMADO || final) && huella !== String(fila.HUELLA_CONFIRMADA)) {
+    throw new Error(final ? 'El contenido no es el que se confirmó y autorizó: no se puede generar el final.'
+      : 'El contenido cambió después de confirmar. Revisa la vista previa y vuelve a confirmar.');
   }
 
   // Un solo documento a la vez por solicitud (un doble clic no genera dos).
@@ -126,7 +164,7 @@ function generarPreliminar_(sesion, idSolicitud) {
   try {
     const tipo = t.tipos.filter(function (x) { return x.ID_TIPO === fila.ID_TIPO; })[0];
     if (!tipo) throw new Error('La solicitud no tiene un tipo de documento válido.');
-    const plantilla = plantillaDeTipo_(tipo, 'PRELIMINAR');
+    const plantilla = plantillaDeTipo_(tipo, cual);
     const ahora = new Date();
     const datos = datosDocumento_(det, fila, function (f, p) { return Utilities.formatDate(f, ZONA_HORARIA, p); }, ahora);
     const archivoDe = {};
@@ -136,8 +174,8 @@ function generarPreliminar_(sesion, idSolicitud) {
     });
 
     const carpeta = asegurarCarpeta_(DriveApp.getFolderById(fila.ID_CARPETA), CARPETA_DOCUMENTOS_SOLICITUD, null,
-      'Word y PDF generados. Los preliminares llevan «COPIA NO AUTORIZADA» y nunca se reemplazan.');
-    const nombre = nombreArchivo_(det, 'PRELIMINAR', Utilities.formatDate(ahora, ZONA_HORARIA, 'yyyy-MM-dd HH.mm'));
+      'Word y PDF generados. Los preliminares llevan «COPIA NO AUTORIZADA» y nunca se reemplazan; el final, sin marca, solo tras la autorización de CH.');
+    const nombre = nombreArchivo_(det, cual, Utilities.formatDate(ahora, ZONA_HORARIA, 'yyyy-MM-dd HH.mm'));
     const copia = plantilla.makeCopy(nombre, carpeta);
     const doc = DocumentApp.openById(copia.getId());
     const reporte = llenarPlantilla_(doc, datos);
@@ -152,12 +190,13 @@ function generarPreliminar_(sesion, idSolicitud) {
     const quien = correoReal_(sesion);
     const ids = reservarIds_('ARC', 2, 6);
     const registro = function (id, archivo, formato) {
-      return { ID_ARCHIVO: id, ID_SOLICITUD: idSolicitud, REVISION: String(fila.REVISION || '0'), TIPO: 'PRELIMINAR', FORMATO: formato,
-        ID_DRIVE: archivo.getId(), CON_MARCA_AGUA: 'SI', HUELLA_CONTENIDO: huella, GENERADO_POR: quien, FECHA: ahora,
+      return { ID_ARCHIVO: id, ID_SOLICITUD: idSolicitud, REVISION: String(fila.REVISION || '0'), TIPO: cual, FORMATO: formato,
+        ID_DRIVE: archivo.getId(), CON_MARCA_AGUA: final ? 'NO' : 'SI', HUELLA_CONTENIDO: huella, GENERADO_POR: quien, FECHA: ahora,
         NOMBRE: archivo.getName(), PESO_KB: String(Math.round(archivo.getSize() / 1024)) };
     };
     agregarFilas_('Archivos', [registro(ids[0], pdf, 'PDF'), registro(ids[1], docx, 'DOCX')]);
-    registrarBitacora_(sesion, 'GENERAR_PRELIMINAR', nombre + ' (PDF y Word, con marca de agua).', idSolicitud);
+    registrarBitacora_(sesion, final ? 'GENERAR_FINAL' : 'GENERAR_PRELIMINAR',
+      nombre + (final ? ' (PDF y Word, sin marca de agua).' : ' (PDF y Word, con marca de agua).'), idSolicitud);
     return { pdf: ids[0], docx: ids[1], nombre: nombre };
   } finally {
     cache.remove(clave);
@@ -178,17 +217,12 @@ function archivosSolicitud_(filas, idSolicitud, huellaActual, formatear) {
     });
 }
 
-/**
- * El archivo como { nombre, tipo, base64 } para que el navegador lo descargue. El permiso se revisa
- * aquí (§4.4): quien puede ver la solicitud descarga sus preliminares; el final, cuando exista
- * (fase 6), tendrá su propia regla.
- */
+/** El archivo como { nombre, tipo, base64 } para que el navegador lo descargue (permiso: puedeDescargar_). */
 function descargarArchivo_(sesion, idArchivo) {
   const a = leerTabla_('Archivos').filter(function (x) { return x.ID_ARCHIVO === idArchivo; })[0];
   if (!a) throw new Error('No existe ese archivo.');
   const fila = filaSolicitud_(a.ID_SOLICITUD);
-  if (!permisoSolicitud_(sesion, fila).ver) throw new Error('No puedes descargar este archivo.');
-  if (a.TIPO !== 'PRELIMINAR') throw new Error('El documento final se descarga desde el inventario documental (fase 6).');
+  if (!puedeDescargar_(sesion, fila, a)) throw new Error('No puedes descargar este archivo.');
   const blob = DriveApp.getFileById(a.ID_DRIVE).getBlob();
   registrarBitacora_(sesion, 'DESCARGAR_ARCHIVO', String(a.NOMBRE || a.ID_ARCHIVO), a.ID_SOLICITUD);
   return { nombre: String(a.NOMBRE || idArchivo), tipo: blob.getContentType(), base64: Utilities.base64Encode(blob.getBytes()) };

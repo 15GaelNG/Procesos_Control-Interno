@@ -46,6 +46,28 @@ test('datos del documento: con código y revisión de Procesos, se usan', functi
   assert.deepStrictEqual([s.CODIGO, s.REVISO_NOMBRE, s.FECHA_REVISION], ['P-CI04-001', 'Paola Méndez', '25/10/2026']);
 });
 
+test('datos del documento autorizado: quien autorizó en CH y la fecha de CH en lugar de la de generación', function () {
+  const fila = Object.assign({}, FILA, { VERSION: '0.0', AUTORIZO_NOMBRE: 'Lic. Mario Soto', AUTORIZO_PUESTO: 'Director', FECHA_AUTORIZACION: new Date(2026, 7, 14) });
+  const s = plano(gs.datosDocumento_(DET, fila, formatear, AHORA)).simples;
+  assert.deepStrictEqual([s.AUTORIZO_NOMBRE, s.AUTORIZO_PUESTO, s.FECHA_AUTORIZACION, s.FECHA_ACTUALIZACION, s.CAMBIO_FECHA],
+    ['Lic. Mario Soto', 'Director', '14/08/2026', '08/2026', '08/2026']);
+});
+
+test('descargas: quien ve la solicitud; el final, también el administrador (inventario)', function () {
+  const ana = { registrado: true, idUsuario: 'USR-0002', perfiles: ['COLABORADOR'] };
+  const luis = { registrado: true, idUsuario: 'USR-0009', perfiles: ['COLABORADOR'] };
+  const sofia = { registrado: true, idUsuario: 'USR-0006', perfiles: ['ADMINISTRADOR'] };
+  const diego = { registrado: true, idUsuario: 'USR-0004', perfiles: ['SOPORTE_CI'] };
+  const fila = Object.assign({}, FILA, { ESTADO: 'AUTORIZADO' });
+  const pre = { TIPO: 'PRELIMINAR' };
+  const fin = { TIPO: 'FINAL' };
+  assert.ok(gs.puedeDescargar_(ana, fila, pre) && gs.puedeDescargar_(ana, fila, fin), 'quien la elaboró, los dos');
+  assert.ok(gs.puedeDescargar_(diego, fila, fin));
+  assert.ok(gs.puedeDescargar_(sofia, fila, fin) && !gs.puedeDescargar_(sofia, fila, pre), 'el administrador solo el final');
+  assert.ok(!gs.puedeDescargar_(luis, fila, fin), 'otro colaborador no');
+  assert.ok(!gs.puedeDescargar_({ registrado: false, perfiles: [] }, fila, fin));
+});
+
 test('datos del documento: puestos involucrados, listas y actividades con texto (con sus imágenes)', function () {
   const d = plano(gs.datosDocumento_(DET, FILA, formatear, AHORA));
   assert.deepStrictEqual(d.listas, { PUESTOS: ['Auxiliar de Compras', 'Jefe de Compras'], RESPONSABILIDADES: ['Auxiliar de Compras: recibe'], DEFINICIONES: [] });

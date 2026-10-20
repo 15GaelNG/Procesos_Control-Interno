@@ -54,6 +54,21 @@ Si una plantilla ya convertida se quiere regenerar, se borra el Google Doc y se 
 Un doble clic no genera dos (aviso de 5 minutos en la caché). Si el contenido cambió después de
 confirmar, no genera: pide volver a confirmar.
 
+### Documento final (fase 6)
+
+`generarFinal_`, cuando Procesos registra que CH autorizó ([autorizacion-ch.md](autorizacion-ch.md)).
+Es el mismo llenado con la plantilla **sin marca** (`TiposDocumento.ID_PLANTILLA_FINAL`, o por nombre
+«Procedimiento - Final»): un archivo **nuevo**, nunca un preliminar al que se le quita la leyenda (§4.4).
+Cambia respecto al preliminar:
+
+| Marcador | Valor en el final |
+|---|---|
+| `{{CODIGO}}` · `{{REVISO_*}}` | El código y quién dio el Vo.Bo. de Procesos |
+| `{{AUTORIZO_*}}` | El autorizador final, su puesto y la fecha, como vienen en CH (decisión 14) |
+| `{{FECHA_ACTUALIZACION}}` · `{{CAMBIO_FECHA}}` | Mes y año de la **autorización en CH**, no de la generación |
+
+Los archivos van a `Archivos` con `TIPO = FINAL` y `CON_MARCA_AGUA = NO`, y el inventario apunta a ellos.
+
 ## Generación (fase 0: prueba de concepto)
 
 `probarPlantillas()` copia cada plantilla, la llena con datos **de ejemplo** y la exporta a PDF y Word

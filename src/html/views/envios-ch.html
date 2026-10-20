@@ -1,0 +1,95 @@
+<template id="vista-envios-ch">
+  <div class="vista-ancho">
+    <div class="encabezado-vista">
+      <div>
+        <h1 class="titulo-vista"><i data-lucide="send" class="ico"></i>Envíos a CH</h1>
+        <p class="subtitulo">Lo que ya tiene Vo.Bo. de Procesos: descarga los archivos con «COPIA NO AUTORIZADA», súbelos al sistema CH y registra aquí lo que resolvió. Con «autorizado» se genera el documento final sin marca de agua.</p>
+      </div>
+      <button type="button" class="boton secundario" data-accion="recargar"><i data-lucide="refresh-cw" class="ico"></i>Actualizar</button>
+    </div>
+    <div class="tarjeta">
+      <div class="pestanas" role="tablist" data-campo="pestanas"></div>
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por nombre, folio, código o departamento">
+        </label>
+      </div>
+      <p class="nota" data-campo="ayuda"></p>
+      <datalist id="puestos-ch" data-campo="puestos"></datalist>
+      <div data-campo="contenido" class="envios-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando…</p></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="parte-envio">
+  <article class="envio">
+    <div class="solicitud-datos">
+      <div class="solicitud-cabeza">
+        <span class="folio" data-campo="folio"></span>
+        <span class="chip" data-campo="codigo"></span>
+        <span class="chip neutro" data-campo="version"></span>
+        <span class="chip" data-campo="resultado" hidden></span>
+      </div>
+      <div class="solicitud-nombre" data-campo="nombre"></div>
+      <div class="nota" data-campo="datos"></div>
+      <div class="nota" data-campo="vobo"></div>
+    </div>
+
+    <p class="envio-detalle" data-campo="detalle" hidden></p>
+    <div class="envio-archivos" data-campo="archivos"></div>
+    <div class="aviso-consulta" data-campo="propia" hidden>
+      <i data-lucide="eye" class="ico"></i><span>La elaboraste tú: el registro en CH lo hace otra persona de Procesos.</span>
+    </div>
+
+    <form class="envio-formulario" data-campo="form-envio" hidden>
+      <label class="campo">
+        <span>Fecha en que la subiste a CH</span>
+        <input type="date" name="fecha" required>
+      </label>
+      <label class="campo">
+        <span>Folio en CH (opcional)</span>
+        <input type="text" name="folio" maxlength="60" autocomplete="off">
+      </label>
+      <div class="envio-enviar">
+        <button type="submit" class="boton"><i data-lucide="upload" class="ico"></i><span>Registrar que ya se subió</span></button>
+      </div>
+    </form>
+
+    <div class="envio-resultado" data-campo="form-resultado" hidden>
+      <p class="envio-pregunta">¿Qué resolvió CH?</p>
+      <div class="pregunta-botones">
+        <button type="button" class="boton secundario" data-accion="autorizado"><i data-lucide="badge-check" class="ico"></i>Lo autorizó</button>
+        <button type="button" class="boton secundario peligro" data-accion="rechazado"><i data-lucide="circle-x" class="ico"></i>Lo rechazó</button>
+      </div>
+      <form class="envio-formulario" data-campo="form-autorizado" hidden>
+        <label class="campo">
+          <span>Quién autorizó (el autorizador final, como aparece en CH)</span>
+          <input type="text" name="nombre" maxlength="120" autocomplete="off" required>
+        </label>
+        <label class="campo">
+          <span>Su puesto</span>
+          <input type="text" name="puesto" maxlength="120" autocomplete="off" list="puestos-ch" required>
+        </label>
+        <label class="campo">
+          <span>Fecha de autorización en CH</span>
+          <input type="date" name="fecha" required>
+        </label>
+        <div class="envio-enviar">
+          <button type="submit" class="boton"><i data-lucide="stamp" class="ico"></i><span>Registrar autorización</span></button>
+        </div>
+      </form>
+      <form class="envio-formulario una-columna" data-campo="form-rechazado" hidden>
+        <label class="campo">
+          <span>Motivo del rechazo (el colaborador lo verá como observación)</span>
+          <textarea name="comentario" rows="3" maxlength="1900" required></textarea>
+        </label>
+        <div class="envio-enviar">
+          <button type="submit" class="boton secundario peligro"><i data-lucide="corner-up-left" class="ico"></i><span>Registrar rechazo</span></button>
+        </div>
+      </form>
+    </div>
+  </article>
+</template>

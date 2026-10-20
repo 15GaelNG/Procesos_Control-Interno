@@ -398,6 +398,10 @@ function vistaPrevia_(sesion, idSolicitud) {
   det.revision = String(fila.REVISION || '');
   det.motivoCierre = String(fila.MOTIVO_CIERRE || '');
   det.esSuya = fila.ELABORO_ID === sesion.idUsuario;
+  // Autorización en CH (fase 6): quién autorizó, como lo registró Procesos.
+  det.autorizo = String(fila.AUTORIZO_NOMBRE || '');
+  det.autorizoPuesto = String(fila.AUTORIZO_PUESTO || '');
+  det.fechaAutorizacion = marcaDe_(fila.FECHA_AUTORIZACION) ? formatoDia_(new Date(marcaDe_(fila.FECHA_AUTORIZACION))) : '';
   det.puedeEnviar = det.esSuya && fila.ESTADO === ESTADOS.CONFIRMADO && det.confirmada &&
     !det.observaciones.some(function (o) { return o.estado === 'ABIERTA'; });
   return det;

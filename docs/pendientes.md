@@ -62,6 +62,17 @@ En este orden:
    - [ ] Probar **No procedente** (pide motivo) y que Ana vea el motivo.
    - [ ] Con el administrador: la bandeja solo con el selector para **reasignar**.
    - [ ] Que Paola no pueda tomar una solicitud que ella elaboró (si tiene también perfil de colaboradora).
+   - [ ] **CH y documento final (fase 6):** revisar que `TiposDocumento` (Procedimiento) tenga
+     `ID_PLANTILLA_FINAL` (lo pone `prepararPlantillas()`; es la plantilla sin marca).
+   - [ ] Con Paola, en «Envíos a CH»: **Generar archivos para CH** de la solicitud con Vo.Bo., descargarlos
+     y revisar que traigan código, versión 0.0 y «Revisó». **Registrar que ya se subió** (fecha y folio).
+   - [ ] En «En CH» registrar **Lo autorizó** (nombre, puesto, fecha). Debe generarse el **final sin marca**;
+     revisar el PDF y el Word: sin «COPIA NO AUTORIZADA», con «Autorizó» y la fecha de CH.
+   - [ ] En el **Inventario documental**: el documento como vigente, versión 0.0, su historial y la descarga.
+     Con Sofía (administradora) y Diego (Soporte CI) también debe verse y descargarse.
+   - [ ] Con Ana: la vista previa debe decir «Autorizado en el sistema CH» y ofrecer el documento final.
+   - [ ] Probar **Lo rechazó** con otra solicitud: Ana debe verla devuelta con la observación «Rechazado en
+     el sistema CH: …»; al corregir y reenviar, el nuevo Vo.Bo. debe conservar el código.
 5. Mandar capturas de lo que se vea raro.
 
 ## 2. Por recibir de Procesos
@@ -72,9 +83,10 @@ En este orden:
 - [ ] **Catálogo de puestos** por departamento (la IA lo usa para reconocer responsables). También el
   **puesto de cada revisor**: con el Vo.Bo. se guarda en `REVISO_PUESTO` y sale en «Revisó» del documento.
 - [ ] **Lista de usuarios** con su perfil y departamento.
-- [ ] Respuestas D–K del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **E** (cómo se
-  asigna el revisor), **F** (consecutivo del código) y **J** (inventario documental y un documento
-  aprobado de ejemplo).
+- [ ] Respuestas D–K del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **D** (qué pasa si
+  CH rechaza; hoy regresa al colaborador como observación), **E** (cómo se asigna el revisor), **F**
+  (consecutivo del código), **I** (documentos que no pasan por CH) y **J** (inventario documental actual,
+  para cargarlo, y un documento aprobado de ejemplo).
 - [ ] Plantillas de Manual, Protocolo y Política (cuando quieran incorporarlos).
 
 ## 3. Decisiones por confirmar con Gael

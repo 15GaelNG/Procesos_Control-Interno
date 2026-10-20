@@ -1,0 +1,101 @@
+<script>
+  /*
+   * Inventario documental (apiInventario): documentos oficiales, versión vigente, historial de versiones
+   * y descarga del documento final (apiDescargarArchivo revisa el permiso en el servidor, §4.4).
+   */
+  function iniciarInventario(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    const buscar = raiz.querySelector('[data-campo="buscar"]');
+    const obsoletos = raiz.querySelector('[data-campo="obsoletos"]');
+    let lista = null;
+
+    function botonDescarga(idArchivo, etiqueta) {
+      const b = elemento('button', 'boton secundario chico');
+      b.type = 'button';
+      b.innerHTML = '<i data-lucide="download" class="ico"></i><span></span>';
+      b.querySelector('span').textContent = etiqueta;
+      b.addEventListener('click', function () { descargarArchivoGenerado(idArchivo, b); });
+      return b;
+    }
+
+    function historial(d) {
+      const caja = elemento('div', 'historial-documento');
+      caja.hidden = true;
+      caja.appendChild(elemento('h3', 'observaciones-revision', 'Historial de versiones'));
+      if (!d.historial.length) caja.appendChild(elemento('p', 'nota', 'Sin versiones registradas.'));
+      d.historial.forEach(function (h) {
+        const v = elemento('div', 'version-documento');
+        const cabeza = elemento('div', 'solicitud-cabeza');
+        cabeza.appendChild(elemento('span', 'chip', 'Versión ' + h.version));
+        if (h.fecha) cabeza.appendChild(elemento('span', 'nota', h.fecha));
+        v.appendChild(cabeza);
+        v.appendChild(elemento('p', 'version-texto', [h.descripcion, h.motivos].filter(Boolean).join(' · ')));
+        v.appendChild(elemento('p', 'nota', [h.responsable ? 'Elaboró ' + h.responsable : '',
+          h.autorizo ? 'Autorizó ' + h.autorizo + (h.puesto ? ' (' + h.puesto + ')' : '') : '', h.idSolicitud ? 'Solicitud ' + h.idSolicitud : '']
+          .filter(Boolean).join(' · ')));
+        caja.appendChild(v);
+      });
+      return caja;
+    }
+
+    function fila(d) {
+      const f = elemento('div', 'solicitud-fila con-detalle' + (d.estatus === 'OBSOLETO' ? ' inactiva' : ''));
+      const info = elemento('div', 'solicitud-datos');
+      const cabeza = elemento('div', 'solicitud-cabeza');
+      cabeza.appendChild(elemento('span', 'folio', d.codigo));
+      cabeza.appendChild(elemento('span', 'chip ' + (d.estatus === 'VIGENTE' ? 'exito' : 'neutro'), d.estatus === 'VIGENTE' ? 'Vigente' : 'Obsoleto'));
+      if (d.version) cabeza.appendChild(elemento('span', 'chip neutro', 'Versión ' + d.version));
+      info.appendChild(cabeza);
+      info.appendChild(elemento('div', 'solicitud-nombre', d.nombre));
+      info.appendChild(elemento('div', 'nota', [d.tipoDocumento, d.departamento + (d.area ? ' / ' + d.area : '') + (d.subarea ? ' / ' + d.subarea : '')]
+        .filter(Boolean).join(' · ')));
+      info.appendChild(elemento('div', 'nota', [d.vigencia ? 'Vigente desde ' + d.vigencia : '', d.origen].filter(Boolean).join(' · ')));
+      f.appendChild(info);
+
+      const botones = elemento('div', 'solicitud-botones');
+      if (d.pdf) botones.appendChild(botonDescarga(d.pdf, 'PDF'));
+      if (d.docx) botones.appendChild(botonDescarga(d.docx, 'Word'));
+      if (!d.pdf && !d.docx) botones.appendChild(elemento('span', 'nota', 'Sin archivo final'));
+      const h = historial(d);
+      const ver = elemento('button', 'btn-icono');
+      ver.type = 'button';
+      ver.title = 'Historial de versiones';
+      ver.innerHTML = '<i data-lucide="history" class="ico"></i>';
+      ver.addEventListener('click', function () { h.hidden = !h.hidden; ver.classList.toggle('activo', !h.hidden); });
+      botones.appendChild(ver);
+      f.appendChild(botones);
+      f.appendChild(h);
+      return f;
+    }
+
+    function pintar() {
+      contenido.textContent = '';
+      const q = textoComparable(buscar.value);
+      const visibles = lista.filter(function (d) {
+        if (d.estatus === 'OBSOLETO' && !obsoletos.checked) return false;
+        return !q || textoComparable([d.codigo, d.nombre, d.tipoDocumento, d.departamento, d.area, d.subarea].join(' ')).indexOf(q) !== -1;
+      });
+      if (!lista.length) {
+        contenido.appendChild(estadoVacio('library', 'Aún no hay documentos en el inventario',
+          'Entran aquí cuando CH autoriza una solicitud. El inventario que hoy lleva Procesos se cargará cuando lo entreguen.'));
+      } else if (!visibles.length) {
+        contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con el filtro.'));
+      }
+      visibles.forEach(function (d) { contenido.appendChild(fila(d)); });
+      pintarIconos();
+    }
+
+    llamar('apiInventario').then(function (r) {
+      if (!contenido.isConnected) return;
+      lista = r;
+      pintar();
+    }).catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      contenido.appendChild(estadoVacio('triangle-alert', 'No se pudo cargar el inventario', e.message));
+      pintarIconos();
+    });
+    buscar.addEventListener('input', function () { if (lista) pintar(); });
+    obsoletos.addEventListener('change', function () { if (lista) pintar(); });
+  }
+</script>

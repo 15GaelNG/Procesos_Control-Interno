@@ -1,0 +1,25 @@
+<template id="vista-inventario">
+  <div class="vista-ancho">
+    <div class="encabezado-vista">
+      <div>
+        <h1 class="titulo-vista"><i data-lucide="library" class="ico"></i>Inventario documental</h1>
+        <p class="subtitulo">Los documentos oficiales con su versión vigente. Entran aquí cuando CH autoriza su solicitud; el documento final es el que no lleva marca de agua.</p>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por código, nombre, tipo o departamento">
+        </label>
+        <label class="interruptor">
+          <input type="checkbox" data-campo="obsoletos">
+          <span>Mostrar obsoletos</span>
+        </label>
+      </div>
+      <div data-campo="contenido" class="solicitudes-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando…</p></div>
+      </div>
+    </div>
+  </div>
+</template>

@@ -101,6 +101,8 @@ const CARPETA_INSTANTANEAS_SOLICITUD = 'Instantáneas';
 // Revisión (fase 5): tope de una observación o motivo, y dígitos del consecutivo del código (P-CI04-001).
 const OBSERVACION_MAX = 2000;
 const CONSECUTIVO_DIGITOS = 3;
+// «Envíos a CH» (fase 6): cuántos resultados ya registrados muestra (los más recientes).
+const ENVIOS_CH_RESUELTOS_MAX = 50;
 // Tamaño máximo de una imagen en «Desarrollo», en píxeles de Google Docs (96 por pulgada).
 // El área de texto mide 6.5 × 8 pulgadas (624 × ~770 px). Ancho 560 px ≈ 5.8": casi todo el ancho,
 // para que se lean las capturas con letra chica. Alto 600 px ≈ 6.25": deja lugar al título de la

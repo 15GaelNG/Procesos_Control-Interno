@@ -1,0 +1,213 @@
+<script>
+  /*
+   * Envíos a CH (apiEnviosCH, apiRegistrarEnvioCH, apiResultadoCH, apiGenerarFinal; decisiones 15 y 24).
+   * No hay conexión con el sistema CH: Procesos descarga los archivos con marca, los sube a CH y
+   * registra aquí la subida y lo que resolvió. Con «autorizado» se genera enseguida el final sin marca.
+   */
+  const PESTANAS_CH = [
+    { id: 'porSubir', nombre: 'Por subir', vacio: 'No hay documentos con Vo.Bo. pendientes de subir a CH.',
+      ayuda: 'Con Vo.Bo. de Procesos. Genera los archivos (ya llevan el código y quién revisó), descárgalos, súbelos a CH y registra que ya se subieron.' },
+    { id: 'enCH', nombre: 'En CH', vacio: 'No hay documentos esperando la autorización de CH.',
+      ayuda: 'Ya están en CH. Cuando CH resuelva, registra el resultado; si lo autorizó: quién firmó (el autorizador final), su puesto y la fecha, como aparecen en CH.' },
+    { id: 'resueltas', nombre: 'Resueltas', vacio: 'Todavía no se registra ningún resultado de CH.',
+      ayuda: 'Los últimos resultados registrados. Las rechazadas regresaron al colaborador con el motivo como observación.' }
+  ];
+
+  function iniciarEnviosCH(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    const buscar = raiz.querySelector('[data-campo="buscar"]');
+    const pestanas = raiz.querySelector('[data-campo="pestanas"]');
+    const ayuda = raiz.querySelector('[data-campo="ayuda"]');
+    let datos = null;
+    let actual = leerPestana('enviosCH') || 'porSubir';
+
+    function ocupar(boton, texto) {
+      const etiqueta = boton.querySelector('span');
+      const antes = etiqueta ? etiqueta.textContent : '';
+      boton.disabled = true;
+      if (etiqueta && texto) etiqueta.textContent = texto;
+      return function () { boton.disabled = false; if (etiqueta) etiqueta.textContent = antes; };
+    }
+
+    function irA(pestana) { actual = pestana; guardarPestana('enviosCH', actual); }
+
+    function botonesArchivos(archivos, titulo) {
+      const caja = elemento('div', 'envio-descargas');
+      caja.appendChild(elemento('span', 'envio-etiqueta', titulo));
+      archivos.forEach(function (a) {
+        const b = elemento('button', 'boton secundario chico');
+        b.type = 'button';
+        b.title = a.nombre + (a.fecha ? ' · ' + a.fecha : '');
+        b.innerHTML = '<i data-lucide="download" class="ico"></i><span></span>';
+        b.querySelector('span').textContent = a.formato === 'DOCX' ? 'Word' : a.formato;
+        b.addEventListener('click', function () { descargarArchivoGenerado(a.id, b); });
+        caja.appendChild(b);
+      });
+      return caja;
+    }
+
+    function generarFinal(s, boton) {
+      const listo = boton ? ocupar(boton, 'Generando…') : function () {};
+      avisar('Generando el documento final de ' + (s.codigo || s.id) + '… puede tardar hasta un minuto.');
+      return llamar('apiGenerarFinal', s.id).then(function () {
+        avisar('Documento final generado, sin marca de agua.', 'exito');
+      }).catch(function (e) { avisar('No se pudo generar el final: ' + e.message, 'error'); listo(); });
+    }
+
+    function tarjeta(s) {
+      const t = clonar('parte-envio').querySelector('.envio');
+      const q = function (c) { return t.querySelector('[data-campo="' + c + '"]'); };
+      q('folio').textContent = s.id;
+      q('codigo').textContent = s.codigo;
+      q('version').textContent = 'Versión ' + (s.version || '0.0');
+      q('nombre').textContent = s.nombre;
+      q('datos').textContent = [s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''), s.elaborador ? 'Elaboró ' + s.elaborador : ''].filter(Boolean).join(' · ');
+      q('vobo').textContent = s.vobo ? 'Vo.Bo. de ' + (s.reviso || 'Procesos') + ' el ' + s.vobo + (s.revision ? ' · revisión ' + s.revision : '') : '';
+      q('propia').hidden = !s.esSuya || actual === 'resueltas';
+
+      const archivos = q('archivos');
+      if (actual === 'resueltas') {
+        const e = s.envio;
+        q('resultado').hidden = false;
+        q('resultado').textContent = e.resultado === 'AUTORIZADO' ? 'Autorizado en CH' : 'Rechazado en CH';
+        q('resultado').classList.add(e.resultado === 'AUTORIZADO' ? 'exito' : 'dorado');
+        q('detalle').hidden = false;
+        q('detalle').textContent = (e.resultado === 'AUTORIZADO'
+          ? 'Autorizó ' + e.autorizo + (e.puesto ? ' (' + e.puesto + ')' : '') + ' el ' + e.fechaAutorizacion + '.'
+          : 'Motivo: ' + e.comentario + ' (regresó al colaborador como observación).') +
+          ' Registró ' + e.registradoPor + (e.fechaRegistro ? ' · ' + e.fechaRegistro : '');
+        if (s.finales.length) archivos.appendChild(botonesArchivos(s.finales, 'Documento final (sin marca):'));
+        else if (s.faltaFinal) {
+          archivos.appendChild(elemento('span', 'nota falta', 'Falta generar el documento final.'));
+          if (s.puedeOperar) {
+            const g = elemento('button', 'boton chico');
+            g.type = 'button';
+            g.innerHTML = '<i data-lucide="file-check" class="ico"></i><span>Generar documento final</span>';
+            g.addEventListener('click', function () { generarFinal(s, g).then(cargar); });
+            archivos.appendChild(g);
+          }
+        }
+        return t;
+      }
+
+      /* Por subir y en CH: los archivos con marca para CH. */
+      if (s.archivos.length) archivos.appendChild(botonesArchivos(s.archivos, 'Archivos para CH:'));
+      else {
+        archivos.appendChild(elemento('span', 'nota falta', 'Aún no se generan los archivos con el código y el Vo.Bo.'));
+        if (s.puedeOperar) {
+          const g = elemento('button', 'boton chico');
+          g.type = 'button';
+          g.innerHTML = '<i data-lucide="file-plus" class="ico"></i><span>Generar archivos para CH</span>';
+          g.addEventListener('click', function () {
+            const listo = ocupar(g, 'Generando…');
+            llamar('apiGenerarPreliminar', s.id).then(function () { avisar('Archivos generados: ya puedes descargarlos.', 'exito'); return cargar(); })
+              .catch(function (e) { avisar(e.message, 'error'); listo(); });
+          });
+          archivos.appendChild(g);
+        }
+      }
+      if (!s.puedeOperar) return t;
+
+      if (actual === 'porSubir') {
+        const f = q('form-envio');
+        f.hidden = false;
+        f.fecha.value = datos.grupos.hoyIso;
+        f.fecha.max = datos.grupos.hoyIso;
+        f.fecha.min = s.voboIso;
+        f.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          const listo = ocupar(f.querySelector('button[type="submit"]'), 'Registrando…');
+          llamar('apiRegistrarEnvioCH', s.id, { fecha: f.fecha.value, folio: f.folio.value }).then(function () {
+            avisar(s.id + ' quedó como subida a CH. Cuando CH resuelva, registra el resultado en «En CH».', 'exito');
+            irA('enCH');
+            return cargar();
+          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+        return t;
+      }
+
+      /* En CH */
+      const e = s.envio;
+      q('detalle').hidden = false;
+      q('detalle').textContent = 'Subida a CH el ' + e.fecha + ' por ' + e.enviadoPor + (e.folio ? ' · folio ' + e.folio : '') + '.';
+      q('form-resultado').hidden = false;
+      const autorizado = q('form-autorizado');
+      const rechazado = q('form-rechazado');
+      t.querySelector('[data-accion="autorizado"]').addEventListener('click', function () { autorizado.hidden = false; rechazado.hidden = true; autorizado.nombre.focus(); });
+      t.querySelector('[data-accion="rechazado"]').addEventListener('click', function () { rechazado.hidden = false; autorizado.hidden = true; rechazado.comentario.focus(); });
+      autorizado.fecha.max = datos.grupos.hoyIso;
+      autorizado.fecha.min = e.fechaIso;
+      autorizado.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        const d = { resultado: 'AUTORIZADO', nombre: autorizado.nombre.value, puesto: autorizado.puesto.value, fecha: autorizado.fecha.value };
+        if (!confirm('¿Registrar que CH autorizó «' + s.nombre + '»? Entra al inventario como documento vigente y se genera el documento final sin marca de agua.')) return;
+        const listo = ocupar(autorizado.querySelector('button[type="submit"]'), 'Registrando…');
+        llamar('apiResultadoCH', s.id, d).then(function () {
+          irA('resueltas');
+          return generarFinal(s).then(cargar);
+        }).catch(function (err) { avisar(err.message, 'error'); listo(); });
+      });
+      rechazado.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        if (!confirm('¿Registrar que CH rechazó «' + s.nombre + '»? Regresa al colaborador con el motivo como observación y, ya corregida, vuelve a pasar por Procesos.')) return;
+        const listo = ocupar(rechazado.querySelector('button[type="submit"]'), 'Registrando…');
+        llamar('apiResultadoCH', s.id, { resultado: 'RECHAZADO', comentario: rechazado.comentario.value }).then(function () {
+          avisar('Registrado: regresó al colaborador con el motivo como observación.', 'exito');
+          irA('resueltas');
+          return cargar();
+        }).catch(function (err) { avisar(err.message, 'error'); listo(); });
+      });
+      return t;
+    }
+
+    function pintarPestanas() {
+      pestanas.textContent = '';
+      PESTANAS_CH.forEach(function (p) {
+        const b = elemento('button', 'pestana' + (p.id === actual ? ' activa' : ''));
+        b.type = 'button';
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', p.id === actual ? 'true' : 'false');
+        b.appendChild(elemento('span', '', p.nombre));
+        b.appendChild(elemento('span', 'pestana-conteo', String(datos.grupos[p.id].length)));
+        b.addEventListener('click', function () { irA(p.id); pintarPestanas(); pintar(); });
+        pestanas.appendChild(b);
+      });
+    }
+
+    function pintar() {
+      const p = PESTANAS_CH.filter(function (x) { return x.id === actual; })[0];
+      ayuda.textContent = p.ayuda;
+      contenido.textContent = '';
+      const q = textoComparable(buscar.value);
+      const lista = datos.grupos[actual].filter(function (s) {
+        return !q || textoComparable([s.nombre, s.id, s.codigo, s.departamento, s.area, s.elaborador].join(' ')).indexOf(q) !== -1;
+      });
+      if (!datos.grupos[actual].length) contenido.appendChild(estadoVacio('inbox', 'Nada por aquí', p.vacio));
+      else if (!lista.length) contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con la búsqueda.'));
+      lista.forEach(function (s) { contenido.appendChild(tarjeta(s)); });
+      pintarIconos();
+    }
+
+    function cargar() {
+      return llamar('apiEnviosCH').then(function (r) {
+        if (!contenido.isConnected) return;
+        datos = r;
+        const lista = raiz.querySelector('[data-campo="puestos"]');
+        lista.textContent = '';
+        r.puestos.forEach(function (n) { const o = document.createElement('option'); o.value = n; lista.appendChild(o); });
+        if (!PESTANAS_CH.some(function (p) { return p.id === actual; })) actual = 'porSubir';
+        pintarPestanas();
+        pintar();
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        contenido.appendChild(estadoVacio('triangle-alert', 'No se pudieron cargar los envíos a CH', e.message));
+        pintarIconos();
+      });
+    }
+
+    buscar.addEventListener('input', function () { if (datos) pintar(); });
+    raiz.querySelector('[data-accion="recargar"]').addEventListener('click', cargar);
+    cargar();
+  }
+</script>

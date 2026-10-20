@@ -56,14 +56,14 @@ const MODULOS_APP = [
     descripcion: 'Revisar, hacer observaciones, asignar código y dar el Vo.Bo. (el administrador solo reasigna).',
     acciones: ['Ver las solicitudes que tienes asignadas', 'Hacer observaciones por apartado o por actividad',
       'Devolver al colaborador o cerrar como no procedente', 'Asignar código y versión, y dar el Vo.Bo. de Procesos'] },
-  { id: 'envios-ch', seccion: 'Área de Procesos', nombre: 'Envíos a CH', icono: 'send', fase: 'la fase 6',
+  { id: 'envios-ch', seccion: 'Área de Procesos', nombre: 'Envíos a CH', icono: 'send',
     perfiles: ['REVISOR'],
-    descripcion: 'Archivos para subir al sistema CH y registro de su resultado.',
+    descripcion: 'Archivos para subir al sistema CH, registro de lo que resolvió y documento final sin marca.',
     acciones: ['Descargar el PDF y el Word con marca de agua para subirlos a CH',
       'Registrar lo que resolvió CH: autorizado (quién y cuándo) o rechazado',
       'Con «autorizado», generar el documento final sin marca de agua'] },
   { id: 'inventario', seccion: 'Área de Procesos', nombre: 'Inventario documental', icono: 'library',
-    fase: 'la fase 6', perfiles: ['REVISOR', 'ADMINISTRADOR', 'SOPORTE_CI'],
+    perfiles: ['REVISOR', 'ADMINISTRADOR', 'SOPORTE_CI'],
     descripcion: 'Documentos vigentes, su versión y su historial de cambios.',
     acciones: ['Consultar los documentos vigentes con su código y versión',
       'Ver el historial de versiones y el control de cambios', 'Descargar el documento oficial'] },
@@ -112,7 +112,11 @@ const NOMBRES_ACCION = {
   LIBERAR_SOLICITUD: 'Solicitud liberada',
   DEVOLVER_SOLICITUD: 'Devuelta con observaciones',
   NO_PROCEDENTE: 'Cerrada como no procedente',
-  VOBO_PROCESOS: 'Vo.Bo. de Procesos'
+  VOBO_PROCESOS: 'Vo.Bo. de Procesos',
+  ENVIO_CH: 'Subida a CH',
+  AUTORIZADO_CH: 'Autorizada en CH',
+  RECHAZADO_CH: 'Rechazada en CH',
+  GENERAR_FINAL: 'Documento final generado'
 };
 
 const TIPOS_SOLICITUD = {
@@ -181,6 +185,9 @@ const ESTATUS_DOCUMENTO = {
   VIGENTE: 'VIGENTE',
   OBSOLETO: 'OBSOLETO'
 };
+// De dónde viene un documento del inventario: elaborado en este sistema o del inventario anterior de Procesos.
+const ORIGENES_DOCUMENTO = { SISTEMA: 'SISTEMA', HISTORICO: 'HISTORICO' };
+const NOMBRES_ORIGEN_DOCUMENTO = { SISTEMA: 'Elaborado en el sistema', HISTORICO: 'Inventario anterior' };
 
 // REEMPLAZADA: quedó sin contestar/decidir y un análisis nuevo la sustituyó (se conserva para la historia).
 const ESTADOS_ACLARACION = ['PENDIENTE', 'RESPONDIDA', 'NO_APLICA', 'NO_LO_SE', 'REEMPLAZADA'];

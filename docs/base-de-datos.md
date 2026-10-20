@@ -167,7 +167,9 @@ Un renglón por documento oficial. `ID_DOCUMENTO` · `CODIGO` · `NOMBRE` · `ID
 `ID_SOLICITUD_VIGENTE` (la que lo autorizó) · `ID_ARCHIVO_WORD` · `ID_ARCHIVO_PDF` ·
 `CONTENIDO_ESTRUCTURADO` (`SI` si nació en el sistema y se puede actualizar actividad por actividad) ·
 `ORIGEN` (`SISTEMA` o `HISTORICO`, para los que se carguen del inventario actual de Procesos) ·
-`FECHA_REGISTRO`.
+`FECHA_REGISTRO`. `ID_DOCUMENTO` es `DOC-0001`. Desde la fase 6, un documento nuevo entra aquí cuando
+Procesos registra que CH lo autorizó, y sus archivos finales se ligan al generarse
+([autorizacion-ch.md](autorizacion-ch.md)).
 Mientras una actualización está en curso, este renglón **no cambia**; solo se actualiza cuando CH
 autoriza.
 
@@ -241,7 +243,10 @@ Procesos registra aquí el resultado (decisión 15). `ID_ENVIO` · `ID_SOLICITUD
 `FECHA_ENVIO` · `ENVIADO_POR` · `FOLIO_CH` (si CH da uno) · `RESULTADO` (`PENDIENTE`, `AUTORIZADO`,
 `RECHAZADO`) · `AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `FECHA_AUTORIZACION` (el autorizador final,
 como viene en CH) · `COMENTARIO` (motivo de un rechazo) · `REGISTRADO_POR` · `FECHA_REGISTRO`.
-Con `AUTORIZADO` se genera el documento final sin marca de agua.
+Con `AUTORIZADO` se genera el documento final sin marca de agua. `ID_ENVIO` es `ENV-000001`; `RESULTADO`
+queda `PENDIENTE` desde que Procesos registra la subida hasta que registra lo que resolvió CH (a lo más
+uno pendiente por solicitud). Con `RECHAZADO`, `COMENTARIO` es el motivo, que también llega al colaborador
+como observación.
 
 ### Archivos
 Todo Word/PDF generado. `ID_ARCHIVO` (`ARC-000001`) · `ID_SOLICITUD` · `REVISION` · `TIPO` (`PRELIMINAR` /
@@ -262,7 +267,8 @@ Foto completa del contenido en cada envío a revisión y en el Vo.Bo., guardada 
 `ID_ARCHIVO_JSON` · `USUARIO` (persona real) · `FECHA`.
 
 ### HistorialCambios
-Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4.2). `ID_CAMBIO` ·
+Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4.2); un documento nuevo
+empieza con su «Emisión inicial del documento» (versión 0.0). `ID_CAMBIO` (`CAM-000001`) ·
 `ID_DOCUMENTO` · `VERSION` · `FECHA` · `MOTIVOS` · `DESCRIPCION` · `RESPONSABLE` (de la modificación) ·
 `AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `ID_SOLICITUD`.
 

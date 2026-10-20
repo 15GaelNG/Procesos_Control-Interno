@@ -51,7 +51,8 @@
       datos.appendChild(elemento('strong', '', a.nombre));
       datos.appendChild(elemento('span', 'nota', [a.fecha, a.generadoPor, a.pesoKb ? a.pesoKb + ' KB' : ''].filter(Boolean).join(' · ')));
       fila.appendChild(datos);
-      fila.appendChild(elemento('span', 'chip ' + (a.vigente ? 'exito' : 'dorado'), a.vigente ? 'Del contenido actual' : 'De una versión anterior'));
+      if (a.tipo === 'FINAL') fila.appendChild(elemento('span', 'chip exito', 'Final · sin marca de agua'));
+      else fila.appendChild(elemento('span', 'chip ' + (a.vigente ? 'neutro' : 'dorado'), a.vigente ? 'Preliminar · del contenido actual' : 'Preliminar · de una versión anterior'));
       const boton = elemento('button', 'btn-icono');
       boton.type = 'button';
       boton.title = 'Descargar';
@@ -75,6 +76,12 @@
     generar.hidden = !d.puedeGenerar;
     if (d.archivos.length) q('archivos').appendChild(listaArchivos(d.archivos));
     else q('archivos').appendChild(elemento('p', 'nota', 'Todavía no se ha generado.'));
+    /* Ya autorizado: el documento final va primero y la sección se llama como él. */
+    if (d.archivos.some(function (a) { return a.tipo === 'FINAL'; })) {
+      const cabeza = q('documentos').querySelector('.documentos-cabeza');
+      cabeza.querySelector('h2').lastChild.textContent = 'Documento final';
+      cabeza.querySelector('.nota').textContent = 'El documento autorizado, sin marca de agua. Abajo, los preliminares (con «COPIA NO AUTORIZADA») que se generaron antes.';
+    }
     generar.addEventListener('click', function () {
       generar.disabled = true;
       q('generando').hidden = false;
@@ -284,7 +291,11 @@
       return { clase: 'exito', icono: 'stamp', titulo: 'Procesos le dio su Vo.Bo.',
         texto: 'Código ' + d.codigo + ', versión ' + d.version + '. Sigue la autorización en el sistema CH; Procesos registrará el resultado.' };
     }
-    if (d.estado === 'AUTORIZADO') return { clase: 'exito', icono: 'circle-check-big', titulo: 'Autorizado en el sistema CH.', texto: 'Código ' + d.codigo + ', versión ' + d.version + '.' };
+    if (d.estado === 'AUTORIZADO') {
+      return { clase: 'exito', icono: 'circle-check-big', titulo: 'Autorizado en el sistema CH.',
+        texto: 'Código ' + d.codigo + ', versión ' + d.version + '.' + (d.autorizo ? ' Autorizó ' + d.autorizo + (d.autorizoPuesto ? ' (' + d.autorizoPuesto + ')' : '') +
+          (d.fechaAutorizacion ? ' el ' + d.fechaAutorizacion : '') + '.' : '') + ' El documento final, sin marca de agua, está abajo.' };
+    }
     if (d.estado === 'NO_PROCEDENTE') {
       return { clase: 'gris', icono: 'circle-x', titulo: 'Procesos la cerró como no procedente.', texto: d.motivoCierre ? 'Motivo: ' + d.motivoCierre : '' };
     }

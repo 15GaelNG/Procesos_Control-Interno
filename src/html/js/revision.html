@@ -142,10 +142,10 @@
         q('decision').hidden = false;
         const codigo = q('codigo');
         codigo.value = d.codigoPropuesto;
-        codigo.readOnly = !d.esNuevo;
-        q('codigo-ayuda').textContent = d.esNuevo
+        codigo.readOnly = !d.codigoEditable;
+        q('codigo-ayuda').textContent = d.codigoEditable
           ? 'Formato ' + d.prefijo + '-' + d.cuerpo + '-NNN. El sistema propone el siguiente libre; puedes corregirlo.'
-          : 'Las actualizaciones conservan su código.';
+          : 'Ya tiene código y se conserva (una actualización, o una solicitud que volvió de CH).';
         const impedimentos = [];
         if (porAtender) impedimentos.push(porAtender === 1 ? 'Hay 1 observación por atender: ciérrala o devuelve la solicitud.' : 'Hay ' + porAtender + ' observaciones por atender: ciérralas o devuelve la solicitud.');
         if (!d.contenidoConfirmado) impedimentos.push('El contenido no es el que confirmó el colaborador.');

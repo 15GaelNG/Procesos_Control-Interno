@@ -240,6 +240,37 @@ function apiVoBo(comoUsuario, idSolicitud, codigo) {
   return darVoBo_(sesion, idSolicitud, codigo);
 }
 
+// ─────────────────────────────── CH e inventario (fase 6) ───────────────────────────────
+
+/** «Envíos a CH»: por subir, en CH y resueltas, con los puestos del catálogo para el autorizador. */
+function apiEnviosCH(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return pantallaEnviosCH_(sesion);
+}
+
+/** «Ya lo subí a CH». datos: { fecha: 'yyyy-mm-dd', folio }. */
+function apiRegistrarEnvioCH(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return registrarEnvioCH_(sesion, idSolicitud, datos);
+}
+
+/** Lo que resolvió CH. datos: { resultado: 'AUTORIZADO' | 'RECHAZADO', nombre, puesto, fecha, comentario }. */
+function apiResultadoCH(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return registrarResultadoCH_(sesion, idSolicitud, datos);
+}
+
+/** El documento final sin marca de agua (solo autorizado). */
+function apiGenerarFinal(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return generarFinal_(sesion, idSolicitud);
+}
+
+function apiInventario(comoUsuario) {
+  requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR', 'ADMINISTRADOR', 'SOPORTE_CI']);
+  return pantallaInventario_();
+}
+
 function apiCancelarSolicitud(comoUsuario, idSolicitud, motivo) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
   return cancelarSolicitud_(sesion, idSolicitud, motivo);

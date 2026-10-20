@@ -348,7 +348,7 @@
   .panel-pie { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); }
   .campo { display: flex; flex-direction: column; gap: 6px; border: 0; padding: 0; margin: 0; min-width: 0; }
   .campo > span, .campo legend { font-size: 12.5px; font-weight: 600; padding: 0; margin-bottom: 2px; }
-  .campo input[type="email"], .campo input[type="text"] {
+  .campo input[type="email"], .campo input[type="text"], .campo input[type="date"] {
     border: 1px solid var(--borde); border-radius: 10px; background: var(--fondo); color: var(--texto);
     padding: 10px 12px; font-family: inherit; font-size: 13.5px;
   }
@@ -693,6 +693,30 @@
   .decision-bloque summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--peligro); }
   .decision-bloque[open] summary { margin-bottom: 4px; }
   .campo input[data-campo="codigo"] { font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+
+  /* Envíos a CH (fase 6) */
+  .boton.chico { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+  .boton.chico .ico { width: 15px; height: 15px; }
+  .envios-lista { display: flex; flex-direction: column; gap: 12px; }
+  .envio { border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .envio-detalle { margin: 0; font-size: 12.5px; color: var(--texto-suave); padding: 8px 10px; border-radius: 8px; background: var(--fondo); }
+  .envio-archivos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .envio-archivos .nota { margin: 0; }
+  .envio-descargas { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .envio-etiqueta { font-size: 12.5px; font-weight: 600; }
+  .envio-formulario { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; padding-top: 12px; border-top: 1px solid var(--borde); }
+  .envio-formulario.una-columna { grid-template-columns: 1fr; }
+  .envio-enviar { display: flex; }
+  .envio-resultado { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--borde); }
+  .envio-resultado .envio-formulario { border-top: 0; padding-top: 4px; }
+  .envio-pregunta { margin: 0; font-weight: 600; font-size: 13.5px; }
+
+  /* Inventario documental (fase 6) */
+  .solicitud-fila.con-detalle { flex-wrap: wrap; }
+  .historial-documento { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--borde); }
+  .version-documento { display: flex; flex-direction: column; gap: 4px; }
+  .version-texto { margin: 0; font-size: 13px; }
+  .btn-icono.activo { border-color: var(--dorado); color: var(--dorado-hover); }
 
   .documentos { display: flex; flex-direction: column; gap: 12px; }
   .documentos-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }

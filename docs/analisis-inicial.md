@@ -37,6 +37,7 @@
 | 21 | **Análisis y confirmación (fase 3):** antes de mandar a la IA se ocultan correos, CURP, RFC, cuentas, teléfonos y montos, y se restauran en la respuesta. Para **confirmar** hace falta: cada actividad con texto y **responsable**, objetivo, alcance y **todas las preguntas respondidas** (vale «No aplica» o «No lo sé»). Una propuesta sin decidir no bloquea (sin decisión, no entra). Si la actividad cambió después del análisis, su propuesta ya no se puede aceptar. Sin IA (apagada o sin cuota) todo se puede escribir a mano. | 20/10/2026 |
 | 22 | **Documento preliminar (fase 4):** se genera **solo después de confirmar** y del contenido exacto confirmado (huella); después, Procesos también lo genera durante la revisión. Cada generación crea un PDF y un Word **nuevos** con «COPIA NO AUTORIZADA»; los anteriores se conservan y se marcan «de una versión anterior» si el contenido cambió. Documento nuevo: versión **0.0**, código «Por asignar» hasta el Vo.Bo., control de cambios con «Emisión inicial». El Google Doc intermedio va a la papelera de Drive: lo oficial son el PDF y el Word. La descarga pasa por el servidor, que revisa el permiso (§4.4). | 20/10/2026 |
 | 23 | **Revisión de Procesos (fase 5):** **bandeja común**: cualquier revisor toma una solicitud sin asignar y queda como su revisor; el **administrador solo reasigna** (no revisa). Mientras Procesos defina otra forma (pregunta E), así queda; si la asignan por departamento, se ajusta. Observaciones por apartado o actividad: **por atender → atendida** (colaborador) **→ cerrada** (revisor). Devolver exige al menos una observación por atender; el **Vo.Bo.** exige que no haya ninguna y que el contenido sea el confirmado. El **código** lo propone el sistema (siguiente libre por tipo + departamento + área, pregunta F) y el revisor lo puede corregir; versión **0.0**. En cada envío y en el Vo.Bo. se guarda una foto del contenido (JSON). Ver [revision.md](revision.md). | 20/10/2026 |
+| 24 | **CH y documento final (fase 6):** cualquier revisor registra la **subida a CH** (fecha y folio) y el **resultado**. **Autorizado:** nombre, puesto y fecha del autorizador final como vienen en CH; la solicitud queda `AUTORIZADO`, entra al **inventario** como vigente, se anota la **emisión inicial** en el historial de versiones y se genera el **final sin marca** desde la plantilla sin marca, con la fecha de CH. Un documento nuevo autorizado se queda en **versión 0.0** (respuesta 5). **Rechazado** (provisional, pregunta D): regresa al colaborador como observación con el motivo de CH, se borra el Vo.Bo. y, ya corregido, vuelve a pasar por Procesos con el **mismo código**. El final lo descargan quien ve la solicitud y el administrador (inventario). Ver [autorizacion-ch.md](autorizacion-ch.md). | 20/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 
@@ -131,7 +132,7 @@ registra automáticamente quién elaboró, revisó y autorizó.
 | `CONFIRMADO` | Colaborador (ya puede generar preliminar) | `EN_REVISION` · vuelve a `BORRADOR` si edita algo |
 | `EN_REVISION` | Revisor de Procesos asignado | `DEVUELTO` · `EN_AUTORIZACION_CH` · `NO_PROCEDENTE` |
 | `DEVUELTO` | Colaborador (corrige y atiende observaciones) | `CONFIRMADO` → `EN_REVISION` (regresa al mismo revisor) |
-| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director). Procesos registra aquí el resultado (decisión 15) | `AUTORIZADO` · rechazo (por definir con Procesos, pregunta D) |
+| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director). Procesos registra aquí la subida y el resultado (decisiones 15 y 24) | `AUTORIZADO` · `DEVUELTO` si CH lo rechaza (provisional, pregunta D) |
 | `AUTORIZADO` | — (documento final sin marca; pasa al inventario como vigente) | — |
 | `NO_PROCEDENTE` | — (cerrada por Procesos con motivo, sin consumir código) | — |
 | `CANCELADO` | — (el colaborador desiste de un borrador) | — |
@@ -416,7 +417,8 @@ C. ~~Catálogo en Control Interno~~ → no existe; Procesos entregó el catálog
 **Para el área de Procesos:**
 
 D. **Rechazo en CH:** si el responsable o el director rechaza, ¿el documento regresa al colaborador
-   en este sistema con observaciones? ¿Quién las captura?
+   en este sistema con observaciones? ¿Quién las captura? *Mientras: regresa al colaborador con el
+   motivo como observación, capturada por Procesos, y vuelve a pasar por su revisión (decisión 24).*
 E. **Revisor asignado:** ¿cómo se asigna cada documento a un colaborador de Procesos (por
    departamento, a mano, por turnos)? *Mientras: bandeja común y el administrador reasigna (decisión 23).*
 F. **Consecutivo del código:** ¿cuenta por tipo + departamento + área o hay otro criterio? (lo dejaron
@@ -442,7 +444,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | **3. IA y confirmación** | Análisis con IA sin datos sensibles ✅ · preguntas con «No aplica» / «No lo sé» ✅ · propuestas que se aceptan, editan o descartan ✅ · textos derivados a mano si la IA está apagada ✅ · vista previa y confirmación con huella ✅ ([analisis-ia.md](analisis-ia.md)). Falta: probarlo con Gemini real en pruebas | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word y PDF con «COPIA NO AUTORIZADA» del contenido confirmado ✅ · lista de archivos con descarga revisada en el servidor ✅ · plantillas registradas por tipo ✅ ([plantillas.md](plantillas.md#generación-en-el-sistema-fase-4)). Falta: generarlo de verdad en pruebas y revisarlo | Fase 3 · plantillas |
 | **5. Revisión de Procesos** | Envío a revisión con foto del contenido ✅ · bandeja común con tomar, liberar y reasignar ✅ · observaciones por apartado o actividad ✅ · devolver, no procedente y Vo.Bo. con código propuesto y versión 0.0 ✅ ([revision.md](revision.md)). Falta: probarlo en pruebas y las respuestas E y F de Procesos | Fase 4 · regla de códigos |
-| **6. Resultado de CH y publicación** | Archivos para subir a CH, registro del resultado de CH por Procesos, documento final limpio, descarga protegida, inventario documental | Fase 5 · decisión 15 |
+| **6. Resultado de CH y publicación** | Archivos para subir a CH y registro de la subida ✅ · resultado de CH (autorizado o rechazado) ✅ · documento final sin marca ✅ · descarga revisada en el servidor ✅ · inventario documental con historial de versiones ✅ ([autorizacion-ch.md](autorizacion-ch.md)). Falta: probarlo en pruebas, la respuesta D y cargar el inventario actual de Procesos (J) | Fase 5 · decisión 15 |
 | **7. Actualizaciones** | Partir de un documento vigente o importar un Word/PDF existente con IA, control de cambios, historial de versiones | Fase 6 · inventario |
 | **8. Cierre** | Avisos por correo y recordatorios, tablero, manual de usuario | — |
 | Después | Inventario de Procesos (el otro tema que mencionaste) | — |

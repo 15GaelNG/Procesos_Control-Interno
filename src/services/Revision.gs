@@ -337,10 +337,12 @@ function planVoBo_(fila, sesion, det, huellaActual, observaciones, codigo, usado
   const propias = observaciones.filter(function (o) { return o.ID_SOLICITUD === fila.ID_SOLICITUD; });
   const abiertas = propias.filter(function (o) { return o.ESTADO === 'ABIERTA'; }).length;
   if (abiertas) e.push('Hay ' + abiertas + (abiertas === 1 ? ' observación abierta' : ' observaciones abiertas') + ': devuélvela o ciérralas antes del Vo.Bo.');
-  // Las actualizaciones conservan su código (fase 7); un documento nuevo recibe uno.
+  // Un documento nuevo recibe código en su primer Vo.Bo.; si ya lo tiene (CH lo rechazó y volvió), lo
+  // conserva, igual que las actualizaciones (fase 7).
   const nuevo = fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.NUEVO;
-  plan.codigo = nuevo ? String(codigo || '').trim().toUpperCase() : String(fila.CODIGO || '');
-  if (nuevo) validarCodigo_(plan.codigo, det.prefijo, det.cuerpo, usados).forEach(function (x) { e.push(x); });
+  const asigna = codigoEditable_(fila);
+  plan.codigo = asigna ? String(codigo || '').trim().toUpperCase() : String(fila.CODIGO || '');
+  if (asigna) validarCodigo_(plan.codigo, det.prefijo, det.cuerpo, usados).forEach(function (x) { e.push(x); });
   if (e.length) return plan;
   plan.cambios = { ESTADO: ESTADOS.EN_AUTORIZACION_CH, CODIGO: plan.codigo, VERSION: nuevo ? '0.0' : String(fila.VERSION || ''),
     REVISO_ID: sesion.idUsuario, REVISO_NOMBRE: sesion.nombre, REVISO_PUESTO: puestoRevisor, FECHA_REVISION: ahora, FECHA_ACTUALIZACION: ahora };
@@ -348,10 +350,14 @@ function planVoBo_(fila, sesion, det, huellaActual, observaciones, codigo, usado
   return plan;
 }
 
+/** ¿El revisor asigna el código en este Vo.Bo.? Solo un documento nuevo que todavía no tiene. */
+function codigoEditable_(fila) {
+  return fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.NUEVO && !String(fila.CODIGO || '').trim();
+}
+
 /** Lo que el revisor necesita para dar el Vo.Bo.: el código propuesto. */
 function propuestaCodigo_(fila, det) {
-  if (fila.TIPO_SOLICITUD !== TIPOS_SOLICITUD.NUEVO) return String(fila.CODIGO || '');
-  if (fila.CODIGO) return String(fila.CODIGO);
+  if (!codigoEditable_(fila)) return String(fila.CODIGO || '');
   const serie = leerTabla_('Consecutivos').filter(function (c) { return c.SERIE === 'COD-' + det.prefijo + '-' + det.cuerpo; })[0];
   return siguienteCodigo_(det.prefijo, det.cuerpo, codigosUsados_(leerTabla_('Solicitudes'), leerTabla_('Documentos'), fila.ID_SOLICITUD), serie ? serie.ULTIMO : 0);
 }
@@ -405,7 +411,7 @@ function detalleRevision_(sesion, idSolicitud) {
   const asignado = t.usuarios.filter(function (u) { return u.ID_USUARIO === fila.REVISOR_ASIGNADO_ID; })[0];
   det.revisor = asignado ? String(asignado.NOMBRE) : '';
   det.esSuya = fila.ELABORO_ID === sesion.idUsuario;
-  det.esNuevo = fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.NUEVO;
+  det.codigoEditable = codigoEditable_(fila);
   det.enviada = marcaDe_(fila.FECHA_ENVIO_REVISION) ? formatoFecha_(new Date(marcaDe_(fila.FECHA_ENVIO_REVISION))) : '';
   det.esRevisorAsignado = esRevisorAsignado_(sesion, fila);
   det.puedeTomar = !planTomar_(fila, sesion, t.usuarios).length && fila.REVISOR_ASIGNADO_ID !== sesion.idUsuario;
