@@ -1,0 +1,87 @@
+<script>
+  /*
+   * Optimización de imágenes en el navegador (requerimiento §3.2), antes de subirlas:
+   *   - app:       WebP, ancho máximo IMG_ANCHO_MAX, calidad IMG_CALIDAD; si pesa más que
+   *                IMG_PESO_OBJETIVO_KB baja la calidad poco a poco, sin bajar de 0.6 (que se lea el texto).
+   *   - documento: JPG del mismo tamaño, calidad 0.85 y fondo blanco (Google Docs no acepta WebP).
+   *   - miniatura: WebP de MINIATURA_ANCHO para mostrarla rápido en la captura.
+   * Si el navegador no sabe crear WebP, usa JPG en su lugar.
+   */
+  const TIPOS_IMAGEN = ['image/png', 'image/jpeg', 'image/webp'];
+
+  function cargarImagen(archivo) {
+    return new Promise(function (resolver, rechazar) {
+      const url = URL.createObjectURL(archivo);
+      const img = new Image();
+      img.onload = function () { URL.revokeObjectURL(url); resolver(img); };
+      img.onerror = function () { URL.revokeObjectURL(url); rechazar(new Error('No se pudo leer la imagen.')); };
+      img.src = url;
+    });
+  }
+
+  function lienzo(img, ancho, fondoBlanco) {
+    const escala = Math.min(1, ancho / img.naturalWidth);
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.naturalWidth * escala));
+    c.height = Math.max(1, Math.round(img.naturalHeight * escala));
+    const g = c.getContext('2d');
+    if (fondoBlanco) { g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height); }
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  function aBlob(canvas, tipo, calidad) {
+    return new Promise(function (resolver) { canvas.toBlob(resolver, tipo, calidad); });
+  }
+
+  function aBase64(blob) {
+    return new Promise(function (resolver, rechazar) {
+      const lector = new FileReader();
+      lector.onload = function () { resolver(String(lector.result).split(',')[1]); };
+      lector.onerror = function () { rechazar(new Error('No se pudo preparar la imagen.')); };
+      lector.readAsDataURL(blob);
+    });
+  }
+
+  /* WebP si el navegador lo soporta (si no, JPG), bajando calidad hasta el peso objetivo. */
+  async function comprimir(canvas, calidad, objetivoKb) {
+    let q = calidad;
+    let blob = await aBlob(canvas, 'image/webp', q);
+    const tipo = blob && blob.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+    if (tipo === 'image/jpeg') blob = await aBlob(canvas, tipo, q);
+    while (objetivoKb && blob.size > objetivoKb * 1024 && q > 0.6) {
+      q = Math.max(0.6, q - 0.08);
+      blob = await aBlob(canvas, tipo, q);
+    }
+    return blob;
+  }
+
+  /* Devuelve { app, documento, miniatura ({ base64, tipo }), ancho, alto, vista (data URL de la miniatura) }. */
+  async function optimizarImagen(archivo, p) {
+    if (TIPOS_IMAGEN.indexOf(archivo.type) === -1) throw new Error('Solo se aceptan imágenes PNG, JPG o WebP.');
+    const img = await cargarImagen(archivo);
+    const grande = lienzo(img, p.anchoMax, false);
+    const app = await comprimir(grande, p.calidad, p.pesoObjetivoKb);
+    const documento = await aBlob(lienzo(img, p.anchoMax, true), 'image/jpeg', 0.85);
+    const mini = await comprimir(lienzo(img, p.miniatura, true), 0.7, 0);
+    const limite = p.mbMax * 1024 * 1024;
+    if (app.size > limite || documento.size > limite) throw new Error('La imagen sigue pesando más de ' + p.mbMax + ' MB después de optimizarla.');
+    const vista = 'data:' + mini.type + ';base64,' + await aBase64(mini);
+    return {
+      app: { base64: await aBase64(app), tipo: app.type },
+      documento: { base64: await aBase64(documento), tipo: 'image/jpeg' },
+      miniatura: { base64: vista.split(',')[1], tipo: mini.type },
+      ancho: grande.width, alto: grande.height, vista: vista
+    };
+  }
+
+  /* Imágenes que vienen en un pegado (Ctrl + V). */
+  function imagenesDelPortapapeles(evento) {
+    const datos = evento.clipboardData;
+    if (!datos || !datos.items) return [];
+    return Array.prototype.slice.call(datos.items)
+      .filter(function (i) { return i.kind === 'file' && TIPOS_IMAGEN.indexOf(i.type) !== -1; })
+      .map(function (i) { return i.getAsFile(); }).filter(Boolean);
+  }
+</script>

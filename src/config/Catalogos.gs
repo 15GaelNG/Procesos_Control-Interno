@@ -44,7 +44,7 @@ const MODULOS_APP = [
     descripcion: 'Tus documentos en elaboración y en qué etapa va cada uno.',
     acciones: ['Ver tus documentos y el estado de cada uno', 'Continuar un borrador',
       'Atender las observaciones de Procesos', 'Descargar el preliminar con «COPIA NO AUTORIZADA»'] },
-  { id: 'nueva', seccion: 'Documentar', nombre: 'Nueva solicitud', icono: 'file-plus-2', fase: 'la fase 2',
+  { id: 'nueva', seccion: 'Documentar', nombre: 'Nueva solicitud', icono: 'file-plus-2',
     perfiles: ['COLABORADOR'],
     descripcion: 'Documenta un proceso nuevo o actualiza uno vigente, actividad por actividad.',
     acciones: ['Elegir si es un documento nuevo o la actualización de uno vigente',
@@ -98,13 +98,29 @@ const NOMBRES_ACCION = {
   ALTA_USUARIO: 'Alta de usuario',
   CAMBIO_USUARIO: 'Cambio de usuario',
   VER_COMO: 'Ver como (pruebas)',
-  IMPORTAR_CATALOGO: 'Carga del catálogo'
+  IMPORTAR_CATALOGO: 'Carga del catálogo',
+  CREAR_SOLICITUD: 'Nueva solicitud',
+  CANCELAR_SOLICITUD: 'Solicitud cancelada',
+  EDITAR_CONFIRMADO: 'Cambio después de confirmar'
 };
 
 const TIPOS_SOLICITUD = {
   NUEVO: 'NUEVO',
   ACTUALIZACION: 'ACTUALIZACION'
 };
+
+const NOMBRES_TIPO_SOLICITUD = {
+  NUEVO: 'Documento nuevo',
+  ACTUALIZACION: 'Actualizar un documento vigente'
+};
+
+// En qué estados el colaborador puede editar su solicitud. Editar una CONFIRMADA la regresa a
+// BORRADOR: la confirmación queda ligada al contenido que se confirmó (§3.5).
+const ESTADOS_EDITABLES = ['BORRADOR', 'CONFIRMADO', 'DEVUELTO'];
+
+// Palabras que no cuentan al buscar documentos con nombre parecido (§2.1).
+const PALABRAS_VACIAS = ['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'o', 'u', 'para', 'por', 'en', 'a',
+  'al', 'con', 'sin', 'un', 'una', 'unos', 'unas', 'su', 'sus', 'que', 'se', 'lo', 'proceso', 'procedimiento'];
 
 // Estados de una solicitud (requerimiento §4.3, ajustado por las decisiones 10 y 15; ver
 // docs/analisis-inicial.md §3.2).

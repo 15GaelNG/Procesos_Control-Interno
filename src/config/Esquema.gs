@@ -139,7 +139,7 @@ const ESQUEMA_BD = [
     hoja: 'Imagenes', grupo: 'OPERACION',
     descripcion: 'Imágenes de cada actividad. Se ligan por ID_ACTIVIDAD, así que reordenar no rompe la relación.',
     columnas: ['ID_IMAGEN', 'ID_ACTIVIDAD', 'ID_SOLICITUD', 'ORDEN', 'ID_ARCHIVO', 'ID_ARCHIVO_DOCUMENTO',
-      'FORMATO', 'ANCHO', 'ALTO', 'PESO_KB', 'PIE', 'ELIMINADA', 'FECHA_CARGA']
+      'FORMATO', 'ANCHO', 'ALTO', 'PESO_KB', 'PIE', 'ELIMINADA', 'FECHA_CARGA', 'ID_ARCHIVO_MINIATURA']
   },
   {
     hoja: 'Aclaraciones', grupo: 'OPERACION',

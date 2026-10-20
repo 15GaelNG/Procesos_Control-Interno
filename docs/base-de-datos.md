@@ -197,9 +197,11 @@ Cada trámite, de borrador hasta el resultado de CH.
 
 ### Imagenes
 `ID_IMAGEN` · `ID_ACTIVIDAD` · `ID_SOLICITUD` · `ORDEN` (dentro de la actividad) · `ID_ARCHIVO` (WebP
-para la app) · `ID_ARCHIVO_DOCUMENTO` (JPEG/PNG para Word/PDF) · `FORMATO` · `ANCHO` · `ALTO` ·
-`PESO_KB` · `PIE` · `ELIMINADA` · `FECHA_CARGA`.
-Se ligan a la actividad por ID: reordenar actividades nunca rompe la relación (§3.2).
+para la app) · `ID_ARCHIVO_DOCUMENTO` (JPG para Word/PDF) · `FORMATO` (del archivo de la app: `WEBP`, o
+`JPEG` si el navegador no sabe crear WebP) · `ANCHO` · `ALTO` · `PESO_KB` · `PIE` · `ELIMINADA` ·
+`FECHA_CARGA` · `ID_ARCHIVO_MINIATURA` (WebP de 360 px para la captura).
+Se ligan a la actividad por ID: reordenar actividades nunca rompe la relación (§3.2). Cómo se optimizan:
+[captura.md](captura.md#imágenes-32).
 
 ### Aclaraciones
 Preguntas complementarias. `ID_ACLARACION` · `ID_SOLICITUD` · `ID_ACTIVIDAD` (vacío = general) ·
@@ -250,7 +252,7 @@ Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4
 ### Bitacora
 Toda acción relevante (§4.3). `FECHA` · `USUARIO` (siempre la persona real; si usaba «Ver como», el
 detalle empieza con `[viendo como …]`) · `ACCION` (`ALTA_USUARIO`, `CAMBIO_USUARIO`, `VER_COMO`,
-`IMPORTAR_CATALOGO`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
+`IMPORTAR_CATALOGO`, `CREAR_SOLICITUD`, `CANCELAR_SOLICITUD`, `EDITAR_CONFIRMADO`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
 `ESTADO_ANTERIOR` · `ESTADO_NUEVO` · `DETALLE`. Se consulta en la pantalla «Bitácora» y no se edita.
 
 ### UsoIA

@@ -127,6 +127,23 @@ const DOMINIOS_CORREO = {
 // Cuántos renglones de la Bitacora muestra la pantalla (los más recientes).
 const BITACORA_MAX_RENGLONES = 500;
 
+// Topes de la captura (fase 2). Protegen la hoja y las llamadas a la IA de textos desmedidos.
+const LIMITES_CAPTURA = {
+  NOMBRE_MIN: 5,
+  NOMBRE_MAX: 150,
+  PREGUNTA_MAX: 2000,        // «¿Qué sucede para que inicie?» y «¿Cómo finaliza?»
+  ACTIVIDADES_MAX: 150,
+  ACTIVIDAD_MAX: 4000,       // Texto de una actividad
+  RESPONSABLE_MAX: 120,
+  PIE_MAX: 200,
+  IMAGEN_MB_MAX: 4           // Cada archivo ya optimizado que manda el navegador
+};
+// Coincidencias de nombre que se muestran al crear un documento nuevo, y desde qué parecido (0 a 1).
+const COINCIDENCIAS_MAX = 5;
+const COINCIDENCIAS_PARECIDO_MIN = 0.5;
+// Miniatura que el navegador genera de cada imagen para mostrarla rápido en la captura.
+const MINIATURA_ANCHO = 360;
+
 // Colores institucionales (los mismos que SIVET / Control Interno y la plantilla).
 const COLOR_AZUL = '#1E252B';
 const COLOR_DORADO = '#B4A169';

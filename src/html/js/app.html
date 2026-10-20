@@ -11,13 +11,17 @@
 
   const estado = {
     vista: 'inicio',
+    parametro: '',
     sesion: DATOS.sesion,
     modulos: DATOS.modulos,
-    comoUsuario: ''
+    comoUsuario: '',
+    alSalir: null      /* La pantalla abierta puede dejar aquí qué hacer antes de cambiar (p. ej. guardar). */
   };
 
-  /* Pantallas que piden datos al servidor al abrirse: id del módulo → función que recibe el contenedor. */
+  /* Pantallas que piden datos al servidor al abrirse: id del módulo → función(contenedor, parámetro). */
   const PANTALLAS = {
+    'mis-solicitudes': iniciarMisSolicitudes,
+    nueva: iniciarNuevaSolicitud,
     catalogos: iniciarCatalogos,
     usuarios: iniciarUsuarios,
     bitacora: iniciarBitacora
@@ -107,9 +111,16 @@
   }
 
   /* ─────────── Navegación ─────────── */
-  function ir(id, guardarHistorial) {
+  function ir(id, guardarHistorial, parametro) {
+    if (estado.alSalir) {
+      const salir = estado.alSalir;
+      estado.alSalir = null;
+      try { salir(); } catch (e) { /* que no impida cambiar de pantalla */ }
+    }
+    if (id === 'solicitud' && parametro) { abrirSolicitud(parametro, guardarHistorial); return; }
     const m = modulo(id) || modulo('inicio');
     estado.vista = m.id;
+    estado.parametro = '';
     document.querySelectorAll('.opcion').forEach(function (b) { b.classList.toggle('activa', b.dataset.vista === m.id); });
     const vista = $('#vista');
     vista.textContent = '';
@@ -120,6 +131,24 @@
     abrirMenuMovil(false);
     if (guardarHistorial && window.google && google.script && google.script.history) {
       google.script.history.push({ vista: m.id }, { vista: m.id });
+    }
+  }
+
+  /* Una solicitud (captura o consulta). No está en el menú: se llega desde «Mis solicitudes» o con
+     ?vista=solicitud&id=SOL-2026-0001. El servidor decide si se puede ver o editar. */
+  function abrirSolicitud(idSolicitud, guardarHistorial) {
+    estado.vista = 'solicitud';
+    estado.parametro = idSolicitud;
+    document.querySelectorAll('.opcion').forEach(function (b) { b.classList.toggle('activa', b.dataset.vista === 'mis-solicitudes'); });
+    const vista = $('#vista');
+    vista.textContent = '';
+    vista.appendChild(clonar('vista-solicitud'));
+    vista.scrollTop = 0;
+    pintarIconos();
+    iniciarEditor(vista, idSolicitud);
+    abrirMenuMovil(false);
+    if (guardarHistorial && window.google && google.script && google.script.history) {
+      google.script.history.push({ vista: 'solicitud', id: idSolicitud }, { vista: 'solicitud', id: idSolicitud });
     }
   }
 
@@ -220,7 +249,8 @@
       guardarPestana('verComo', idUsuario);
       pintarUsuario();
       pintarMenu();
-      ir(modulo(estado.vista) ? estado.vista : 'inicio', false);
+      if (estado.vista === 'solicitud') ir('solicitud', false, estado.parametro);
+      else ir(modulo(estado.vista) ? estado.vista : 'inicio', false);
     }).catch(function (e) {
       estado.comoUsuario = anterior;
       guardarPestana('verComo', anterior);
@@ -278,14 +308,14 @@
     $('#app').hidden = false;
 
     /* Atrás / adelante del navegador, y abrir directo una pantalla con ?vista=... */
-    const abrirInicial = function (id) {
-      ir(id, false);
+    const abrirInicial = function (id, parametro) {
+      ir(id, false, parametro);
       const guardado = leerPestana('verComo');
       if (guardado && DATOS.verComo.length) verComo(guardado);
     };
     if (window.google && google.script) {
-      google.script.history.setChangeHandler(function (e) { ir((e.state && e.state.vista) || 'inicio', false); });
-      google.script.url.getLocation(function (ubicacion) { abrirInicial(ubicacion.parameter.vista || 'inicio'); });
+      google.script.history.setChangeHandler(function (e) { ir((e.state && e.state.vista) || 'inicio', false, e.state && e.state.id); });
+      google.script.url.getLocation(function (ubicacion) { abrirInicial(ubicacion.parameter.vista || 'inicio', ubicacion.parameter.id); });
     } else {
       abrirInicial('inicio');
     }

@@ -1,0 +1,384 @@
+<script>
+  /*
+   * Captura del desarrollo del proceso (paso 3) — diseño de referencia del requerimiento (Anexo A).
+   *
+   * Todo se guarda solo: cada cambio programa un guardado (apiGuardarBorrador) y las imágenes se suben
+   * ya optimizadas (apiSubirImagen). Guardados y subidas van en UNA fila (cola), así nunca se cruzan:
+   * una subida espera a que su actividad tenga ID, y un guardado siempre lleva las imágenes ya subidas.
+   * El servidor rechaza un guardado si la solicitud cambió en otra pestaña (marca); entonces se detiene
+   * el guardado y se pide recargar.
+   */
+  function iniciarEditor(raiz, idSolicitud) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    const volver = raiz.querySelector('[data-accion="volver"]');
+    const destino = modulo('mis-solicitudes') ? 'mis-solicitudes' : 'inicio';
+    volver.lastChild.textContent = destino === 'inicio' ? 'Inicio' : 'Mis solicitudes';
+    volver.addEventListener('click', function () { ir(destino, true); });
+
+    let sol = null;
+    let editor = null;
+    let claveSiguiente = 1;
+    let cola = Promise.resolve();
+    let espera = null;
+    let sucio = false;
+    let detenido = false;
+    const miniaturas = {};
+    const completas = {};
+
+    function encolar(tarea) {
+      const p = cola.then(tarea);
+      cola = p.catch(function () { /* la fila sigue aunque una tarea falle */ });
+      return p;
+    }
+
+    /* ─────────── Guardado ─────────── */
+    function contenidoActual() {
+      return {
+        marca: sol.marca, inicio: sol.inicio, fin: sol.fin,
+        actividades: sol.actividades.map(function (a) {
+          return { id: a.id || '', clave: a.clave || '', texto: a.texto, responsable: a.responsable,
+            imagenes: a.imagenes.filter(function (i) { return i.id; }).map(function (i) { return { id: i.id, pie: i.pie }; }) };
+        })
+      };
+    }
+
+    function mostrarGuardado(como, detalle) {
+      const caja = editor && editor.querySelector('[data-campo="guardado"]');
+      if (!caja) return;
+      const textos = { guardado: 'Guardado', guardando: 'Guardando…', pendiente: 'Cambios sin guardar', error: 'No se pudo guardar' };
+      const iconos = { guardado: 'check', guardando: 'loader', pendiente: 'pencil', error: 'triangle-alert' };
+      caja.className = 'estado-guardado ' + como;
+      caja.innerHTML = '<i class="ico"></i><span></span>';
+      caja.querySelector('i').setAttribute('data-lucide', iconos[como]);
+      if (como === 'guardando') caja.querySelector('i').classList.add('girando');
+      caja.querySelector('span').textContent = textos[como];
+      caja.title = detalle || '';
+      pintarIconos();
+    }
+
+    function guardarAhora() {
+      if (!sucio || detenido) return Promise.resolve();
+      sucio = false;
+      mostrarGuardado('guardando');
+      return llamar('apiGuardarBorrador', idSolicitud, contenidoActual()).then(function (r) {
+        sol.marca = r.marca;
+        sol.actividades.forEach(function (a) { if (!a.id && r.ids[a.clave]) a.id = r.ids[a.clave]; });
+        cambioDeEstado(r.estado);
+        mostrarGuardado(sucio ? 'pendiente' : 'guardado');
+      }).catch(function (e) {
+        sucio = true;
+        if (/otra ventana/.test(e.message)) {
+          detenido = true;
+          editor.querySelector('[data-campo="conflicto"]').hidden = false;
+          mostrarGuardado('error', e.message);
+        } else {
+          mostrarGuardado('error', e.message + ' Se reintentará en unos segundos.');
+          clearTimeout(espera);
+          espera = setTimeout(guardar, 5000);
+        }
+        throw e;
+      });
+    }
+
+    function guardar() {
+      clearTimeout(espera);
+      return encolar(guardarAhora).catch(function () { /* ya se mostró y se reintenta solo */ });
+    }
+
+    function marcarCambio() {
+      if (!sol.puedeEditar || detenido) return;
+      sucio = true;
+      mostrarGuardado('pendiente');
+      clearTimeout(espera);
+      espera = setTimeout(guardar, 1200);
+    }
+
+    function cambioDeEstado(nuevo) {
+      if (!nuevo || nuevo === sol.estado) return;
+      const antes = sol.estado;
+      sol.estado = nuevo;
+      pintarEncabezado();
+      if (antes === 'CONFIRMADO') avisar('Cambiaste la solicitud después de confirmarla: tendrás que volver a confirmarla.', '');
+    }
+
+    /* Al salir de la pantalla, lo pendiente se guarda de inmediato. */
+    estado.alSalir = function () { if (sucio) guardar(); };
+    window.onbeforeunload = function (e) {
+      if (!editor || !editor.isConnected || !sucio) return undefined;
+      e.preventDefault();
+      return '';
+    };
+
+    /* ─────────── Imágenes ─────────── */
+    function asegurarId(actividad) {
+      if (actividad.id) return Promise.resolve();
+      sucio = true;
+      return guardarAhora().then(function () {
+        if (!actividad.id) throw new Error('No se pudo guardar la actividad antes de subir la imagen.');
+      });
+    }
+
+    function agregarImagenes(actividad, archivos) {
+      if (!sol.puedeEditar || detenido || !archivos.length) return;
+      const lugar = sol.imagen.maxPorActividad - actividad.imagenes.length;
+      if (lugar <= 0) { avisar('Cada actividad admite hasta ' + sol.imagen.maxPorActividad + ' imágenes.', 'error'); return; }
+      if (archivos.length > lugar) avisar('Solo caben ' + lugar + ' imágenes más en esta actividad.', 'error');
+      archivos.slice(0, lugar).forEach(function (archivo) {
+        const temporal = { id: '', pie: '', subiendo: true, vista: '' };
+        actividad.imagenes.push(temporal);
+        pintarImagenesDe(actividad);
+        optimizarImagen(archivo, sol.imagen).then(function (datos) {
+          temporal.vista = datos.vista;
+          pintarImagenesDe(actividad);
+          return encolar(function () {
+            return asegurarId(actividad).then(function () {
+              return llamar('apiSubirImagen', idSolicitud, { idActividad: actividad.id, app: datos.app, documento: datos.documento,
+                miniatura: datos.miniatura, ancho: datos.ancho, alto: datos.alto });
+            }).then(function (r) {
+              temporal.id = r.id;
+              temporal.subiendo = false;
+              miniaturas[r.id] = datos.vista;
+              sol.marca = r.marca;
+              cambioDeEstado(r.estado);
+            });
+          });
+        }).then(function () {
+          pintarImagenesDe(actividad);
+          if (!sucio) mostrarGuardado('guardado');
+        }).catch(function (e) {
+          actividad.imagenes.splice(actividad.imagenes.indexOf(temporal), 1);
+          pintarImagenesDe(actividad);
+          avisar(e.message, 'error');
+        });
+      });
+    }
+
+    function abrirVisor(imagen) {
+      const f = clonar('parte-visor');
+      const visor = f.querySelector('.visor');
+      const img = visor.querySelector('img');
+      img.src = miniaturas[imagen.id] || imagen.vista || '';
+      visor.querySelector('[data-campo="pie"]').textContent = imagen.pie || '';
+      const cerrar = function () { visor.remove(); document.removeEventListener('keydown', teclas); };
+      const teclas = function (e) { if (e.key === 'Escape') cerrar(); };
+      visor.addEventListener('click', function (e) { if (e.target === visor || e.target.closest('[data-accion="cerrar"]')) cerrar(); });
+      document.addEventListener('keydown', teclas);
+      document.body.appendChild(f);
+      pintarIconos();
+      if (!imagen.id) return;
+      const poner = function (url) { if (visor.isConnected && url) img.src = url; };
+      if (completas[imagen.id]) poner(completas[imagen.id]);
+      else llamar('apiImagen', imagen.id).then(function (url) { completas[imagen.id] = url; poner(url); }).catch(function () { /* se queda la miniatura */ });
+    }
+
+    /* ─────────── Pintar ─────────── */
+    function pintarEncabezado() {
+      editor.querySelector('[data-campo="folio"]').textContent = sol.id + (sol.codigo ? ' · ' + sol.codigo : '');
+      editor.querySelector('[data-campo="nombre"]').textContent = sol.nombre;
+      const chip = editor.querySelector('[data-campo="estado"]');
+      chip.className = 'chip estado-' + sol.estado.toLowerCase();
+      chip.textContent = DATOS.nombresEstado[sol.estado] || sol.estado;
+    }
+
+    function pintarImagenesDe(actividad) {
+      const caja = actividad.nodo && actividad.nodo.querySelector('[data-campo="imagenes"]');
+      if (!caja) return;
+      caja.textContent = '';
+      actividad.imagenes.forEach(function (im, j) {
+        const f = clonar('parte-imagen');
+        const fig = f.querySelector('.imagen');
+        const img = fig.querySelector('img');
+        const fuente = (im.id && miniaturas[im.id]) || im.vista;
+        if (fuente) img.src = fuente; else fig.classList.add('cargando');
+        if (im.subiendo) fig.classList.add('subiendo');
+        img.alt = im.pie || 'Imagen ' + (j + 1) + ' de la actividad';
+        const pie = fig.querySelector('[data-campo="pie"]');
+        pie.value = im.pie;
+        pie.readOnly = !sol.puedeEditar || im.subiendo;
+        pie.addEventListener('input', function () { im.pie = pie.value; marcarCambio(); });
+        fig.querySelector('[data-accion="ver"]').addEventListener('click', function () { abrirVisor(im); });
+        const botones = fig.querySelector('.imagen-botones');
+        if (!sol.puedeEditar || im.subiendo) botones.hidden = true;
+        const mover = function (paso) {
+          const k = j + paso;
+          if (k < 0 || k >= actividad.imagenes.length || actividad.imagenes[k].subiendo) return;
+          actividad.imagenes.splice(k, 0, actividad.imagenes.splice(j, 1)[0]);
+          pintarImagenesDe(actividad);
+          marcarCambio();
+        };
+        fig.querySelector('[data-accion="izquierda"]').disabled = j === 0;
+        fig.querySelector('[data-accion="derecha"]').disabled = j === actividad.imagenes.length - 1;
+        fig.querySelector('[data-accion="izquierda"]').addEventListener('click', function () { mover(-1); });
+        fig.querySelector('[data-accion="derecha"]').addEventListener('click', function () { mover(1); });
+        fig.querySelector('[data-accion="quitar"]').addEventListener('click', function () {
+          if (!confirm('¿Quitar esta imagen de la actividad?')) return;
+          actividad.imagenes.splice(actividad.imagenes.indexOf(im), 1);
+          pintarImagenesDe(actividad);
+          marcarCambio();
+        });
+        caja.appendChild(f);
+      });
+      pintarIconos();
+    }
+
+    function pintarActividades(enfocar) {
+      const lista = editor.querySelector('[data-campo="actividades"]');
+      lista.textContent = '';
+      sol.actividades.forEach(function (actividad, i) {
+        const f = clonar('parte-actividad');
+        const nodo = f.querySelector('.actividad');
+        actividad.nodo = nodo;
+        nodo.querySelector('[data-campo="titulo"]').textContent = 'Actividad ' + (i + 1);
+        const texto = nodo.querySelector('[data-campo="texto"]');
+        const responsable = nodo.querySelector('[data-campo="responsable"]');
+        texto.value = actividad.texto;
+        responsable.value = actividad.responsable;
+        texto.readOnly = responsable.readOnly = !sol.puedeEditar;
+        texto.addEventListener('input', function () { actividad.texto = texto.value; marcarCambio(); });
+        responsable.addEventListener('input', function () { actividad.responsable = responsable.value; marcarCambio(); });
+
+        const mover = function (paso) {
+          const k = i + paso;
+          if (k < 0 || k >= sol.actividades.length) return;
+          sol.actividades.splice(k, 0, sol.actividades.splice(i, 1)[0]);
+          pintarActividades();
+          marcarCambio();
+        };
+        nodo.querySelector('[data-accion="subir"]').disabled = i === 0;
+        nodo.querySelector('[data-accion="bajar"]').disabled = i === sol.actividades.length - 1;
+        nodo.querySelector('[data-accion="subir"]').addEventListener('click', function () { mover(-1); });
+        nodo.querySelector('[data-accion="bajar"]').addEventListener('click', function () { mover(1); });
+        nodo.querySelector('[data-accion="eliminar"]').addEventListener('click', function () {
+          if (actividad.imagenes.some(function (im) { return im.subiendo; })) { avisar('Espera a que terminen de subir sus imágenes.', 'error'); return; }
+          const tieneAlgo = actividad.texto.trim() || actividad.imagenes.length;
+          if (tieneAlgo && !confirm('¿Eliminar la actividad ' + (i + 1) + (actividad.imagenes.length ? ' y sus imágenes' : '') + '?')) return;
+          sol.actividades.splice(i, 1);
+          if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
+          pintarActividades();
+          marcarCambio();
+        });
+
+        const archivo = nodo.querySelector('[data-campo="archivo"]');
+        archivo.addEventListener('change', function () {
+          agregarImagenes(actividad, Array.prototype.slice.call(archivo.files || []));
+          archivo.value = '';
+        });
+        nodo.addEventListener('paste', function (e) {
+          const imagenes = imagenesDelPortapapeles(e);
+          if (!imagenes.length || !sol.puedeEditar) return;
+          e.preventDefault();
+          agregarImagenes(actividad, imagenes);
+        });
+        nodo.addEventListener('dragover', function (e) { if (sol.puedeEditar) { e.preventDefault(); nodo.classList.add('soltando'); } });
+        nodo.addEventListener('dragleave', function () { nodo.classList.remove('soltando'); });
+        nodo.addEventListener('drop', function (e) {
+          nodo.classList.remove('soltando');
+          if (!sol.puedeEditar) return;
+          e.preventDefault();
+          const archivos = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || [])
+            .filter(function (a) { return TIPOS_IMAGEN.indexOf(a.type) !== -1; });
+          agregarImagenes(actividad, archivos);
+        });
+        if (!sol.puedeEditar) {
+          nodo.querySelector('.actividad-botones').hidden = true;
+          nodo.querySelector('.adjuntar').hidden = true;
+          if (!actividad.responsable) nodo.querySelector('.responsable').hidden = true;
+        }
+        lista.appendChild(f);
+        pintarImagenesDe(actividad);
+      });
+      pintarIconos();
+      if (enfocar) {
+        const ultimo = sol.actividades[sol.actividades.length - 1];
+        if (ultimo && ultimo.nodo) { ultimo.nodo.scrollIntoView({ behavior: 'smooth', block: 'center' }); ultimo.nodo.querySelector('textarea').focus(); }
+      }
+    }
+
+    function nuevaActividad() {
+      return { id: '', clave: 'n' + (claveSiguiente++), texto: '', responsable: '', imagenes: [] };
+    }
+
+    function textoSoloLectura() {
+      if (!sol.esSuya) return 'Modo consulta: solo quien elaboró la solicitud puede editarla.';
+      const motivos = {
+        EN_REVISION: 'Está en revisión de Procesos: podrás editarla si te la regresan con observaciones.',
+        EN_AUTORIZACION_CH: 'Procesos ya le dio su Vo.Bo.; está en autorización en el sistema CH.',
+        AUTORIZADO: 'Ya está autorizada.', CANCELADO: 'Cancelaste esta solicitud.', NO_PROCEDENTE: 'Procesos la cerró como no procedente.'
+      };
+      return motivos[sol.estado] || 'No se puede editar en este momento.';
+    }
+
+    function pintar() {
+      const f = clonar('parte-editor');
+      editor = document.createElement('div');
+      editor.className = 'editor';
+      editor.appendChild(f);
+      contenido.textContent = '';
+      contenido.appendChild(editor);
+      pintarEncabezado();
+
+      const datos = editor.querySelector('[data-campo="datos"]');
+      [['Tipo', sol.tipoDocumento + ' · ' + sol.tipoSolicitud],
+        ['Departamento y área', sol.departamento + ' / ' + sol.area + (sol.subarea ? ' / ' + sol.subarea : '')],
+        ['Elabora', sol.elaborador + (sol.puesto ? ' · ' + sol.puesto : '')],
+        ['Fecha de elaboración', sol.fechaElaboracion],
+        ['Código', sol.codigo || (sol.prefijo + '-' + sol.cuerpo + '-___ · lo asigna Procesos')]].forEach(function (d) {
+        const div = document.createElement('div');
+        div.innerHTML = '<span></span><strong></strong>';
+        div.querySelector('span').textContent = d[0];
+        div.querySelector('strong').textContent = d[1];
+        datos.appendChild(div);
+      });
+
+      const inicio = editor.querySelector('textarea[name="inicio"]');
+      const fin = editor.querySelector('textarea[name="fin"]');
+      inicio.value = sol.inicio;
+      fin.value = sol.fin;
+      inicio.readOnly = fin.readOnly = !sol.puedeEditar;
+      inicio.addEventListener('input', function () { sol.inicio = inicio.value; marcarCambio(); });
+      fin.addEventListener('input', function () { sol.fin = fin.value; marcarCambio(); });
+
+      const agregar = editor.querySelector('[data-accion="agregar"]');
+      agregar.hidden = !sol.puedeEditar;
+      agregar.addEventListener('click', function () {
+        if (sol.actividades.length >= 150) { avisar('El máximo es de 150 actividades.', 'error'); return; }
+        sol.actividades.push(nuevaActividad());
+        pintarActividades(true);
+        marcarCambio();
+      });
+
+      if (!sol.puedeEditar) {
+        editor.querySelector('[data-campo="solo-lectura"]').hidden = false;
+        editor.querySelector('[data-campo="solo-lectura-texto"]').textContent = textoSoloLectura();
+        editor.querySelector('.estado-guardado').hidden = true;
+        editor.querySelector('.desarrollo-encabezado .nota').hidden = true;
+        editor.querySelector('.siguiente-paso').hidden = true;
+      } else {
+        mostrarGuardado('guardado');
+      }
+      if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
+      pintarActividades();
+    }
+
+    llamar('apiSolicitud', idSolicitud).then(function (d) {
+      if (!contenido.isConnected) return;
+      sol = d;
+      sol.actividades.forEach(function (a) { a.clave = ''; });
+      pintar();
+      if (sol.actividades.some(function (a) { return a.imagenes.length; })) {
+        llamar('apiMiniaturas', idSolicitud).then(function (m) {
+          Object.keys(m).forEach(function (k) { if (m[k]) miniaturas[k] = m[k]; });
+          if (editor && editor.isConnected) sol.actividades.forEach(pintarImagenesDe);
+        }).catch(function () { /* se quedan sin miniatura */ });
+      }
+    }).catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      const t = document.createElement('div');
+      t.className = 'tarjeta';
+      t.appendChild(estadoVacio('triangle-alert', 'No se pudo abrir la solicitud', e.message));
+      contenido.appendChild(t);
+      pintarIconos();
+    });
+  }
+</script>

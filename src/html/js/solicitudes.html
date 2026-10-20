@@ -1,0 +1,253 @@
+<script>
+  /*
+   * «Nueva solicitud» (paso 2: información general) y «Mis solicitudes».
+   * El servidor valida todo otra vez (validarNuevaSolicitud_); aquí solo se guía a la persona.
+   */
+  function elemento(etiqueta, clase, texto) {
+    const n = document.createElement(etiqueta);
+    if (clase) n.className = clase;
+    if (texto !== undefined) n.textContent = texto;
+    return n;
+  }
+  function textoComparable(t) {
+    return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function estadoVacio(icono, titulo, texto) {
+    const v = elemento('div', 'vacio');
+    v.innerHTML = '<span class="vacio-icono"><i class="ico"></i></span><h2></h2><p></p>';
+    v.querySelector('i').setAttribute('data-lucide', icono);
+    v.querySelector('h2').textContent = titulo;
+    v.querySelector('p').textContent = texto;
+    return v;
+  }
+
+  /* ─────────── Nueva solicitud ─────────── */
+  function iniciarNuevaSolicitud(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    llamar('apiOpcionesSolicitud').then(function (o) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      if (!o.departamentos.length) {
+        const t = elemento('div', 'tarjeta');
+        t.appendChild(estadoVacio('building-2', 'Todavía no tienes un departamento asignado',
+          'Para documentar un proceso necesitas al menos un departamento. Pide a un administrador del sistema que te lo asigne en «Usuarios y perfiles».'));
+        contenido.appendChild(t);
+        pintarIconos();
+        return;
+      }
+      contenido.appendChild(formularioNueva(o));
+      pintarIconos();
+    }).catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      const t = elemento('div', 'tarjeta');
+      t.appendChild(estadoVacio('triangle-alert', 'No se pudo abrir el formulario', e.message));
+      contenido.appendChild(t);
+      pintarIconos();
+    });
+  }
+
+  function opcionTarjeta(nombreGrupo, valor, titulo, nota, disponible) {
+    const l = elemento('label', 'opcion-tarjeta' + (disponible ? '' : ' no-disponible'));
+    const r = elemento('input');
+    r.type = 'radio';
+    r.name = nombreGrupo;
+    r.value = valor;
+    r.disabled = !disponible;
+    const t = elemento('span');
+    t.appendChild(elemento('strong', '', titulo));
+    if (nota) t.appendChild(elemento('small', '', nota));
+    l.appendChild(r);
+    l.appendChild(t);
+    return l;
+  }
+
+  function llenarSelect(select, opciones, vacio) {
+    select.textContent = '';
+    if (vacio) { const o = elemento('option', '', vacio); o.value = ''; select.appendChild(o); }
+    opciones.forEach(function (x) { const o = elemento('option', '', x.texto); o.value = x.id; select.appendChild(o); });
+  }
+
+  function formularioNueva(o) {
+    const f = clonar('parte-formulario-nueva');
+    const form = f.querySelector('form');
+    const q = function (c) { return form.querySelector('[data-campo="' + c + '"]'); };
+
+    o.tiposSolicitud.forEach(function (t) {
+      q('tipos-solicitud').appendChild(opcionTarjeta('tipoSolicitud', t.id, t.nombre, t.nota, t.disponible));
+    });
+    o.tiposDocumento.forEach(function (t) {
+      q('tipos-documento').appendChild(opcionTarjeta('idTipo', t.id, t.nombre, t.disponible ? '' : 'Pronto: falta su plantilla', t.disponible));
+    });
+    const primeraDisponible = function (nombre) {
+      const r = form.querySelector('input[name="' + nombre + '"]:not(:disabled)');
+      if (r) r.checked = true;
+    };
+    primeraDisponible('tipoSolicitud');
+    primeraDisponible('idTipo');
+
+    q('elaborador').textContent = o.elaborador.nombre;
+    q('puesto').textContent = o.elaborador.puesto || 'Sin puesto registrado';
+    q('fecha').textContent = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const depto = form.departamento, area = form.area, subarea = form.subarea;
+    llenarSelect(depto, o.departamentos.map(function (d) { return { id: d.id, texto: d.nombre + ' (' + d.clave + ')' }; }));
+    const deptoElegido = function () { return o.departamentos.filter(function (d) { return d.id === depto.value; })[0]; };
+    const areaElegida = function () { const d = deptoElegido(); return d && d.areas.filter(function (a) { return a.id === area.value; })[0]; };
+    const alCambiarArea = function () {
+      const a = areaElegida();
+      const subs = a ? a.subareas : [];
+      llenarSelect(subarea, subs.map(function (s) { return { id: s.id, texto: s.nombre }; }), 'Ninguna');
+      q('campo-subarea').hidden = !subs.length;
+      const tipo = form.querySelector('input[name="idTipo"]:checked');
+      const prefijo = tipo ? (o.tiposDocumento.filter(function (t) { return t.id === tipo.value; })[0] || {}).prefijo : '';
+      q('codigo').textContent = a && prefijo ? prefijo + '-' + a.cuerpo + '-___ · el número lo asigna Procesos' : 'Lo asigna Procesos';
+    };
+    const alCambiarDepto = function () {
+      const d = deptoElegido();
+      llenarSelect(area, (d ? d.areas : []).map(function (a) { return { id: a.id, texto: a.cuerpo + ' · ' + a.nombre }; }), 'Elige el área');
+      alCambiarArea();
+    };
+    form.querySelectorAll('input[name="idTipo"]').forEach(function (r) { r.addEventListener('change', alCambiarArea); });
+    depto.addEventListener('change', alCambiarDepto);
+    area.addEventListener('change', alCambiarArea);
+    alCambiarDepto();
+
+    /* Coincidencias de nombre mientras escribe (§2.1). */
+    let espera = null;
+    let ultima = '';
+    form.nombre.addEventListener('input', function () {
+      clearTimeout(espera);
+      espera = setTimeout(function () {
+        const nombre = form.nombre.value.trim();
+        if (nombre.length < 5 || nombre === ultima) { if (nombre.length < 5) q('coincidencias').hidden = true; return; }
+        ultima = nombre;
+        llamar('apiBuscarCoincidencias', nombre, '').then(function (r) {
+          if (form.nombre.value.trim() !== nombre) return;
+          pintarCoincidencias(q('coincidencias'), r);
+        }).catch(function () { q('coincidencias').hidden = true; });
+      }, 600);
+    });
+
+    const errores = q('errores');
+    const boton = form.querySelector('[data-accion="crear"]');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const elegido = function (n) { const r = form.querySelector('input[name="' + n + '"]:checked'); return r ? r.value : ''; };
+      const datos = { tipoSolicitud: elegido('tipoSolicitud'), idTipo: elegido('idTipo'), nombre: form.nombre.value,
+        idDepartamento: depto.value, idArea: area.value, idSubarea: subarea.value };
+      errores.hidden = true;
+      boton.disabled = true;
+      boton.querySelector('span').textContent = 'Creando…';
+      llamar('apiCrearSolicitud', datos).then(function (r) {
+        avisar('Solicitud ' + r.idSolicitud + ' creada.', 'exito');
+        ir('solicitud', true, r.idSolicitud);
+      }).catch(function (err) {
+        errores.textContent = err.message;
+        errores.hidden = false;
+        boton.disabled = false;
+        boton.querySelector('span').textContent = 'Crear y continuar';
+      });
+    });
+    return f;
+  }
+
+  function pintarCoincidencias(caja, lista) {
+    caja.textContent = '';
+    if (!lista.length) { caja.hidden = true; return; }
+    const titulo = elemento('div', 'coincidencias-titulo');
+    titulo.innerHTML = '<i data-lucide="copy-check" class="ico"></i><span></span>';
+    titulo.querySelector('span').textContent = 'Encontramos ' + (lista.length === 1 ? 'un documento parecido' : lista.length + ' documentos parecidos') +
+      '. Revisa que no estés duplicando uno; si de todos modos continúas, Procesos decidirá si procede.';
+    caja.appendChild(titulo);
+    lista.forEach(function (c) {
+      const fila = elemento('div', 'coincidencia');
+      fila.appendChild(elemento('span', 'chip ' + (c.tipo === 'DOCUMENTO' ? '' : 'dorado'), c.tipo === 'DOCUMENTO' ? (c.codigo || 'Documento') : c.id));
+      fila.appendChild(elemento('span', 'coincidencia-nombre', c.nombre));
+      fila.appendChild(elemento('span', 'nota', c.estado));
+      caja.appendChild(fila);
+    });
+    caja.hidden = false;
+    pintarIconos();
+  }
+
+  /* ─────────── Mis solicitudes ─────────── */
+  function iniciarMisSolicitudes(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    const buscar = raiz.querySelector('[data-campo="buscar"]');
+    const cerradas = raiz.querySelector('[data-campo="cerradas"]');
+    const nueva = raiz.querySelector('[data-accion="nueva"]');
+    nueva.hidden = !modulo('nueva');
+    nueva.addEventListener('click', function () { ir('nueva', true); });
+    let lista = null;
+
+    function cancelar(s) {
+      if (!confirm('¿Cancelar la solicitud ' + s.id + ' «' + s.nombre + '»? Ya no se podrá editar ni enviar a revisión.')) return;
+      const motivo = prompt('¿Por qué la cancelas? (opcional)') || '';
+      llamar('apiCancelarSolicitud', s.id, motivo).then(function () {
+        avisar('Solicitud ' + s.id + ' cancelada.', 'exito');
+        cargar();
+      }).catch(function (e) { avisar(e.message, 'error'); });
+    }
+
+    function pintar() {
+      contenido.textContent = '';
+      const q = textoComparable(buscar.value);
+      const visibles = lista.filter(function (s) {
+        if (s.estado === 'CANCELADO' && !cerradas.checked) return false;
+        return !q || textoComparable(s.nombre + ' ' + s.id + ' ' + s.codigo).indexOf(q) !== -1;
+      });
+      if (!lista.length) {
+        contenido.appendChild(estadoVacio('inbox', 'Aún no tienes solicitudes',
+          'Cuando inicies la documentación de un proceso aparecerá aquí, con su estado: borrador, en revisión de Procesos, con observaciones o en autorización (CH).'));
+      } else if (!visibles.length) {
+        contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con el filtro.'));
+      }
+      visibles.forEach(function (s) {
+        const fila = elemento('div', 'solicitud-fila' + (s.estado === 'CANCELADO' ? ' inactiva' : ''));
+        const datos = elemento('div', 'solicitud-datos');
+        const cabeza = elemento('div', 'solicitud-cabeza');
+        cabeza.appendChild(elemento('span', 'folio', s.id));
+        cabeza.appendChild(elemento('span', 'chip estado-' + s.estado.toLowerCase(), s.nombreEstado));
+        datos.appendChild(cabeza);
+        datos.appendChild(elemento('div', 'solicitud-nombre', s.nombre));
+        datos.appendChild(elemento('div', 'nota', [s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''),
+          s.actualizada ? 'Actualizada ' + s.actualizada : ''].filter(Boolean).join(' · ')));
+        fila.appendChild(datos);
+        const botones = elemento('div', 'solicitud-botones');
+        const abrir = elemento('button', 'boton ' + (s.editable ? '' : 'secundario'), s.editable ? 'Continuar' : 'Ver');
+        abrir.type = 'button';
+        abrir.addEventListener('click', function () { ir('solicitud', true, s.id); });
+        botones.appendChild(abrir);
+        if (s.editable) {
+          const c = elemento('button', 'btn-icono');
+          c.type = 'button';
+          c.title = 'Cancelar solicitud';
+          c.innerHTML = '<i data-lucide="ban" class="ico"></i>';
+          c.addEventListener('click', function () { cancelar(s); });
+          botones.appendChild(c);
+        }
+        fila.appendChild(botones);
+        contenido.appendChild(fila);
+      });
+      pintarIconos();
+    }
+
+    function cargar() {
+      return llamar('apiMisSolicitudes').then(function (r) {
+        if (!contenido.isConnected) return;
+        lista = r;
+        pintar();
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        contenido.appendChild(estadoVacio('triangle-alert', 'No se pudieron cargar tus solicitudes', e.message));
+        pintarIconos();
+      });
+    }
+
+    buscar.addEventListener('input', function () { if (lista) pintar(); });
+    cerradas.addEventListener('change', function () { if (lista) pintar(); });
+    cargar();
+  }
+</script>

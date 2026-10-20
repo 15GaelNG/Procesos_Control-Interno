@@ -22,6 +22,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 | [docs/base-de-datos.md](docs/base-de-datos.md) | Cada hoja y cada columna |
 | [docs/ia.md](docs/ia.md) | Proveedor de IA, límites, privacidad y reglas para que no invente |
 | [docs/plantillas.md](docs/plantillas.md) | Plantilla preliminar y final, marca de agua y generación de Word/PDF |
+| [docs/captura.md](docs/captura.md) | Cómo se captura un proceso: información general, actividades, imágenes y guardado automático |
+| [docs/pendientes.md](docs/pendientes.md) | **Lo que falta correr, recibir o revisar fuera del código** |
 | [docs/catalogos.md](docs/catalogos.md) | Departamentos, áreas y subáreas: cómo se cargan y qué quedó pendiente con Procesos |
 | [docs/insumos/](docs/insumos/) | Lo que entregó Procesos: [requerimientos](docs/insumos/requerimientos.md), infografía del flujo y plantilla |
 
@@ -39,6 +41,7 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   │   ├── Sesion.gs          Quién abrió la app, sus perfiles, sus pantallas y «Ver como» (pruebas)
 │   │   ├── Usuarios.gs        Altas y cambios de usuarios con las reglas de la decisión 19
 │   │   ├── Bitacora.gs        registrarBitacora_() y la consulta de la bitácora
+│   │   ├── Solicitudes.gs     Crear, consultar, guardar el borrador, imágenes y cancelar (fase 2)
 │   │   └── Catalogos.gs       importarCatalogoInicial() y el árbol departamentos → áreas → subáreas
 │   ├── html/
 │   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro

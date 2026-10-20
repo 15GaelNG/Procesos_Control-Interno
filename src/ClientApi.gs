@@ -48,7 +48,67 @@ function apiGuardarUsuario(comoUsuario, datos) {
 /** Pantalla «Bitácora»: los renglones más recientes. */
 function apiBitacora(comoUsuario) {
   requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);
-  return entradasBitacora_(leerTabla_('Bitacora'), function (fecha) {
-    return Utilities.formatDate(fecha, ZONA_HORARIA, 'dd/MM/yyyy HH:mm');
-  }, BITACORA_MAX_RENGLONES);
+  return entradasBitacora_(leerTabla_('Bitacora'), formatoFecha_, BITACORA_MAX_RENGLONES);
+}
+
+// ─────────────────────────────── Solicitudes (fase 2) ───────────────────────────────
+
+/** Lo que se puede elegir al crear una solicitud (tipos, departamentos de la persona con sus áreas). */
+function apiOpcionesSolicitud(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return opcionesNuevaSolicitud_(sesion, tablasSolicitud_());
+}
+
+/** Documentos vigentes y solicitudes en curso con nombre parecido (§2.1). */
+function apiBuscarCoincidencias(comoUsuario, nombre, excluir) {
+  requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR', 'REVISOR']);
+  return coincidenciasNombre_(String(nombre || ''), leerTabla_('Documentos'), leerTabla_('Solicitudes'), excluir || '');
+}
+
+function apiCrearSolicitud(comoUsuario, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return crearSolicitud_(sesion, datos || {});
+}
+
+/** «Mis solicitudes». */
+function apiMisSolicitudes(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return resumenSolicitudes_(leerTabla_('Solicitudes'), sesion.idUsuario, tablasSolicitud_(), formatoFecha_);
+}
+
+/** Una solicitud completa para la captura (o para consultarla). */
+function apiSolicitud(comoUsuario, idSolicitud) {
+  const sesion = sesionEfectiva_(comoUsuario);
+  const fila = filaSolicitud_(idSolicitud);
+  const permiso = permisoSolicitud_(sesion, fila);
+  if (!permiso.ver) throw new Error('No puedes ver esta solicitud.');
+  const detalle = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
+  detalle.esSuya = fila.ELABORO_ID === sesion.idUsuario;
+  detalle.imagen = parametrosImagen_();
+  return detalle;
+}
+
+/** Guardado automático del borrador (inicio, actividades, pies de imagen, fin). */
+function apiGuardarBorrador(comoUsuario, idSolicitud, contenido) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return guardarBorrador_(sesion, idSolicitud, contenido);
+}
+
+/** Imagen ya optimizada por el navegador (WebP, JPG/PNG para el documento y miniatura). */
+function apiSubirImagen(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return subirImagen_(sesion, idSolicitud, datos || {});
+}
+
+function apiMiniaturas(comoUsuario, idSolicitud) {
+  return miniaturasSolicitud_(sesionEfectiva_(comoUsuario), idSolicitud);
+}
+
+function apiImagen(comoUsuario, idImagen) {
+  return imagenCompleta_(sesionEfectiva_(comoUsuario), idImagen);
+}
+
+function apiCancelarSolicitud(comoUsuario, idSolicitud, motivo) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return cancelarSolicitud_(sesion, idSolicitud, motivo);
 }
