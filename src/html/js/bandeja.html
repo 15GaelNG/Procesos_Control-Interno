@@ -1,0 +1,162 @@
+<script>
+  /*
+   * Bandeja de revisión de Procesos (apiBandeja, apiTomar, apiReasignar; decisión 23).
+   * Bandeja común: cualquier revisor toma una solicitud sin asignar y queda como su revisor; el
+   * administrador la ve solo para reasignar. Quien elaboró una solicitud nunca la revisa.
+   */
+  const PESTANAS_BANDEJA = [
+    { id: 'mias', nombre: 'Mías', soloRevisor: true, vacio: 'No tienes solicitudes en revisión. Toma una de «Sin asignar».',
+      ayuda: 'Las que tú estás revisando.' },
+    { id: 'sinAsignar', nombre: 'Sin asignar', vacio: 'No hay solicitudes esperando revisor.',
+      ayuda: 'Nadie las ha tomado todavía. Al tomar una quedas como su revisor.' },
+    { id: 'otros', nombre: 'De otros revisores', vacio: 'Ningún otro revisor tiene solicitudes en revisión.',
+      ayuda: 'En revisión con otra persona de Procesos.' },
+    { id: 'devueltas', nombre: 'Devueltas', vacio: 'No hay solicitudes devueltas.',
+      ayuda: 'Regresadas al colaborador con observaciones. Vuelven a la bandeja de su revisor cuando las corrige y reenvía.' },
+    { id: 'enCH', nombre: 'En CH', vacio: 'No hay solicitudes en autorización.',
+      ayuda: 'Con Vo.Bo. de Procesos, en autorización en el sistema CH.' }
+  ];
+
+  function tiempoEsperando(dias) {
+    if (!dias) return 'hoy';
+    return dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días';
+  }
+
+  function iniciarBandeja(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    const buscar = raiz.querySelector('[data-campo="buscar"]');
+    const pestanas = raiz.querySelector('[data-campo="pestanas"]');
+    const ayuda = raiz.querySelector('[data-campo="ayuda"]');
+    let datos = null;
+    let actual = leerPestana('bandeja') || '';
+
+    function visibles() {
+      return PESTANAS_BANDEJA.filter(function (p) { return !p.soloRevisor || datos.soyRevisor; });
+    }
+
+    function abrir(s) { ir('solicitud', true, s.id + ':revision'); }
+
+    function tomar(s, boton) {
+      boton.disabled = true;
+      llamar('apiTomar', s.id).then(function () {
+        avisar('Tomaste ' + s.id + ': ahora la revisas tú.', 'exito');
+        abrir(s);
+      }).catch(function (e) { avisar(e.message, 'error'); boton.disabled = false; cargar(); });
+    }
+
+    function reasignar(s, lista) {
+      const nombre = lista.options[lista.selectedIndex].textContent;
+      if (!confirm('¿Asignar ' + s.id + ' «' + s.nombre + '» a ' + nombre + '?')) { lista.value = s.revisorId; return; }
+      lista.disabled = true;
+      llamar('apiReasignar', s.id, lista.value).then(function () {
+        avisar(s.id + ' ahora está asignada a ' + nombre + '.', 'exito');
+        return cargar();
+      }).catch(function (e) { avisar(e.message, 'error'); lista.value = s.revisorId; lista.disabled = false; });
+    }
+
+    function selectorRevisor(s) {
+      const lista = elemento('select', 'selector selector-chico');
+      lista.title = 'Reasignar';
+      const vacio = elemento('option', '', 'Sin asignar');
+      vacio.value = '';
+      lista.appendChild(vacio);
+      datos.revisores.forEach(function (r) {
+        if (r.id === s.elaboroId) return;
+        const o = elemento('option', '', r.nombre);
+        o.value = r.id;
+        lista.appendChild(o);
+      });
+      lista.value = s.revisorId;
+      lista.addEventListener('change', function () { reasignar(s, lista); });
+      return lista;
+    }
+
+    function fila(s) {
+      const f = elemento('div', 'solicitud-fila');
+      const info = elemento('div', 'solicitud-datos');
+      const cabeza = elemento('div', 'solicitud-cabeza');
+      cabeza.appendChild(elemento('span', 'folio', s.id));
+      cabeza.appendChild(elemento('span', 'chip estado-' + s.estado.toLowerCase(), s.nombreEstado));
+      if (s.codigo) cabeza.appendChild(elemento('span', 'chip', s.codigo));
+      if (s.revision) cabeza.appendChild(elemento('span', 'chip neutro', 'Revisión ' + s.revision));
+      if (s.esSuya) cabeza.appendChild(elemento('span', 'chip dorado', 'La elaboraste tú'));
+      info.appendChild(cabeza);
+      info.appendChild(elemento('div', 'solicitud-nombre', s.nombre));
+      info.appendChild(elemento('div', 'nota', [s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''),
+        s.elaborador ? 'Elaboró ' + s.elaborador : ''].filter(Boolean).join(' · ')));
+      info.appendChild(elemento('div', 'nota', [s.enviada ? 'Enviada ' + s.enviada + ' (' + tiempoEsperando(s.dias) + ')' : '',
+        s.revisor ? 'Revisa ' + s.revisor : 'Sin revisor'].filter(Boolean).join(' · ')));
+      f.appendChild(info);
+
+      const botones = elemento('div', 'solicitud-botones');
+      if (datos.puedeReasignar) botones.appendChild(selectorRevisor(s));
+      if (datos.soyRevisor) {
+        if (s.estado === 'EN_REVISION' && !s.revisorId && !s.esSuya) {
+          const t = elemento('button', 'boton', 'Tomar');
+          t.type = 'button';
+          t.addEventListener('click', function () { tomar(s, t); });
+          botones.appendChild(t);
+        }
+        const mia = s.revisorId === estado.sesion.idUsuario && s.estado === 'EN_REVISION';
+        const a = elemento('button', 'boton' + (mia ? '' : ' secundario'), mia ? 'Revisar' : 'Ver');
+        a.type = 'button';
+        a.addEventListener('click', function () { abrir(s); });
+        botones.appendChild(a);
+      }
+      f.appendChild(botones);
+      return f;
+    }
+
+    function pintarPestanas() {
+      pestanas.textContent = '';
+      visibles().forEach(function (p) {
+        const b = elemento('button', 'pestana' + (p.id === actual ? ' activa' : ''));
+        b.type = 'button';
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', p.id === actual ? 'true' : 'false');
+        b.appendChild(elemento('span', '', p.nombre));
+        b.appendChild(elemento('span', 'pestana-conteo', String(datos.grupos[p.id].length)));
+        b.addEventListener('click', function () { actual = p.id; guardarPestana('bandeja', actual); pintarPestanas(); pintar(); });
+        pestanas.appendChild(b);
+      });
+    }
+
+    function pintar() {
+      const p = visibles().filter(function (x) { return x.id === actual; })[0];
+      ayuda.textContent = p.ayuda;
+      contenido.textContent = '';
+      const q = textoComparable(buscar.value);
+      const lista = datos.grupos[actual].filter(function (s) {
+        return !q || textoComparable([s.nombre, s.id, s.codigo, s.departamento, s.area, s.elaborador, s.revisor].join(' ')).indexOf(q) !== -1;
+      });
+      if (!datos.grupos[actual].length) contenido.appendChild(estadoVacio('inbox', 'Nada por aquí', p.vacio));
+      else if (!lista.length) contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con la búsqueda.'));
+      lista.forEach(function (s) { contenido.appendChild(fila(s)); });
+      pintarIconos();
+    }
+
+    function cargar() {
+      return llamar('apiBandeja').then(function (r) {
+        if (!contenido.isConnected) return;
+        datos = r;
+        if (!datos.soyRevisor) {
+          raiz.querySelector('[data-campo="subtitulo"]').textContent =
+            'Las solicitudes que los colaboradores enviaron a Procesos y quién revisa cada una. Como administrador puedes reasignarlas; la revisión la hacen los revisores.';
+        }
+        const ids = visibles().map(function (p) { return p.id; });
+        if (ids.indexOf(actual) === -1) actual = datos.soyRevisor && datos.grupos.mias.length ? 'mias' : 'sinAsignar';
+        pintarPestanas();
+        pintar();
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        contenido.appendChild(estadoVacio('triangle-alert', 'No se pudo cargar la bandeja', e.message));
+        pintarIconos();
+      });
+    }
+
+    buscar.addEventListener('input', function () { if (datos) pintar(); });
+    raiz.querySelector('[data-accion="recargar"]').addEventListener('click', cargar);
+    cargar();
+  }
+</script>

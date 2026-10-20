@@ -49,6 +49,19 @@ En este orden:
      asignar», actividades con imágenes y pies, firmas de quien elaboró. Mandar capturas a Procesos.
    - [ ] Que en Drive quede `Solicitudes/<folio>/Documentos` con el PDF y el Word (el Google Doc
      intermedio en la papelera).
+   - [ ] **Revisión (fase 5):** volver a correr `instalarPruebas()` (agrega `FECHA_ENVIO_REVISION` al
+     final de `Solicitudes`) y `verificarBase()`.
+   - [ ] Con Ana: en la vista previa de una solicitud confirmada, «Enviar a revisión de Procesos». En
+     Drive debe aparecer `Solicitudes/<folio>/Instantáneas` con un JSON.
+   - [ ] Con Paola: «Bandeja de revisión» → «Sin asignar» → **Tomar**; hacer observaciones con
+     «Observar» (una general y una de actividad) y **Devolver**.
+   - [ ] Con Ana: ver el aviso «Procesos te regresó…», corregir, marcar las observaciones como
+     atendidas, **confirmar otra vez** y **reenviar**. Debe volver a la pestaña «Mías» de Paola.
+   - [ ] Con Paola: cerrar las observaciones y dar el **Vo.Bo.** con el código propuesto (o corregirlo).
+     Revisar en `Solicitudes`: código, versión 0.0, `REVISO_*`; y en `Consecutivos`, la serie `COD-…`.
+   - [ ] Probar **No procedente** (pide motivo) y que Ana vea el motivo.
+   - [ ] Con el administrador: la bandeja solo con el selector para **reasignar**.
+   - [ ] Que Paola no pueda tomar una solicitud que ella elaboró (si tiene también perfil de colaboradora).
 5. Mandar capturas de lo que se vea raro.
 
 ## 2. Por recibir de Procesos
@@ -56,7 +69,8 @@ En este orden:
 - [ ] **Catálogo de departamentos y áreas corregido** (el del 19/10/2026 tenía errores). Al llegar:
   reemplazar `docs/insumos/catalogo-departamentos-areas.xlsx`, `npm run catalogo`, `npm test` y revisar
   los avisos. Los pendientes del archivo anterior están en [catalogos.md](catalogos.md#pendientes-para-procesos).
-- [ ] **Catálogo de puestos** por departamento (la IA lo usa para reconocer responsables).
+- [ ] **Catálogo de puestos** por departamento (la IA lo usa para reconocer responsables). También el
+  **puesto de cada revisor**: con el Vo.Bo. se guarda en `REVISO_PUESTO` y sale en «Revisó» del documento.
 - [ ] **Lista de usuarios** con su perfil y departamento.
 - [ ] Respuestas D–K del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **E** (cómo se
   asigna el revisor), **F** (consecutivo del código) y **J** (inventario documental y un documento

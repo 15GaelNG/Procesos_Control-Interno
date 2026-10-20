@@ -1,0 +1,219 @@
+<script>
+  /*
+   * Revisión de Procesos de una solicitud (apiRevision, apiTomar, apiLiberar, apiObservar,
+   * apiCambiarObservacion, apiDevolver, apiNoProcedente, apiVoBo; §4.3 y decisión 23).
+   * El documento se dibuja con construirDocumento() (js/vista-previa.html) y cada parte lleva
+   * «Observar». Solo el revisor asignado observa y decide; los demás la ven en consulta.
+   */
+  function iniciarRevision(raiz, idSolicitud) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    let d = null;
+
+    function volverABandeja() { ir(modulo('revision') ? 'revision' : 'inicio', true); }
+
+    /* Botón ocupado mientras el servidor responde. */
+    function ocupar(boton, texto) {
+      const etiqueta = boton.querySelector('span');
+      const antes = etiqueta ? etiqueta.textContent : '';
+      boton.disabled = true;
+      if (etiqueta && texto) etiqueta.textContent = texto;
+      return function () { boton.disabled = false; if (etiqueta) etiqueta.textContent = antes; };
+    }
+
+    function textoAviso() {
+      if (d.puedeDecidir) return '';
+      if (d.esSuya) return 'La elaboraste tú: no puedes revisarla.';
+      if (d.estado === 'EN_REVISION' && !d.revisor) return d.puedeTomar ? 'Nadie la ha tomado. Tómala para hacer observaciones y decidir.' : 'Nadie la ha tomado todavía.';
+      if (d.estado === 'EN_REVISION') return 'Modo consulta: la está revisando ' + d.revisor + '.';
+      if (d.estado === 'DEVUELTO') return 'Está con el colaborador para que atienda las observaciones. Regresa a la bandeja de ' + (d.revisor || 'su revisor') + ' cuando la reenvíe.';
+      if (d.estado === 'EN_AUTORIZACION_CH') return 'Ya tiene el Vo.Bo. de Procesos (código ' + d.codigo + '); está en autorización en el sistema CH.';
+      if (d.estado === 'NO_PROCEDENTE') return 'Se cerró como no procedente.' + (d.motivoCierre ? ' Motivo: ' + d.motivoCierre : '');
+      if (d.estado === 'AUTORIZADO') return 'Autorizada en el sistema CH.';
+      return 'Todavía no se ha enviado a revisión.';
+    }
+
+    function pintar() {
+      contenido.textContent = '';
+      contenido.appendChild(clonar('parte-revision'));
+      const ui = contenido.querySelector('.revision');
+      const q = function (c) { return ui.querySelector('[data-campo="' + c + '"]'); };
+      const accion = function (a) { return ui.querySelector('[data-accion="' + a + '"]'); };
+      const porAtender = d.observaciones.filter(function (o) { return o.estado === 'ABIERTA'; }).length;
+
+      /* Encabezado */
+      q('folio').textContent = d.tipoDocumento + ' · ' + d.id;
+      q('nombre').textContent = d.nombre;
+      q('estado').textContent = d.nombreEstado;
+      q('estado').classList.add('estado-' + d.estado.toLowerCase());
+      [['Tipo', d.tipoDocumento + ' · ' + d.tipoSolicitud],
+        ['Departamento y área', d.departamento + ' / ' + d.area + (d.subarea ? ' / ' + d.subarea : '')],
+        ['Elabora', d.elaborador + (d.puesto ? ' · ' + d.puesto : '')],
+        ['Enviada', d.enviada ? d.enviada + (d.revision ? ' · revisión ' + d.revision : '') : 'Sin enviar'],
+        ['Revisa', d.revisor || 'Sin asignar']].forEach(function (x) {
+        const div = elemento('div');
+        div.appendChild(elemento('span', '', x[0]));
+        div.appendChild(elemento('strong', '', x[1]));
+        q('datos').appendChild(div);
+      });
+      const tomar = accion('tomar');
+      tomar.hidden = !d.puedeTomar;
+      tomar.addEventListener('click', function () {
+        const listo = ocupar(tomar, 'Tomando…');
+        llamar('apiTomar', idSolicitud).then(function () { avisar('Ahora la revisas tú.', 'exito'); return cargar(); })
+          .catch(function (e) { avisar(e.message, 'error'); listo(); });
+      });
+      const liberar = accion('liberar');
+      liberar.hidden = !d.puedeDecidir;
+      liberar.addEventListener('click', function () {
+        if (!confirm('¿Liberarla? Regresa a «Sin asignar» para que otro revisor la tome. Las observaciones que hiciste se quedan.')) return;
+        liberar.disabled = true;
+        llamar('apiLiberar', idSolicitud).then(function () { avisar('Regresó a la bandeja sin asignar.', 'exito'); volverABandeja(); })
+          .catch(function (e) { avisar(e.message, 'error'); liberar.disabled = false; });
+      });
+      const aviso = textoAviso();
+      q('aviso').hidden = !aviso;
+      q('aviso-texto').textContent = aviso;
+      q('no-confirmado').hidden = d.contenidoConfirmado || ['EN_REVISION'].indexOf(d.estado) === -1;
+
+      /* El documento, con «Observar» en cada parte para el revisor asignado. */
+      const nueva = q('nueva');
+      const apartado = q('apartado');
+      const actividad = q('actividad');
+      const textoObs = q('texto-observacion');
+      function elegir(valorApartado, idActividad) {
+        apartado.value = valorApartado;
+        q('campo-actividad').hidden = valorApartado !== 'ACTIVIDAD';
+        if (idActividad) actividad.value = idActividad;
+      }
+      q('documento').appendChild(construirDocumento(d, d.puedeDecidir ? {
+        observar: function (valorApartado, idActividad) {
+          elegir(valorApartado, idActividad);
+          nueva.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          textoObs.focus({ preventScroll: true });
+        }
+      } : null));
+
+      /* Nueva observación */
+      if (d.puedeDecidir) {
+        nueva.hidden = false;
+        Object.keys(d.apartados).forEach(function (k) {
+          if (k === 'ACTIVIDAD' && !d.actividades.length) return;
+          const o = elemento('option', '', d.apartados[k]);
+          o.value = k;
+          apartado.appendChild(o);
+        });
+        d.actividades.forEach(function (a, i) {
+          const resumen = a.texto.length > 60 ? a.texto.slice(0, 60) + '…' : a.texto;
+          const o = elemento('option', '', 'Actividad ' + (i + 1) + (resumen ? ' · ' + resumen : ''));
+          o.value = a.id;
+          actividad.appendChild(o);
+        });
+        apartado.addEventListener('change', function () { elegir(apartado.value); });
+        elegir('GENERAL');
+        const agregar = accion('observar');
+        agregar.addEventListener('click', function () {
+          const datos = { apartado: apartado.value, idActividad: apartado.value === 'ACTIVIDAD' ? actividad.value : '', texto: textoObs.value };
+          if (!datos.texto.trim()) { avisar('Escribe la observación.', 'error'); textoObs.focus(); return; }
+          const listo = ocupar(agregar, 'Agregando…');
+          llamar('apiObservar', idSolicitud, datos).then(function () { avisar('Observación agregada.', 'exito'); return cargar(); })
+            .catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+      }
+
+      /* Observaciones */
+      q('conteo').textContent = porAtender ? porAtender + ' por atender' : String(d.observaciones.length);
+      q('conteo').hidden = !d.observaciones.length;
+      q('ayuda-observaciones').textContent = !d.observaciones.length
+        ? (d.puedeDecidir ? 'Aún no hay. Usa «Observar» en el documento o el formulario de arriba.' : 'No hay observaciones.')
+        : (d.puedeDecidir ? 'Cierra las que ya se corrigieron (o las que retiras); reabre las que sigan pendientes.' : 'Solo el revisor asignado agrega, cierra o reabre observaciones.');
+      const cambiar = function (accionObs, mensaje) {
+        return function (o, boton) {
+          boton.disabled = true;
+          llamar('apiCambiarObservacion', idSolicitud, o.id, accionObs, '').then(function () { avisar(mensaje, 'exito'); return cargar(); })
+            .catch(function (e) { avisar(e.message, 'error'); boton.disabled = false; });
+        };
+      };
+      pintarObservaciones(q('lista-observaciones'), d.observaciones, d.puedeDecidir ? {
+        cerrar: cambiar('CERRAR', 'Observación cerrada.'), reabrir: cambiar('REABRIR', 'Observación reabierta.')
+      } : null);
+
+      /* Decisión */
+      if (d.puedeDecidir) {
+        q('decision').hidden = false;
+        const codigo = q('codigo');
+        codigo.value = d.codigoPropuesto;
+        codigo.readOnly = !d.esNuevo;
+        q('codigo-ayuda').textContent = d.esNuevo
+          ? 'Formato ' + d.prefijo + '-' + d.cuerpo + '-NNN. El sistema propone el siguiente libre; puedes corregirlo.'
+          : 'Las actualizaciones conservan su código.';
+        const impedimentos = [];
+        if (porAtender) impedimentos.push(porAtender === 1 ? 'Hay 1 observación por atender: ciérrala o devuelve la solicitud.' : 'Hay ' + porAtender + ' observaciones por atender: ciérralas o devuelve la solicitud.');
+        if (!d.contenidoConfirmado) impedimentos.push('El contenido no es el que confirmó el colaborador.');
+        q('vobo-impedimento').hidden = !impedimentos.length;
+        q('vobo-impedimento').textContent = impedimentos.join(' ');
+        const vobo = accion('vobo');
+        vobo.disabled = impedimentos.length > 0;
+        vobo.addEventListener('click', function () {
+          const c = codigo.value.trim().toUpperCase();
+          if (!c) { avisar('Escribe el código.', 'error'); codigo.focus(); return; }
+          if (!confirm('¿Dar el Vo.Bo. de Procesos a «' + d.nombre + '» con el código ' + c + '? Quedará lista para la autorización en el sistema CH.')) return;
+          const listo = ocupar(vobo, 'Registrando…');
+          llamar('apiVoBo', idSolicitud, c).then(function (r) {
+            avisar('Vo.Bo. registrado: ' + r.codigo + '.', 'exito');
+            volverABandeja();
+          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+
+        const devolver = accion('devolver');
+        devolver.disabled = !porAtender;
+        q('devolver-impedimento').hidden = !!porAtender;
+        q('devolver-impedimento').textContent = 'Para devolverla agrega al menos una observación: el colaborador necesita saber qué corregir.';
+        devolver.addEventListener('click', function () {
+          if (!confirm('¿Devolver «' + d.nombre + '» al colaborador con ' + porAtender + (porAtender === 1 ? ' observación' : ' observaciones') + ' por atender?')) return;
+          const listo = ocupar(devolver, 'Devolviendo…');
+          llamar('apiDevolver', idSolicitud).then(function () {
+            avisar('Devuelta al colaborador con observaciones.', 'exito');
+            volverABandeja();
+          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+
+        const cerrar = accion('no-procedente');
+        cerrar.addEventListener('click', function () {
+          const motivo = q('motivo').value.trim();
+          if (!motivo) { avisar('Escribe el motivo: el colaborador lo verá.', 'error'); q('motivo').focus(); return; }
+          if (!confirm('¿Cerrar «' + d.nombre + '» como no procedente? Ya no se podrá editar ni reenviar.')) return;
+          const listo = ocupar(cerrar, 'Cerrando…');
+          llamar('apiNoProcedente', idSolicitud, motivo).then(function () {
+            avisar('Se cerró como no procedente.', 'exito');
+            volverABandeja();
+          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+      }
+
+      prepararDocumentos(ui, d, idSolicitud, cargar);
+      pintarIconos();
+      cargarMiniaturas(ui, d, idSolicitud);
+    }
+
+    function cargar() {
+      return llamar('apiRevision', idSolicitud).then(function (r) {
+        if (!contenido.isConnected) return;
+        d = r;
+        /* Que no brinque la pantalla al volver a pintar. */
+        const vista = document.getElementById('vista');
+        const y = vista.scrollTop;
+        pintar();
+        vista.scrollTop = y;
+      });
+    }
+
+    cargar().catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      const t = elemento('div', 'tarjeta');
+      t.appendChild(estadoVacio('triangle-alert', 'No se pudo abrir la revisión', e.message));
+      contenido.appendChild(t);
+      pintarIconos();
+    });
+  }
+</script>

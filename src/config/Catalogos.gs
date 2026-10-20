@@ -52,8 +52,8 @@ const MODULOS_APP = [
       'Pedir a la IA que mejore la redacción y responder sus preguntas (fase 3)',
       'Confirmar el borrador y enviarlo a revisión de Procesos'] },
   { id: 'revision', seccion: 'Área de Procesos', nombre: 'Bandeja de revisión', icono: 'clipboard-check',
-    fase: 'la fase 5', perfiles: ['REVISOR'],
-    descripcion: 'Revisar, hacer observaciones, asignar código y dar el Vo.Bo.',
+    perfiles: ['REVISOR', 'ADMINISTRADOR'],
+    descripcion: 'Revisar, hacer observaciones, asignar código y dar el Vo.Bo. (el administrador solo reasigna).',
     acciones: ['Ver las solicitudes que tienes asignadas', 'Hacer observaciones por apartado o por actividad',
       'Devolver al colaborador o cerrar como no procedente', 'Asignar código y versión, y dar el Vo.Bo. de Procesos'] },
   { id: 'envios-ch', seccion: 'Área de Procesos', nombre: 'Envíos a CH', icono: 'send', fase: 'la fase 6',
@@ -105,7 +105,14 @@ const NOMBRES_ACCION = {
   ANALIZAR_IA: 'Análisis con IA',
   CONFIRMAR_SOLICITUD: 'Confirmación del colaborador',
   GENERAR_PRELIMINAR: 'Documento preliminar generado',
-  DESCARGAR_ARCHIVO: 'Descarga de archivo'
+  DESCARGAR_ARCHIVO: 'Descarga de archivo',
+  ENVIAR_REVISION: 'Enviada a revisión',
+  TOMAR_SOLICITUD: 'Revisor asignado',
+  REASIGNAR_SOLICITUD: 'Revisor reasignado',
+  LIBERAR_SOLICITUD: 'Solicitud liberada',
+  DEVOLVER_SOLICITUD: 'Devuelta con observaciones',
+  NO_PROCEDENTE: 'Cerrada como no procedente',
+  VOBO_PROCESOS: 'Vo.Bo. de Procesos'
 };
 
 const TIPOS_SOLICITUD = {
@@ -179,7 +186,15 @@ const ESTATUS_DOCUMENTO = {
 const ESTADOS_ACLARACION = ['PENDIENTE', 'RESPONDIDA', 'NO_APLICA', 'NO_LO_SE', 'REEMPLAZADA'];
 // Cómo se le dice a la IA lo que respondió la persona cuando eligió un botón en lugar de escribir.
 const RESPUESTA_POR_ESTADO = { NO_APLICA: 'No aplica', NO_LO_SE: 'No lo sé' };
+// ABIERTA (la hizo Procesos) → ATENDIDA (el colaborador dice que la corrigió) → CERRADA (Procesos lo verificó).
 const ESTADOS_OBSERVACION = ['ABIERTA', 'ATENDIDA', 'CERRADA'];
+const NOMBRES_ESTADO_OBSERVACION = { ABIERTA: 'Por atender', ATENDIDA: 'Atendida', CERRADA: 'Cerrada' };
+// De qué parte del documento es una observación. ACTIVIDAD lleva además ID_ACTIVIDAD.
+const APARTADOS_OBSERVACION = {
+  GENERAL: 'General', NOMBRE: 'Nombre del documento', INICIO: 'Inicio del proceso', OBJETIVO: 'Objetivo', ALCANCE: 'Alcance',
+  PUESTOS: 'Puestos involucrados', RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones',
+  ACTIVIDAD: 'Actividad', FIN: 'Fin del proceso'
+};
 const DECISIONES_PROPUESTA = ['PENDIENTE', 'ACEPTADA', 'EDITADA', 'RECHAZADA', 'REEMPLAZADA'];
 
 // Qué propone la IA (columna CAMPO de PropuestasIA). ORDEN es solo una sugerencia: la IA nunca

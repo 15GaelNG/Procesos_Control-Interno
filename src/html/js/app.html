@@ -22,6 +22,7 @@
   const PANTALLAS = {
     'mis-solicitudes': iniciarMisSolicitudes,
     nueva: iniciarNuevaSolicitud,
+    revision: iniciarBandeja,
     catalogos: iniciarCatalogos,
     usuarios: iniciarUsuarios,
     bitacora: iniciarBitacora
@@ -141,25 +142,30 @@
     }
   }
 
-  /* Una solicitud (captura, análisis o vista previa). No está en el menú: se llega desde «Mis
-     solicitudes» o con ?vista=solicitud&id=SOL-2026-0001:analisis. El parámetro es «folio:paso»
-     (desarrollo, analisis o vista; sin paso, desarrollo). El servidor decide si se puede ver o editar. */
-  const PASOS_SOLICITUD = { desarrollo: 'iniciarEditor', analisis: 'iniciarAnalisis', vista: 'iniciarVistaPrevia' };
+  /* Una solicitud (captura, análisis, vista previa o revisión de Procesos). No está en el menú: se
+     llega desde «Mis solicitudes», desde la bandeja o con ?vista=solicitud&id=SOL-2026-0001:analisis.
+     El parámetro es «folio:paso» (desarrollo, analisis, vista o revision; sin paso, desarrollo).
+     El servidor decide si se puede ver o editar. */
+  const PASOS_SOLICITUD = { desarrollo: 'iniciarEditor', analisis: 'iniciarAnalisis', vista: 'iniciarVistaPrevia', revision: 'iniciarRevision' };
   function abrirSolicitud(parametro, guardarHistorial) {
     const partes = String(parametro).split(':');
     const idSolicitud = partes[0];
     const paso = PASOS_SOLICITUD[partes[1]] ? partes[1] : 'desarrollo';
     estado.vista = 'solicitud';
     estado.parametro = idSolicitud + ':' + paso;
-    document.querySelectorAll('.opcion').forEach(function (b) { b.classList.toggle('activa', b.dataset.vista === 'mis-solicitudes'); });
+    /* La revisión de Procesos sale de la bandeja; los pasos del colaborador, de «Mis solicitudes». */
+    const deProcesos = paso === 'revision';
+    const origen = deProcesos ? 'revision' : 'mis-solicitudes';
+    document.querySelectorAll('.opcion').forEach(function (b) { b.classList.toggle('activa', b.dataset.vista === origen); });
     const vista = $('#vista');
     vista.textContent = '';
     vista.appendChild(clonar('vista-solicitud'));
     vista.scrollTop = 0;
-    const destino = modulo('mis-solicitudes') ? 'mis-solicitudes' : 'inicio';
+    const destino = modulo(origen) ? origen : 'inicio';
     const volver = vista.querySelector('[data-accion="volver"]');
-    volver.lastChild.textContent = destino === 'inicio' ? 'Inicio' : 'Mis solicitudes';
+    volver.lastChild.textContent = destino === 'inicio' ? 'Inicio' : modulo(destino).nombre;
     volver.addEventListener('click', function () { ir(destino, true); });
+    vista.querySelector('.pasos-captura').hidden = deProcesos;
     vista.querySelectorAll('[data-paso]').forEach(function (b) {
       b.classList.toggle('actual', b.dataset.paso === paso);
       b.addEventListener('click', function () { if (b.dataset.paso !== paso) ir('solicitud', true, idSolicitud + ':' + b.dataset.paso); });

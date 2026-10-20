@@ -1,9 +1,12 @@
 <script>
   /*
-   * Paso 5 · Vista previa y confirmación (apiVistaPrevia, apiConfirmar; requerimiento §3.4 y §3.5).
-   * Muestra el borrador integral en el orden de la plantilla (las secciones opcionales vacías se quitan
-   * y las demás se renumeran, como en el documento). La confirmación manda la huella de lo que se ve:
-   * si algo cambió mientras tanto, el servidor no confirma.
+   * Paso 5 · Vista previa, confirmación y envío a revisión (apiVistaPrevia, apiConfirmar,
+   * apiEnviarRevision, apiCambiarObservacion; requerimiento §3.4, §3.5 y §4.3).
+   *
+   * construirDocumento() dibuja el borrador en el orden de la plantilla (las secciones opcionales vacías
+   * se quitan y las demás se renumeran, como en el documento). La usan esta vista y la revisión de
+   * Procesos (js/revision.html), que además le pone un botón «Observar» a cada parte.
+   * La confirmación manda la huella de lo que se ve: si algo cambió mientras tanto, el servidor no confirma.
    */
   function verImagenGrande(idImagen, fuente, pie) {
     const f = clonar('parte-visor');
@@ -60,13 +63,71 @@
     return caja;
   }
 
-  function iniciarVistaPrevia(raiz, idSolicitud) {
-    const contenido = raiz.querySelector('[data-campo="contenido"]');
-    let d = null;
+  /*
+   * Sección de documentos generados (fase 4) dentro de raiz: la lista y, si se puede, el botón para
+   * generar uno nuevo. alTerminar() recarga la pantalla.
+   */
+  function prepararDocumentos(raiz, d, idSolicitud, alTerminar) {
+    const q = function (c) { return raiz.querySelector('[data-campo="' + c + '"]'); };
+    if (!d.puedeGenerar && !d.archivos.length) return;
+    q('documentos').hidden = false;
+    const generar = q('documentos').querySelector('[data-accion="generar"]');
+    generar.hidden = !d.puedeGenerar;
+    if (d.archivos.length) q('archivos').appendChild(listaArchivos(d.archivos));
+    else q('archivos').appendChild(elemento('p', 'nota', 'Todavía no se ha generado.'));
+    generar.addEventListener('click', function () {
+      generar.disabled = true;
+      q('generando').hidden = false;
+      llamar('apiGenerarPreliminar', idSolicitud).then(function () {
+        avisar('Documento generado: ya puedes descargar el Word y el PDF.', 'exito');
+        return alTerminar();
+      }).catch(function (e) {
+        avisar(e.message, 'error');
+        generar.disabled = false;
+        q('generando').hidden = true;
+      });
+    });
+  }
 
-    function seccion(numero, titulo) {
+  /* Cuántas observaciones siguen vivas (sin cerrar) en una parte del documento. */
+  function observacionesVivas(observaciones, apartado, idActividad) {
+    return (observaciones || []).filter(function (o) {
+      return o.estado !== 'CERRADA' && o.apartado === apartado && (!idActividad || o.idActividad === idActividad);
+    }).length;
+  }
+
+  /*
+   * El documento como se verá. opciones.observar(apartado, idActividad), si viene, pone en cada parte
+   * un botón «Observar» (revisión de Procesos). Las partes con observaciones vivas llevan un aviso.
+   */
+  function construirDocumento(d, opciones) {
+    const o = opciones || {};
+    function marcas(nodo, apartado, idActividad) {
+      if (!apartado) return nodo;
+      const n = observacionesVivas(d.observaciones, apartado, idActividad);
+      if (!n && !o.observar) return nodo;
+      const caja = elemento('span', 'documento-marcas');
+      if (n) caja.appendChild(elemento('span', 'chip dorado', n === 1 ? '1 observación' : n + ' observaciones'));
+      if (o.observar) {
+        const b = elemento('button', 'boton-observar');
+        b.type = 'button';
+        b.title = 'Hacer una observación sobre esta parte';
+        b.innerHTML = '<i data-lucide="message-square-plus" class="ico"></i><span></span>';
+        b.querySelector('span').textContent = apartado === 'GENERAL' ? 'Observación general' : 'Observar';
+        b.addEventListener('click', function () { o.observar(apartado, idActividad || ''); });
+        caja.appendChild(b);
+      }
+      nodo.appendChild(caja);
+      return nodo;
+    }
+    function cabeza(etiqueta, clase, titulo, apartado, idActividad) {
+      const fila = elemento('div', 'documento-cabeza ' + clase);
+      fila.appendChild(elemento(etiqueta, '', titulo));
+      return marcas(fila, apartado, idActividad);
+    }
+    function seccion(numero, titulo, apartado) {
       const s = elemento('section', 'documento-seccion');
-      s.appendChild(elemento('h2', '', numero + '. ' + titulo));
+      s.appendChild(cabeza('h2', 'documento-cabeza-seccion', numero + '. ' + titulo, apartado));
       return s;
     }
     function texto(valor, vacio) {
@@ -83,58 +144,209 @@
       });
       return ul;
     }
+    function contexto(prefijo, valor, apartado, falta) {
+      const fila = elemento('div', 'documento-cabeza');
+      fila.appendChild(valor ? elemento('p', 'documento-contexto', prefijo + valor) : elemento('p', 'nota falta', falta));
+      return marcas(fila, apartado);
+    }
+
+    const art = elemento('article', 'tarjeta documento-previo');
+    const encabezado = elemento('header', 'documento-encabezado');
+    encabezado.appendChild(cabeza('span', 'folio', d.tipoDocumento + ' · ' + d.id, 'GENERAL'));
+    encabezado.appendChild(cabeza('h1', 'documento-cabeza-nombre', d.nombre, 'NOMBRE'));
+    const datos = elemento('div', 'datos-automaticos');
+    [['Código', d.codigo || (d.prefijo + '-' + d.cuerpo + '-___ (lo asigna Procesos)')], ['Departamento', d.departamento + ' / ' + d.area],
+      ['Versión', d.version || 'Se asigna al autorizarse'], ['Elabora', d.elaborador + (d.puesto ? ' · ' + d.puesto : '')]].forEach(function (x) {
+      const div = elemento('div');
+      div.appendChild(elemento('span', '', x[0]));
+      div.appendChild(elemento('strong', '', x[1]));
+      datos.appendChild(div);
+    });
+    encabezado.appendChild(datos);
+    art.appendChild(encabezado);
+
+    const secciones = elemento('div');
+    let n = 0;
+    let s = seccion(++n, 'Objetivo', 'OBJETIVO'); s.appendChild(texto(d.objetivo, 'Falta el objetivo.')); secciones.appendChild(s);
+    s = seccion(++n, 'Alcance', 'ALCANCE'); s.appendChild(texto(d.alcance, 'Falta el alcance.')); secciones.appendChild(s);
+    s = seccion(++n, 'Puestos involucrados', 'PUESTOS');
+    s.appendChild(d.puestos.length ? renglones(d.puestos) : texto('', 'Aún no hay responsables en las actividades.'));
+    secciones.appendChild(s);
+    if (d.responsabilidades.length) { s = seccion(++n, 'Responsabilidades', 'RESPONSABILIDADES'); s.appendChild(renglones(d.responsabilidades)); secciones.appendChild(s); }
+    if (d.definiciones.length) { s = seccion(++n, 'Definiciones', 'DEFINICIONES'); s.appendChild(renglones(d.definiciones)); secciones.appendChild(s); }
+    s = seccion(++n, 'Desarrollo');
+    s.appendChild(contexto('Inicia: ', d.inicio, 'INICIO', 'Falta qué hace que inicie el proceso.'));
+    d.actividades.forEach(function (a, i) {
+      const act = elemento('div', 'documento-actividad');
+      act.appendChild(cabeza('h3', 'documento-cabeza-actividad', 'Actividad ' + (i + 1) + (a.responsable ? ' · ' + a.responsable : ''), 'ACTIVIDAD', a.id));
+      act.appendChild(texto(a.texto, 'Actividad vacía.'));
+      if (!a.responsable) act.appendChild(elemento('p', 'nota falta', 'Falta quién la realiza.'));
+      a.imagenes.forEach(function (im, j) {
+        const fig = elemento('figure', 'documento-imagen');
+        const boton = elemento('button', 'imagen-vista');
+        boton.type = 'button';
+        const img = elemento('img');
+        img.alt = im.pie || 'Imagen ' + (i + 1) + '.' + (j + 1);
+        img.dataset.imagen = im.id;
+        boton.appendChild(img);
+        boton.addEventListener('click', function () { verImagenGrande(im.id, img.src, im.pie); });
+        fig.appendChild(boton);
+        fig.appendChild(elemento('figcaption', '', 'Imagen ' + (i + 1) + '.' + (j + 1) + (im.pie ? ' – ' + im.pie : '')));
+        act.appendChild(fig);
+      });
+      s.appendChild(act);
+    });
+    s.appendChild(contexto('Termina: ', d.fin, 'FIN', 'Falta cómo finaliza el proceso.'));
+    secciones.appendChild(s);
+    secciones.appendChild(elemento('p', 'nota', 'El control de cambios y la tabla de firmas (elaboró, revisó y autorizó) los completa el sistema al generar el documento.'));
+    art.appendChild(secciones);
+    return art;
+  }
+
+  /* Pone las miniaturas en las imágenes del documento (después de pintarlo). */
+  function cargarMiniaturas(raiz, d, idSolicitud) {
+    if (!d.actividades.some(function (a) { return a.imagenes.length; })) return;
+    llamar('apiMiniaturas', idSolicitud).then(function (m) {
+      raiz.querySelectorAll('img[data-imagen]').forEach(function (img) { if (m[img.dataset.imagen]) img.src = m[img.dataset.imagen]; });
+    }).catch(function () { /* sin miniaturas */ });
+  }
+
+  /*
+   * Una observación de Procesos. acciones (opcional) trae las que se pueden hacer:
+   *   atender(o, texto, boton) para el colaborador; cerrar(o, boton) y reabrir(o, boton) para el revisor.
+   */
+  function tarjetaObservacion(o, acciones) {
+    const a = acciones || {};
+    const t = clonar('parte-observacion').querySelector('.observacion');
+    const q = function (c) { return t.querySelector('[data-campo="' + c + '"]'); };
+    t.classList.add('estado-' + o.estado.toLowerCase());
+    q('apartado').textContent = o.nombreApartado;
+    q('estado').textContent = o.nombreEstado;
+    q('estado').classList.add(o.estado === 'ABIERTA' ? 'dorado' : (o.estado === 'CERRADA' ? 'exito' : 'neutro'));
+    q('quien').textContent = [o.autor, o.fecha].filter(Boolean).join(' · ');
+    q('texto').textContent = o.texto;
+    if (o.respuesta || o.fechaAtencion) {
+      q('respuesta').hidden = false;
+      q('respuesta').textContent = (o.respuesta ? 'Respuesta: ' + o.respuesta : 'Marcada como atendida, sin comentario') +
+        (o.fechaAtencion ? ' · ' + o.fechaAtencion : '');
+    }
+    if (a.atender && o.estado !== 'CERRADA') {
+      q('atender').hidden = false;
+      const caja = q('atender').querySelector('textarea');
+      const boton = q('atender').querySelector('[data-accion="atender"]');
+      caja.value = o.respuesta;
+      if (o.estado === 'ATENDIDA') boton.querySelector('span').textContent = 'Guardar respuesta';
+      boton.addEventListener('click', function () { a.atender(o, caja.value, boton); });
+    }
+    if (a.cerrar || a.reabrir) {
+      q('revisor').hidden = false;
+      const cerrar = q('revisor').querySelector('[data-accion="cerrar"]');
+      const reabrir = q('revisor').querySelector('[data-accion="reabrir"]');
+      cerrar.hidden = o.estado === 'CERRADA';
+      reabrir.hidden = o.estado === 'ABIERTA';
+      cerrar.addEventListener('click', function () { a.cerrar(o, cerrar); });
+      reabrir.addEventListener('click', function () { a.reabrir(o, reabrir); });
+    }
+    return t;
+  }
+
+  /* Las observaciones agrupadas por vuelta de revisión (la más reciente primero, como llegan). */
+  function pintarObservaciones(contenedor, observaciones, acciones) {
+    contenedor.textContent = '';
+    let revision = null;
+    observaciones.forEach(function (o) {
+      if (o.revision !== revision) {
+        revision = o.revision;
+        contenedor.appendChild(elemento('h3', 'observaciones-revision', o.revision ? 'Revisión ' + o.revision : 'Sin revisión'));
+      }
+      contenedor.appendChild(tarjetaObservacion(o, acciones));
+    });
+  }
+
+  /* Cómo va la solicitud, para el aviso de arriba de la vista previa. */
+  function avisoDeEstado(d) {
+    const porAtender = d.observaciones.filter(function (o) { return o.estado === 'ABIERTA'; }).length;
+    const suya = d.esSuya && d.puedeEditar;
+    if (d.estado === 'CONFIRMADO' && d.confirmada) {
+      return { clase: 'exito', icono: 'badge-check', titulo: 'Confirmaste que este documento describe tu proceso.',
+        texto: porAtender && suya ? 'Antes de enviarlo a revisión atiende las observaciones de Procesos (' + porAtender + ' por atender).'
+          : 'Ya puedes generar el documento preliminar y enviarlo a revisión de Procesos. Si cambias algo, tendrás que volver a confirmar.' };
+    }
+    if (d.estado === 'EN_REVISION') {
+      return { clase: 'info', icono: 'hourglass', titulo: 'En revisión de Procesos' + (d.revision ? ' (revisión ' + d.revision + ')' : '') + '.',
+        texto: 'Mientras la revisan no se puede editar. Si tiene observaciones te la regresarán y las verás aquí.' };
+    }
+    if (d.estado === 'DEVUELTO') {
+      return { clase: 'dorado', icono: 'message-square-warning', titulo: 'Procesos te regresó la solicitud con observaciones.',
+        texto: 'Corrige lo que te piden en el paso 3 o 4, marca cada observación como atendida, confirma otra vez y vuelve a enviarla.' };
+    }
+    if (d.estado === 'EN_AUTORIZACION_CH') {
+      return { clase: 'exito', icono: 'stamp', titulo: 'Procesos le dio su Vo.Bo.',
+        texto: 'Código ' + d.codigo + ', versión ' + d.version + '. Sigue la autorización en el sistema CH; Procesos registrará el resultado.' };
+    }
+    if (d.estado === 'AUTORIZADO') return { clase: 'exito', icono: 'circle-check-big', titulo: 'Autorizado en el sistema CH.', texto: 'Código ' + d.codigo + ', versión ' + d.version + '.' };
+    if (d.estado === 'NO_PROCEDENTE') {
+      return { clase: 'gris', icono: 'circle-x', titulo: 'Procesos la cerró como no procedente.', texto: d.motivoCierre ? 'Motivo: ' + d.motivoCierre : '' };
+    }
+    if (d.estado === 'CANCELADO') return { clase: 'gris', icono: 'ban', titulo: 'Esta solicitud se canceló.', texto: '' };
+    return null;
+  }
+
+  function iniciarVistaPrevia(raiz, idSolicitud) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    let d = null;
 
     function pintar() {
       contenido.textContent = '';
       contenido.appendChild(clonar('parte-vista-previa'));
       const ui = contenido.querySelector('.vista-previa');
       const q = function (c) { return ui.querySelector('[data-campo="' + c + '"]'); };
-      q('tipo').textContent = d.tipoDocumento + ' · ' + d.id;
-      q('nombre').textContent = d.nombre;
-      [['Código', d.codigo || (d.prefijo + '-' + d.cuerpo + '-___ (lo asigna Procesos)')], ['Departamento', d.departamento + ' / ' + d.area],
-        ['Versión', d.version || 'Se asigna al autorizarse'], ['Elabora', d.elaborador + (d.puesto ? ' · ' + d.puesto : '')]].forEach(function (x) {
-        const div = elemento('div');
-        div.appendChild(elemento('span', '', x[0]));
-        div.appendChild(elemento('strong', '', x[1]));
-        q('datos').appendChild(div);
-      });
+      q('documento').appendChild(construirDocumento(d));
 
-      const secciones = q('secciones');
-      let n = 0;
-      let s = seccion(++n, 'Objetivo'); s.appendChild(texto(d.objetivo, 'Falta el objetivo.')); secciones.appendChild(s);
-      s = seccion(++n, 'Alcance'); s.appendChild(texto(d.alcance, 'Falta el alcance.')); secciones.appendChild(s);
-      s = seccion(++n, 'Puestos involucrados');
-      s.appendChild(d.puestos.length ? renglones(d.puestos) : texto('', 'Aún no hay responsables en las actividades.'));
-      secciones.appendChild(s);
-      if (d.responsabilidades.length) { s = seccion(++n, 'Responsabilidades'); s.appendChild(renglones(d.responsabilidades)); secciones.appendChild(s); }
-      if (d.definiciones.length) { s = seccion(++n, 'Definiciones'); s.appendChild(renglones(d.definiciones)); secciones.appendChild(s); }
-      s = seccion(++n, 'Desarrollo');
-      if (d.inicio) s.appendChild(elemento('p', 'documento-contexto', 'Inicia: ' + d.inicio));
-      d.actividades.forEach(function (a, i) {
-        const act = elemento('div', 'documento-actividad');
-        act.appendChild(elemento('h3', '', 'Actividad ' + (i + 1) + (a.responsable ? ' · ' + a.responsable : '')));
-        act.appendChild(texto(a.texto, 'Actividad vacía.'));
-        if (!a.responsable) act.appendChild(elemento('p', 'nota falta', 'Falta quién la realiza.'));
-        a.imagenes.forEach(function (im, j) {
-          const fig = elemento('figure', 'documento-imagen');
-          const boton = elemento('button', 'imagen-vista');
-          boton.type = 'button';
-          const img = elemento('img');
-          img.alt = im.pie || 'Imagen ' + (i + 1) + '.' + (j + 1);
-          img.dataset.imagen = im.id;
-          boton.appendChild(img);
-          boton.addEventListener('click', function () { verImagenGrande(im.id, img.src, im.pie); });
-          fig.appendChild(boton);
-          fig.appendChild(elemento('figcaption', '', 'Imagen ' + (i + 1) + '.' + (j + 1) + (im.pie ? ' – ' + im.pie : '')));
-          act.appendChild(fig);
+      /* Cómo va y, si ya se puede, el envío a revisión. */
+      const aviso = avisoDeEstado(d);
+      if (aviso) {
+        q('aviso-estado').hidden = false;
+        q('aviso-estado').classList.add(aviso.clase);
+        q('aviso-icono').setAttribute('data-lucide', aviso.icono);
+        q('aviso-titulo').textContent = aviso.titulo;
+        q('aviso-texto').textContent = aviso.texto;
+        q('aviso-texto').hidden = !aviso.texto;
+      }
+      const enviar = ui.querySelector('[data-accion="enviar"]');
+      enviar.hidden = !d.puedeEnviar;
+      enviar.addEventListener('click', function () {
+        if (!confirm('¿Enviar «' + d.nombre + '» a revisión de Procesos? Mientras la revisan no podrás editarla.')) return;
+        enviar.disabled = true;
+        enviar.querySelector('span').textContent = 'Enviando…';
+        llamar('apiEnviarRevision', idSolicitud).then(function () {
+          avisar('Enviada a revisión de Procesos.', 'exito');
+          return cargar();
+        }).catch(function (e) {
+          avisar(e.message, 'error');
+          enviar.disabled = false;
+          enviar.querySelector('span').textContent = 'Enviar a revisión de Procesos';
         });
-        s.appendChild(act);
       });
-      if (d.fin) s.appendChild(elemento('p', 'documento-contexto', 'Termina: ' + d.fin));
-      secciones.appendChild(s);
-      secciones.appendChild(elemento('p', 'nota', 'El control de cambios y la tabla de firmas (elaboró, revisó y autorizó) los completa el sistema al generar el documento.'));
 
-      q('confirmada').hidden = !d.confirmada;
+      /* Observaciones de Procesos: el colaborador las atiende mientras puede editar la solicitud. */
+      if (d.observaciones.length) {
+        const atiende = d.esSuya && d.puedeEditar;
+        q('observaciones').hidden = false;
+        q('ayuda-observaciones').textContent = atiende
+          ? 'Corrige lo que te piden (paso 3 o 4) y marca cada observación como atendida; si quieres, explica qué cambiaste. Las cerradas ya las verificó Procesos.'
+          : 'Lo que Procesos observó en cada revisión.';
+        pintarObservaciones(q('lista-observaciones'), d.observaciones, atiende ? {
+          atender: function (o, texto, boton) {
+            boton.disabled = true;
+            llamar('apiCambiarObservacion', idSolicitud, o.id, 'ATENDER', texto).then(function () {
+              avisar('Observación atendida.', 'exito');
+              return cargar();
+            }).catch(function (e) { avisar(e.message, 'error'); boton.disabled = false; });
+          }
+        } : null);
+      }
+
       if (d.puedeEditar && d.faltantes.length) {
         q('faltantes').hidden = false;
         d.faltantes.forEach(function (f) { q('lista-faltantes').appendChild(elemento('li', '', f)); });
@@ -143,7 +355,7 @@
       ui.querySelectorAll('[data-accion="ir-desarrollo"]').forEach(function (b) { b.addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':desarrollo'); }); });
       ui.querySelectorAll('[data-accion="ir-analisis"]').forEach(function (b) { b.addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':analisis'); }); });
       const ajustes = ui.querySelector('[data-accion="ajustes"]');
-      if (ajustes) ajustes.addEventListener('click', function () { q('ajustes').hidden = !q('ajustes').hidden; });
+      ajustes.addEventListener('click', function () { q('ajustes').hidden = !q('ajustes').hidden; });
       const confirmar = ui.querySelector('[data-accion="confirmar"]');
       confirmar.addEventListener('click', function () {
         confirmar.disabled = true;
@@ -157,33 +369,9 @@
           confirmar.querySelector('span').textContent = 'Sí, lo describe correctamente';
         });
       });
-      /* Documento preliminar (fase 4). */
-      if (d.puedeGenerar || d.archivos.length) {
-        q('documentos').hidden = false;
-        const generar = ui.querySelector('[data-accion="generar"]');
-        generar.hidden = !d.puedeGenerar;
-        if (d.archivos.length) q('archivos').appendChild(listaArchivos(d.archivos));
-        else q('archivos').appendChild(elemento('p', 'nota', 'Todavía no se ha generado.'));
-        generar.addEventListener('click', function () {
-          generar.disabled = true;
-          q('generando').hidden = false;
-          llamar('apiGenerarPreliminar', idSolicitud).then(function () {
-            avisar('Documento generado: ya puedes descargar el Word y el PDF.', 'exito');
-            return cargar();
-          }).catch(function (e) {
-            avisar(e.message, 'error');
-            generar.disabled = false;
-            q('generando').hidden = true;
-          });
-        });
-      }
+      prepararDocumentos(ui, d, idSolicitud, cargar);
       pintarIconos();
-
-      if (d.actividades.some(function (a) { return a.imagenes.length; })) {
-        llamar('apiMiniaturas', idSolicitud).then(function (m) {
-          ui.querySelectorAll('img[data-imagen]').forEach(function (img) { if (m[img.dataset.imagen]) img.src = m[img.dataset.imagen]; });
-        }).catch(function () { /* sin miniaturas */ });
-      }
+      cargarMiniaturas(ui, d, idSolicitud);
     }
 
     function cargar() {

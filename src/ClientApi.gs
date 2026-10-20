@@ -170,6 +170,76 @@ function apiDescargarArchivo(comoUsuario, idArchivo) {
   return descargarArchivo_(sesionEfectiva_(comoUsuario), idArchivo);
 }
 
+// ─────────────────────────────── Revisión de Procesos (fase 5) ───────────────────────────────
+
+/** El colaborador manda su solicitud confirmada a revisión. */
+function apiEnviarRevision(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return enviarARevision_(sesion, idSolicitud);
+}
+
+/** Bandeja de Procesos. El administrador la ve solo para reasignar. */
+function apiBandeja(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR', 'ADMINISTRADOR']);
+  const t = tablasSolicitud_();
+  return {
+    grupos: bandejaRevision_(leerTabla_('Solicitudes'), sesion, t, t.usuarios, formatoFecha_, new Date()),
+    soyRevisor: sesion.perfiles.indexOf('REVISOR') !== -1,
+    puedeReasignar: sesion.perfiles.indexOf('ADMINISTRADOR') !== -1,
+    revisores: revisoresActivos_(t.usuarios, leerTabla_('UsuarioPerfiles'))
+  };
+}
+
+function apiTomar(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return tomarSolicitud_(sesion, idSolicitud);
+}
+
+function apiLiberar(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return liberarSolicitud_(sesion, idSolicitud);
+}
+
+/** idRevisor vacío = de regreso a «sin asignar». */
+function apiReasignar(comoUsuario, idSolicitud, idRevisor) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  return reasignarSolicitud_(sesion, idSolicitud, idRevisor);
+}
+
+/** La pantalla de revisión de una solicitud (Soporte CI la ve en consulta; el administrador solo reasigna). */
+function apiRevision(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR', 'SOPORTE_CI']);
+  return detalleRevision_(sesion, idSolicitud);
+}
+
+/** datos: { apartado, idActividad, texto }. */
+function apiObservar(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return agregarObservacion_(sesion, idSolicitud, datos);
+}
+
+/** accion: ATENDER (colaborador) · CERRAR o REABRIR (revisor). */
+function apiCambiarObservacion(comoUsuario, idSolicitud, idObservacion, accion, texto) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR', 'REVISOR']);
+  return cambiarObservacion_(sesion, idSolicitud, idObservacion, accion, texto);
+}
+
+function apiDevolver(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return devolverSolicitud_(sesion, idSolicitud);
+}
+
+function apiNoProcedente(comoUsuario, idSolicitud, motivo) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return noProcedente_(sesion, idSolicitud, motivo);
+}
+
+/** Vo.Bo. de Procesos con el código que confirma el revisor. */
+function apiVoBo(comoUsuario, idSolicitud, codigo) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return darVoBo_(sesion, idSolicitud, codigo);
+}
+
 function apiCancelarSolicitud(comoUsuario, idSolicitud, motivo) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
   return cancelarSolicitud_(sesion, idSolicitud, motivo);

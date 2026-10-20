@@ -127,7 +127,7 @@ const ESQUEMA_BD = [
       'ELABORO_ID', 'ELABORO_NOMBRE', 'ELABORO_PUESTO', 'FECHA_ELABORACION',
       'REVISO_ID', 'REVISO_NOMBRE', 'REVISO_PUESTO', 'FECHA_REVISION',
       'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'FECHA_AUTORIZACION',
-      'MOTIVO_CIERRE', 'ID_CARPETA', 'FECHA_ACTUALIZACION']
+      'MOTIVO_CIERRE', 'ID_CARPETA', 'FECHA_ACTUALIZACION', 'FECHA_ENVIO_REVISION']
   },
   {
     hoja: 'Actividades', grupo: 'OPERACION',
@@ -155,7 +155,7 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'Observaciones', grupo: 'OPERACION',
-    descripcion: 'Observaciones de Procesos, por apartado o por actividad.',
+    descripcion: 'Observaciones de Procesos por apartado o actividad: ABIERTA → ATENDIDA (colaborador) → CERRADA (revisor).',
     columnas: ['ID_OBSERVACION', 'ID_SOLICITUD', 'REVISION', 'APARTADO', 'ID_ACTIVIDAD', 'AUTOR_ID',
       'AUTOR_NOMBRE', 'PERFIL', 'TEXTO', 'ESTADO', 'RESPUESTA', 'FECHA', 'FECHA_ATENCION']
   },
@@ -176,7 +176,7 @@ const ESQUEMA_BD = [
   // ────────────────────────────── Trazabilidad ─────────────────────────────
   {
     hoja: 'Instantaneas', grupo: 'TRAZABILIDAD',
-    descripcion: 'Foto completa del contenido (JSON en Drive) cada vez que se confirma o se envía.',
+    descripcion: 'Foto completa del contenido (JSON en Drive) en cada envío a revisión y en el Vo.Bo. de Procesos.',
     columnas: ['ID_INSTANTANEA', 'ID_SOLICITUD', 'REVISION', 'MOTIVO', 'HUELLA', 'ID_ARCHIVO_JSON',
       'USUARIO', 'FECHA']
   },

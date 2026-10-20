@@ -91,7 +91,8 @@ La llave de la IA **no** va aquí: va en las Propiedades del script ([ambientes.
 
 ### Consecutivos
 `SERIE` · `ULTIMO` · `FECHA_ACTUALIZACION`. Último número usado por cada serie (`USR`, `SOL-2026`…).
-No se edita a mano.
+No se edita a mano. Los códigos documentales llevan su propia serie por tipo + departamento + área
+(`COD-P-CI04`): avanza al dar el Vo.Bo. hasta el número usado ([revision.md](revision.md#código)).
 
 ---
 
@@ -190,6 +191,7 @@ Cada trámite, de borrador hasta el resultado de CH.
 | `AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `FECHA_AUTORIZACION` | El autorizador final según CH, que registra Procesos (decisiones 14 y 15) |
 | `MOTIVO_CIERRE` | Por qué se cerró como no procedente |
 | `ID_CARPETA` · `FECHA_ACTUALIZACION` | Carpeta de la solicitud en Drive; último cambio |
+| `FECHA_ENVIO_REVISION` | Último envío a revisión de Procesos (ordena la bandeja por tiempo de espera). Columna nueva de la fase 5, al final |
 
 ### Actividades
 `ID_ACTIVIDAD` · `ID_SOLICITUD` · `ORDEN` (lo define el colaborador; la IA no lo cambia) ·
@@ -227,9 +229,11 @@ en el texto) · `EVIDENCIA` (fragmento del texto del colaborador que la sustenta
 `VALOR_FINAL` · `FECHA_PROPUESTA` · `FECHA_DECISION`.
 
 ### Observaciones
-De Procesos. `ID_OBSERVACION` · `ID_SOLICITUD` · `REVISION` · `APARTADO`
-(objetivo, alcance, actividad…) · `ID_ACTIVIDAD` · `AUTOR_ID` · `AUTOR_NOMBRE` · `PERFIL` · `TEXTO` ·
-`ESTADO` (`ABIERTA`, `ATENDIDA`, `CERRADA`) · `RESPUESTA` · `FECHA` · `FECHA_ATENCION`.
+De Procesos. `ID_OBSERVACION` (`OBS-000001`) · `ID_SOLICITUD` · `REVISION` (vuelta en que se hizo) ·
+`APARTADO` (`GENERAL`, `NOMBRE`, `INICIO`, `OBJETIVO`, `ALCANCE`, `PUESTOS`, `RESPONSABILIDADES`,
+`DEFINICIONES`, `ACTIVIDAD`, `FIN`) · `ID_ACTIVIDAD` (solo `ACTIVIDAD`) · `AUTOR_ID` · `AUTOR_NOMBRE` ·
+`PERFIL` · `TEXTO` · `ESTADO` (`ABIERTA` → `ATENDIDA` por el colaborador → `CERRADA` por el revisor) ·
+`RESPUESTA` (lo que contestó el colaborador) · `FECHA` · `FECHA_ATENCION`. Ver [revision.md](revision.md#observaciones).
 
 ### EnviosCH
 Cada vez que Procesos sube el documento al sistema CH, y lo que CH resolvió. No hay conexión con CH:
@@ -252,9 +256,10 @@ renglones (PDF y Word). Viven en `Solicitudes/<folio>/Documentos`. Ver [plantill
 ## Trazabilidad
 
 ### Instantaneas
-Foto completa del contenido en cada confirmación y cada envío, guardada como JSON en Drive (así la
-hoja no se llena de copias). `ID_INSTANTANEA` · `ID_SOLICITUD` · `REVISION` · `MOTIVO` · `HUELLA` ·
-`ID_ARCHIVO_JSON` · `USUARIO` · `FECHA`.
+Foto completa del contenido en cada envío a revisión y en el Vo.Bo., guardada como JSON en
+`Solicitudes/<folio>/Instantáneas` (así la hoja no se llena de copias). `ID_INSTANTANEA`
+(`INS-000001`) · `ID_SOLICITUD` · `REVISION` · `MOTIVO` (`ENVIO` o `VOBO`) · `HUELLA` ·
+`ID_ARCHIVO_JSON` · `USUARIO` (persona real) · `FECHA`.
 
 ### HistorialCambios
 Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4.2). `ID_CAMBIO` ·

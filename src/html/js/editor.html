@@ -351,6 +351,10 @@
         marcarCambio();
       });
 
+      if (sol.puedeEditar && sol.estado === 'DEVUELTO') {
+        editor.querySelector('[data-campo="devuelta"]').hidden = false;
+        editor.querySelector('[data-accion="ver-observaciones"]').addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':vista'); });
+      }
       if (!sol.puedeEditar) {
         editor.querySelector('[data-campo="solo-lectura"]').hidden = false;
         editor.querySelector('[data-campo="solo-lectura-texto"]').textContent = textoSoloLectura();

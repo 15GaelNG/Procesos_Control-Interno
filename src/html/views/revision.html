@@ -1,0 +1,105 @@
+<template id="parte-revision">
+  <div class="revision">
+    <div class="encabezado-solicitud tarjeta">
+      <div class="encabezado-solicitud-titulo">
+        <div>
+          <span class="folio" data-campo="folio"></span>
+          <h1 data-campo="nombre"></h1>
+        </div>
+        <div class="revision-acciones">
+          <span class="chip" data-campo="estado"></span>
+          <button type="button" class="boton" data-accion="tomar" hidden><i data-lucide="hand" class="ico"></i><span>Tomar</span></button>
+          <button type="button" class="boton secundario" data-accion="liberar" hidden><i data-lucide="undo-2" class="ico"></i>Liberar</button>
+        </div>
+      </div>
+      <div class="datos-automaticos" data-campo="datos"></div>
+    </div>
+
+    <div class="aviso-consulta" data-campo="aviso" hidden>
+      <i data-lucide="eye" class="ico"></i><span data-campo="aviso-texto"></span>
+    </div>
+    <div class="aviso-conflicto" data-campo="no-confirmado" hidden>
+      <i data-lucide="triangle-alert" class="ico"></i>
+      <span>El contenido ya no es el que confirmó el colaborador. Para darle el Vo.Bo. tiene que volver a confirmarlo: devuélvesela con una observación.</span>
+    </div>
+
+    <div class="revision-cuerpo">
+      <div data-campo="documento"></div>
+
+      <aside class="revision-lateral">
+        <section class="tarjeta seccion-analisis" data-campo="nueva" hidden>
+          <h2><i data-lucide="message-square-plus" class="ico"></i>Nueva observación</h2>
+          <label class="campo">
+            <span>¿Sobre qué parte?</span>
+            <select class="selector" data-campo="apartado"></select>
+          </label>
+          <label class="campo" data-campo="campo-actividad" hidden>
+            <span>Actividad</span>
+            <select class="selector" data-campo="actividad"></select>
+          </label>
+          <label class="campo">
+            <span>Observación</span>
+            <textarea rows="4" maxlength="2000" data-campo="texto-observacion" placeholder="Qué hay que corregir y, si ayuda, por qué."></textarea>
+          </label>
+          <div class="pregunta-botones">
+            <button type="button" class="boton" data-accion="observar"><i data-lucide="plus" class="ico"></i><span>Agregar observación</span></button>
+          </div>
+        </section>
+
+        <section class="tarjeta seccion-analisis">
+          <h2><i data-lucide="message-square-warning" class="ico"></i>Observaciones <span class="chip" data-campo="conteo"></span></h2>
+          <p class="nota" data-campo="ayuda-observaciones"></p>
+          <div class="lista-observaciones" data-campo="lista-observaciones"></div>
+        </section>
+
+        <section class="tarjeta seccion-analisis decision" data-campo="decision" hidden>
+          <h2><i data-lucide="gavel" class="ico"></i>Decisión</h2>
+          <div class="decision-bloque">
+            <h3>Vo.Bo. de Procesos</h3>
+            <p class="nota">El documento queda listo para la autorización en el sistema CH, con su código y la versión 0.0. Las observaciones atendidas se cierran solas.</p>
+            <label class="campo">
+              <span>Código</span>
+              <input type="text" data-campo="codigo" maxlength="40" autocomplete="off" spellcheck="false">
+              <small data-campo="codigo-ayuda"></small>
+            </label>
+            <p class="nota falta" data-campo="vobo-impedimento" hidden></p>
+            <div class="pregunta-botones">
+              <button type="button" class="boton" data-accion="vobo"><i data-lucide="stamp" class="ico"></i><span>Dar Vo.Bo.</span></button>
+            </div>
+          </div>
+          <div class="decision-bloque">
+            <h3>Devolver al colaborador</h3>
+            <p class="nota">Le regresa la solicitud con las observaciones por atender para que corrija, confirme y la vuelva a enviar.</p>
+            <p class="nota falta" data-campo="devolver-impedimento" hidden></p>
+            <div class="pregunta-botones">
+              <button type="button" class="boton secundario" data-accion="devolver"><i data-lucide="corner-up-left" class="ico"></i><span>Devolver con observaciones</span></button>
+            </div>
+          </div>
+          <details class="decision-bloque">
+            <summary>No procedente</summary>
+            <p class="nota">Cierra la solicitud sin documento (por ejemplo, el proceso ya está documentado o no corresponde). No consume código. El colaborador verá el motivo.</p>
+            <textarea rows="3" maxlength="2000" data-campo="motivo" placeholder="Motivo"></textarea>
+            <div class="pregunta-botones">
+              <button type="button" class="boton secundario peligro" data-accion="no-procedente"><i data-lucide="circle-x" class="ico"></i><span>Cerrar como no procedente</span></button>
+            </div>
+          </details>
+        </section>
+
+        <section class="tarjeta documentos" data-campo="documentos" hidden>
+          <div class="documentos-cabeza">
+            <div>
+              <h2><i data-lucide="file-down" class="ico"></i>Documento preliminar</h2>
+              <p class="nota">Word y PDF con «COPIA NO AUTORIZADA».</p>
+            </div>
+            <button type="button" class="boton secundario" data-accion="generar"><i data-lucide="file-plus" class="ico"></i><span>Generar</span></button>
+          </div>
+          <div class="analizando" data-campo="generando" hidden>
+            <span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span>
+            <div><strong>Generando el documento…</strong><p class="nota">Puede tardar hasta un minuto.</p></div>
+          </div>
+          <div class="lista-archivos" data-campo="archivos"></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</template>

@@ -393,6 +393,13 @@ function vistaPrevia_(sesion, idSolicitud) {
   // Documentos generados (fase 4) y si se puede generar uno con el contenido actual.
   det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_);
   det.puedeGenerar = puedeGenerarPreliminar_(sesion, fila) && (fila.ESTADO !== ESTADOS.CONFIRMADO || det.confirmada);
+  // Revisión de Procesos (fase 5): sus observaciones y si ya se puede enviar.
+  det.observaciones = observacionesDe_(leerTabla_('Observaciones'), idSolicitud, det, formatoFecha_);
+  det.revision = String(fila.REVISION || '');
+  det.motivoCierre = String(fila.MOTIVO_CIERRE || '');
+  det.esSuya = fila.ELABORO_ID === sesion.idUsuario;
+  det.puedeEnviar = det.esSuya && fila.ESTADO === ESTADOS.CONFIRMADO && det.confirmada &&
+    !det.observaciones.some(function (o) { return o.estado === 'ABIERTA'; });
   return det;
 }
 

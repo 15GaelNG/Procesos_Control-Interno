@@ -217,7 +217,8 @@
         const botones = elemento('div', 'solicitud-botones');
         const abrir = elemento('button', 'boton ' + (s.editable ? '' : 'secundario'), s.editable ? 'Continuar' : 'Ver');
         abrir.type = 'button';
-        abrir.addEventListener('click', function () { ir('solicitud', true, s.id); });
+        const enVista = ['BORRADOR', 'CANCELADO'].indexOf(s.estado) === -1;
+        abrir.addEventListener('click', function () { ir('solicitud', true, s.id + (enVista ? ':vista' : '')); });
         botones.appendChild(abrir);
         if (s.editable) {
           const c = elemento('button', 'btn-icono');

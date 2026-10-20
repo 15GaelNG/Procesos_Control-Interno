@@ -1,12 +1,19 @@
 <template id="parte-vista-previa">
   <div class="vista-previa">
-    <div class="aviso-confirmada" data-campo="confirmada" hidden>
-      <i data-lucide="badge-check" class="ico"></i>
-      <div>
-        <strong>Confirmaste que este documento describe tu proceso.</strong>
-        <p class="nota">Ya puedes generar el documento preliminar. Lo siguiente es enviarlo a revisión de Procesos (fase 5). Si cambias algo, tendrás que volver a confirmar.</p>
+    <div class="aviso-estado" data-campo="aviso-estado" hidden>
+      <i data-campo="aviso-icono" class="ico"></i>
+      <div class="aviso-estado-texto">
+        <strong data-campo="aviso-titulo"></strong>
+        <p class="nota" data-campo="aviso-texto"></p>
       </div>
+      <button type="button" class="boton" data-accion="enviar" hidden><i data-lucide="send" class="ico"></i><span>Enviar a revisión de Procesos</span></button>
     </div>
+
+    <section class="tarjeta seccion-analisis" data-campo="observaciones" hidden>
+      <h2><i data-lucide="message-square-warning" class="ico"></i>Observaciones de Procesos</h2>
+      <p class="nota" data-campo="ayuda-observaciones"></p>
+      <div class="lista-observaciones" data-campo="lista-observaciones"></div>
+    </section>
 
     <section class="tarjeta documentos" data-campo="documentos" hidden>
       <div class="documentos-cabeza">
@@ -23,14 +30,7 @@
       <div class="lista-archivos" data-campo="archivos"></div>
     </section>
 
-    <article class="tarjeta documento-previo">
-      <header class="documento-encabezado">
-        <span class="folio" data-campo="tipo"></span>
-        <h1 data-campo="nombre"></h1>
-        <div class="datos-automaticos" data-campo="datos"></div>
-      </header>
-      <div data-campo="secciones"></div>
-    </article>
+    <div data-campo="documento"></div>
 
     <section class="tarjeta faltantes" data-campo="faltantes" hidden>
       <h2><i data-lucide="list-todo" class="ico"></i>Antes de confirmar falta:</h2>
@@ -57,4 +57,24 @@
       </div>
     </section>
   </div>
+</template>
+
+<template id="parte-observacion">
+  <article class="observacion">
+    <div class="observacion-cabeza">
+      <span class="chip" data-campo="apartado"></span>
+      <span class="chip" data-campo="estado"></span>
+      <span class="nota" data-campo="quien"></span>
+    </div>
+    <p class="observacion-texto" data-campo="texto"></p>
+    <p class="observacion-respuesta" data-campo="respuesta" hidden></p>
+    <div class="observacion-atender" data-campo="atender" hidden>
+      <textarea rows="2" maxlength="2000" placeholder="¿Qué corregiste? (opcional)"></textarea>
+      <button type="button" class="boton secundario" data-accion="atender"><i data-lucide="check" class="ico"></i><span>Marcar como atendida</span></button>
+    </div>
+    <div class="pregunta-botones" data-campo="revisor" hidden>
+      <button type="button" class="boton secundario" data-accion="cerrar"><i data-lucide="check-check" class="ico"></i>Cerrar</button>
+      <button type="button" class="boton secundario" data-accion="reabrir"><i data-lucide="rotate-ccw" class="ico"></i>Reabrir</button>
+    </div>
+  </article>
 </template>

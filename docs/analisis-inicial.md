@@ -34,8 +34,9 @@
 | 18 | **Plantilla v2 de Procedimiento validada por Procesos** (Marco). Los documentos se generan en **Google Docs** (plan A): se llenan los 26 marcadores y se exporta a PDF y Word. Se descarta generar el Word desde su XML (plan B). | 13/10/2026 |
 | 19 | **Perfiles sin superusuario** (§1: ser administrador no da facultades de revisar). Quien necesita más acceso recibe varios perfiles explícitos. Perfil nuevo **Soporte CI**: consulta todo (solicitudes, usuarios, catálogos, bitácora) y no cambia nada. Reglas: **nadie revisa su propia solicitud**; **nadie cambia sus propios perfiles ni se da de baja** (lo hace otro administrador); **siempre queda al menos un administrador activo**; todo cambio de usuarios y permisos queda en la **bitácora** con la persona real (aunque use «Ver como»). | 20/10/2026 |
 | 20 | **Captura (fase 2):** las actualizaciones de documentos vigentes llegan en la fase 7 (necesitan el inventario); por ahora solo documentos nuevos. El responsable de cada actividad se puede escribir aparte (opcional) además de mencionarlo en el texto. Cada imagen se guarda en tres archivos: **WebP** para la app (§3.2: WebP preferente), **JPG** para el Word/PDF (Google Docs no acepta WebP) y una **miniatura**; el navegador los genera. Los nombres parecidos se avisan pero no bloquean: Procesos decide (§2.1). | 20/10/2026 |
-| 21 | **Análisis y confirmación (fase 3):** antes de mandar a la IA se ocultan correos, CURP, RFC, cuentas, teléfonos y montos, y se restauran en la respuesta. Para **confirmar** hace falta: cada actividad con texto y **responsable**, objetivo, alcance y **todas las preguntas respondidas** (vale «No aplica» o «No lo sé»). Una propuesta sin decidir no bloquea (sin decisión, no entra). Si la actividad cambió después del análisis, su propuesta ya no se puede aceptar. Sin IA (apagada o sin cuota) todo se puede escribir a mano. | 21/10/2026 |
-| 22 | **Documento preliminar (fase 4):** se genera **solo después de confirmar** y del contenido exacto confirmado (huella); después, Procesos también lo genera durante la revisión. Cada generación crea un PDF y un Word **nuevos** con «COPIA NO AUTORIZADA»; los anteriores se conservan y se marcan «de una versión anterior» si el contenido cambió. Documento nuevo: versión **0.0**, código «Por asignar» hasta el Vo.Bo., control de cambios con «Emisión inicial». El Google Doc intermedio va a la papelera de Drive: lo oficial son el PDF y el Word. La descarga pasa por el servidor, que revisa el permiso (§4.4). | 22/10/2026 |
+| 21 | **Análisis y confirmación (fase 3):** antes de mandar a la IA se ocultan correos, CURP, RFC, cuentas, teléfonos y montos, y se restauran en la respuesta. Para **confirmar** hace falta: cada actividad con texto y **responsable**, objetivo, alcance y **todas las preguntas respondidas** (vale «No aplica» o «No lo sé»). Una propuesta sin decidir no bloquea (sin decisión, no entra). Si la actividad cambió después del análisis, su propuesta ya no se puede aceptar. Sin IA (apagada o sin cuota) todo se puede escribir a mano. | 20/10/2026 |
+| 22 | **Documento preliminar (fase 4):** se genera **solo después de confirmar** y del contenido exacto confirmado (huella); después, Procesos también lo genera durante la revisión. Cada generación crea un PDF y un Word **nuevos** con «COPIA NO AUTORIZADA»; los anteriores se conservan y se marcan «de una versión anterior» si el contenido cambió. Documento nuevo: versión **0.0**, código «Por asignar» hasta el Vo.Bo., control de cambios con «Emisión inicial». El Google Doc intermedio va a la papelera de Drive: lo oficial son el PDF y el Word. La descarga pasa por el servidor, que revisa el permiso (§4.4). | 20/10/2026 |
+| 23 | **Revisión de Procesos (fase 5):** **bandeja común**: cualquier revisor toma una solicitud sin asignar y queda como su revisor; el **administrador solo reasigna** (no revisa). Mientras Procesos defina otra forma (pregunta E), así queda; si la asignan por departamento, se ajusta. Observaciones por apartado o actividad: **por atender → atendida** (colaborador) **→ cerrada** (revisor). Devolver exige al menos una observación por atender; el **Vo.Bo.** exige que no haya ninguna y que el contenido sea el confirmado. El **código** lo propone el sistema (siguiente libre por tipo + departamento + área, pregunta F) y el revisor lo puede corregir; versión **0.0**. En cada envío y en el Vo.Bo. se guarda una foto del contenido (JSON). Ver [revision.md](revision.md). | 20/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 
@@ -129,7 +130,7 @@ registra automáticamente quién elaboró, revisó y autorizó.
 | `BORRADOR` | Colaborador | `CONFIRMADO` |
 | `CONFIRMADO` | Colaborador (ya puede generar preliminar) | `EN_REVISION` · vuelve a `BORRADOR` si edita algo |
 | `EN_REVISION` | Revisor de Procesos asignado | `DEVUELTO` · `EN_AUTORIZACION_CH` · `NO_PROCEDENTE` |
-| `DEVUELTO` | Colaborador (atiende observaciones) | `CONFIRMADO` → `EN_REVISION` |
+| `DEVUELTO` | Colaborador (corrige y atiende observaciones) | `CONFIRMADO` → `EN_REVISION` (regresa al mismo revisor) |
 | `EN_AUTORIZACION_CH` | Sistema CH (responsable → director). Procesos registra aquí el resultado (decisión 15) | `AUTORIZADO` · rechazo (por definir con Procesos, pregunta D) |
 | `AUTORIZADO` | — (documento final sin marca; pasa al inventario como vigente) | — |
 | `NO_PROCEDENTE` | — (cerrada por Procesos con motivo, sin consumir código) | — |
@@ -417,9 +418,10 @@ C. ~~Catálogo en Control Interno~~ → no existe; Procesos entregó el catálog
 D. **Rechazo en CH:** si el responsable o el director rechaza, ¿el documento regresa al colaborador
    en este sistema con observaciones? ¿Quién las captura?
 E. **Revisor asignado:** ¿cómo se asigna cada documento a un colaborador de Procesos (por
-   departamento, a mano, por turnos)?
+   departamento, a mano, por turnos)? *Mientras: bandeja común y el administrador reasigna (decisión 23).*
 F. **Consecutivo del código:** ¿cuenta por tipo + departamento + área o hay otro criterio? (lo dejaron
-   pendiente).
+   pendiente). *Mientras: por tipo + departamento + área, y el revisor puede corregir el que propone el
+   sistema (decisión 23).*
 G. **Catálogos:** ~~departamentos y áreas~~ (entregado); faltan **puestos** y la lista de usuarios con su
    perfil (colaborador, revisor, administrador). Además, los pendientes del catálogo
    ([catalogos.md](catalogos.md#pendientes-para-procesos)).
@@ -439,7 +441,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | **2. Captura** | Información general con coincidencias de nombre ✅ · desarrollo por actividades ✅ · imágenes con Ctrl+V optimizadas en WebP/JPG ✅ · guardado automático de borradores ✅ · mis solicitudes y cancelar ✅ ([captura.md](captura.md)). Falta: probarlo en pruebas | Fase 1 |
 | **3. IA y confirmación** | Análisis con IA sin datos sensibles ✅ · preguntas con «No aplica» / «No lo sé» ✅ · propuestas que se aceptan, editan o descartan ✅ · textos derivados a mano si la IA está apagada ✅ · vista previa y confirmación con huella ✅ ([analisis-ia.md](analisis-ia.md)). Falta: probarlo con Gemini real en pruebas | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word y PDF con «COPIA NO AUTORIZADA» del contenido confirmado ✅ · lista de archivos con descarga revisada en el servidor ✅ · plantillas registradas por tipo ✅ ([plantillas.md](plantillas.md#generación-en-el-sistema-fase-4)). Falta: generarlo de verdad en pruebas y revisarlo | Fase 3 · plantillas |
-| **5. Revisión de Procesos** | Bandeja, observaciones por apartado, devolver, no procedente, código, Vo.Bo. | Fase 4 · regla de códigos |
+| **5. Revisión de Procesos** | Envío a revisión con foto del contenido ✅ · bandeja común con tomar, liberar y reasignar ✅ · observaciones por apartado o actividad ✅ · devolver, no procedente y Vo.Bo. con código propuesto y versión 0.0 ✅ ([revision.md](revision.md)). Falta: probarlo en pruebas y las respuestas E y F de Procesos | Fase 4 · regla de códigos |
 | **6. Resultado de CH y publicación** | Archivos para subir a CH, registro del resultado de CH por Procesos, documento final limpio, descarga protegida, inventario documental | Fase 5 · decisión 15 |
 | **7. Actualizaciones** | Partir de un documento vigente o importar un Word/PDF existente con IA, control de cambios, historial de versiones | Fase 6 · inventario |
 | **8. Cierre** | Avisos por correo y recordatorios, tablero, manual de usuario | — |

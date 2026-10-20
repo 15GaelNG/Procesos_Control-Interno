@@ -1,0 +1,24 @@
+<template id="vista-revision">
+  <div class="vista-ancho">
+    <div class="encabezado-vista">
+      <div>
+        <h1 class="titulo-vista"><i data-lucide="clipboard-check" class="ico"></i>Bandeja de revisión</h1>
+        <p class="subtitulo" data-campo="subtitulo">Las solicitudes que los colaboradores enviaron a Procesos. Toma una para revisarla; lo que más tiempo lleva esperando aparece primero.</p>
+      </div>
+      <button type="button" class="boton secundario" data-accion="recargar"><i data-lucide="refresh-cw" class="ico"></i>Actualizar</button>
+    </div>
+    <div class="tarjeta">
+      <div class="pestanas" role="tablist" data-campo="pestanas"></div>
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por nombre, folio, código, departamento o quién la elaboró">
+        </label>
+      </div>
+      <p class="nota" data-campo="ayuda"></p>
+      <div data-campo="contenido" class="solicitudes-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando…</p></div>
+      </div>
+    </div>
+  </div>
+</template>

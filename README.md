@@ -45,6 +45,7 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   │   ├── Solicitudes.gs     Crear, consultar, guardar el borrador, imágenes y cancelar (fase 2)
 │   │   ├── AnalisisSolicitud.gs  Análisis con IA, decisiones, preguntas, vista previa y confirmación (fase 3)
 │   │   ├── Documentos.gs      Word y PDF preliminares desde la plantilla y su descarga (fase 4)
+│   │   ├── Revision.gs        Envío, bandeja, observaciones, devolver, no procedente y Vo.Bo. (fase 5)
 │   │   └── Catalogos.gs       importarCatalogoInicial() y el árbol departamentos → áreas → subáreas
 │   ├── html/
 │   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro
