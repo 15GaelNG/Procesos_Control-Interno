@@ -26,6 +26,34 @@ en Word.
 Si una plantilla ya convertida se quiere regenerar, se borra el Google Doc y se vuelve a correr
 `prepararPlantillas()`; las que ya existen no se sobrescriben.
 
+## Generación en el sistema (fase 4)
+
+`generarPreliminar_` (`src/services/Documentos.gs`), desde la vista previa de una solicitud confirmada
+(«Generar Word y PDF»):
+
+1. Toma la plantilla **preliminar** del tipo de documento (`TiposDocumento.ID_PLANTILLA_PRELIMINAR`, o
+   por nombre «Procedimiento - Preliminar»).
+2. La copia en `Solicitudes/<folio>/Documentos` y la llena con `llenarPlantilla_` usando
+   `datosDocumento_`:
+
+   | Marcador | Valor en un preliminar de documento nuevo |
+   |---|---|
+   | `{{CODIGO}}` | «Por asignar» (Procesos lo asigna con su Vo.Bo.) |
+   | `{{VERSION}}` · `{{CAMBIO_VERSION}}` | 0.0 (respuesta de Procesos sobre versiones) |
+   | `{{FECHA_ACTUALIZACION}}` · `{{CAMBIO_FECHA}}` | Mes y año de la generación |
+   | `{{CAMBIO_DESCRIPCION}}` · `{{CAMBIO_RESPONSABLE}}` | «Emisión inicial del documento.» · quien lo elaboró |
+   | `{{ELABORO_*}}` | Nombre, puesto y fecha fijados al crear la solicitud (§4.1) |
+   | `{{REVISO_*}}` · `{{AUTORIZO_*}}` | Vacíos hasta el Vo.Bo. de Procesos y el resultado de CH (fases 5 y 6) |
+   | `{{PUESTOS}}` | Los responsables de las actividades, sin repetir |
+   | `{{DESARROLLO}}` | Cada actividad con texto (las vacías no van), con su JPG y su pie |
+
+   `tests/documentos.test.js` revisa que los datos cubran todos los marcadores del contrato.
+3. Exporta **PDF y Word**, los registra en `Archivos` con la huella del contenido y manda el Google Doc
+   intermedio a la papelera de Drive.
+
+Un doble clic no genera dos (aviso de 5 minutos en la caché). Si el contenido cambió después de
+confirmar, no genera: pide volver a confirmar.
+
 ## Generación (fase 0: prueba de concepto)
 
 `probarPlantillas()` copia cada plantilla, la llena con datos **de ejemplo** y la exporta a PDF y Word

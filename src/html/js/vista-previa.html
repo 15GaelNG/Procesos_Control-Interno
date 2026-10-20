@@ -20,6 +20,46 @@
     llamar('apiImagen', idImagen).then(function (url) { if (visor.isConnected && url) img.src = url; }).catch(function () { /* se queda la miniatura */ });
   }
 
+  /* Descarga un archivo generado (apiDescargarArchivo revisa el permiso en el servidor). */
+  function descargarArchivoGenerado(idArchivo, boton) {
+    if (boton) boton.disabled = true;
+    return llamar('apiDescargarArchivo', idArchivo).then(function (r) {
+      const binario = atob(r.base64);
+      const bytes = new Uint8Array(binario.length);
+      for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: r.tipo }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = r.nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }).catch(function (e) { avisar(e.message, 'error'); }).then(function () { if (boton) boton.disabled = false; });
+  }
+
+  /* Lista de archivos generados con su botón de descarga. */
+  function listaArchivos(archivos) {
+    const caja = elemento('div', 'archivos');
+    archivos.forEach(function (a) {
+      const fila = elemento('div', 'archivo' + (a.vigente ? '' : ' desactualizado'));
+      fila.appendChild(elemento('span', 'archivo-formato ' + a.formato.toLowerCase(), a.formato === 'DOCX' ? 'Word' : a.formato));
+      const datos = elemento('div', 'archivo-datos');
+      datos.appendChild(elemento('strong', '', a.nombre));
+      datos.appendChild(elemento('span', 'nota', [a.fecha, a.generadoPor, a.pesoKb ? a.pesoKb + ' KB' : ''].filter(Boolean).join(' · ')));
+      fila.appendChild(datos);
+      fila.appendChild(elemento('span', 'chip ' + (a.vigente ? 'exito' : 'dorado'), a.vigente ? 'Del contenido actual' : 'De una versión anterior'));
+      const boton = elemento('button', 'btn-icono');
+      boton.type = 'button';
+      boton.title = 'Descargar';
+      boton.innerHTML = '<i data-lucide="download" class="ico"></i>';
+      boton.addEventListener('click', function () { descargarArchivoGenerado(a.id, boton); });
+      fila.appendChild(boton);
+      caja.appendChild(fila);
+    });
+    return caja;
+  }
+
   function iniciarVistaPrevia(raiz, idSolicitud) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
     let d = null;
@@ -117,6 +157,26 @@
           confirmar.querySelector('span').textContent = 'Sí, lo describe correctamente';
         });
       });
+      /* Documento preliminar (fase 4). */
+      if (d.puedeGenerar || d.archivos.length) {
+        q('documentos').hidden = false;
+        const generar = ui.querySelector('[data-accion="generar"]');
+        generar.hidden = !d.puedeGenerar;
+        if (d.archivos.length) q('archivos').appendChild(listaArchivos(d.archivos));
+        else q('archivos').appendChild(elemento('p', 'nota', 'Todavía no se ha generado.'));
+        generar.addEventListener('click', function () {
+          generar.disabled = true;
+          q('generando').hidden = false;
+          llamar('apiGenerarPreliminar', idSolicitud).then(function () {
+            avisar('Documento generado: ya puedes descargar el Word y el PDF.', 'exito');
+            return cargar();
+          }).catch(function (e) {
+            avisar(e.message, 'error');
+            generar.disabled = false;
+            q('generando').hidden = true;
+          });
+        });
+      }
       pintarIconos();
 
       if (d.actividades.some(function (a) { return a.imagenes.length; })) {

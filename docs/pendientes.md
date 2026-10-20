@@ -42,6 +42,13 @@ En este orden:
    - [ ] Vista previa: que se vea como el documento y que **confirme**; luego editar algo y ver que
      regresa a borrador.
    - [ ] Con `IA_ACTIVA = NO`: el botón de analizar se deshabilita y todo se puede escribir a mano.
+   - [ ] **Documento preliminar (fase 4):** volver a correr `prepararPlantillas()` para que registre las
+     plantillas en `TiposDocumento` (el registro debe decir «Registradas en el tipo Procedimiento»).
+   - [ ] Con una solicitud confirmada: «Generar Word y PDF» y **revisar los dos archivos**: marca de
+     agua, portada, encabezado y pie en todas las hojas, «Página x de y», versión 0.0, código «Por
+     asignar», actividades con imágenes y pies, firmas de quien elaboró. Mandar capturas a Procesos.
+   - [ ] Que en Drive quede `Solicitudes/<folio>/Documentos` con el PDF y el Word (el Google Doc
+     intermedio en la papelera).
 5. Mandar capturas de lo que se vea raro.
 
 ## 2. Por recibir de Procesos

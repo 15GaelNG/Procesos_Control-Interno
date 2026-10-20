@@ -151,6 +151,8 @@ coma: ayudan a la IA a reconocer al responsable) · `ACTIVO`.
 | TD-06 | Diagrama de proceso | DP | NO (pregunta H) |
 
 Cada tipo tiene **dos** plantillas: la preliminar con «COPIA NO AUTORIZADA» y la final sin marca.
+`prepararPlantillas()` guarda sus IDs aquí (el Word «Procedimiento.docx» se liga al tipo «Procedimiento»);
+si faltan, la generación las busca por nombre en la carpeta Plantillas.
 
 ---
 
@@ -238,10 +240,12 @@ como viene en CH) · `COMENTARIO` (motivo de un rechazo) · `REGISTRADO_POR` · 
 Con `AUTORIZADO` se genera el documento final sin marca de agua.
 
 ### Archivos
-Todo Word/PDF generado. `ID_ARCHIVO` · `ID_SOLICITUD` · `REVISION` · `TIPO` (`PRELIMINAR` / `FINAL`) ·
-`FORMATO` (`DOCX`, `PDF`, `GDOC`) · `ID_DRIVE` · `CON_MARCA_AGUA` · `HUELLA_CONTENIDO` (qué contenido
-se imprimió) · `GENERADO_POR` · `FECHA`.
-Los preliminares nunca se reemplazan ni se les quita la leyenda (§4.4).
+Todo Word/PDF generado. `ID_ARCHIVO` (`ARC-000001`) · `ID_SOLICITUD` · `REVISION` · `TIPO` (`PRELIMINAR` /
+`FINAL`) · `FORMATO` (`DOCX` o `PDF`) · `ID_DRIVE` · `CON_MARCA_AGUA` · `HUELLA_CONTENIDO` (qué contenido
+se imprimió: si ya no coincide con la huella actual, la pantalla lo marca «De una versión anterior») ·
+`GENERADO_POR` (persona real) · `FECHA` · `NOMBRE` · `PESO_KB`.
+Los preliminares nunca se reemplazan ni se les quita la leyenda (§4.4): cada generación agrega dos
+renglones (PDF y Word). Viven en `Solicitudes/<folio>/Documentos`. Ver [plantillas.md](plantillas.md#generación-en-el-sistema-fase-4).
 
 ---
 
@@ -261,7 +265,7 @@ Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4
 Toda acción relevante (§4.3). `FECHA` · `USUARIO` (siempre la persona real; si usaba «Ver como», el
 detalle empieza con `[viendo como …]`) · `ACCION` (`ALTA_USUARIO`, `CAMBIO_USUARIO`, `VER_COMO`,
 `IMPORTAR_CATALOGO`, `CREAR_SOLICITUD`, `CANCELAR_SOLICITUD`, `EDITAR_CONFIRMADO`, `ANALIZAR_IA`,
-`CONFIRMAR_SOLICITUD`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
+`CONFIRMAR_SOLICITUD`, `GENERAR_PRELIMINAR`, `DESCARGAR_ARCHIVO`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
 `ESTADO_ANTERIOR` · `ESTADO_NUEVO` · `DETALLE`. Se consulta en la pantalla «Bitácora» y no se edita.
 
 ### UsoIA

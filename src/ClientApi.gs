@@ -157,6 +157,19 @@ function apiConfirmar(comoUsuario, idSolicitud, huella) {
   return confirmarSolicitud_(sesion, idSolicitud, huella);
 }
 
+// ─────────────────────────────── Documentos (fase 4) ───────────────────────────────
+
+/** Word y PDF con «COPIA NO AUTORIZADA» del contenido confirmado (puede tardar hasta un minuto). */
+function apiGenerarPreliminar(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR', 'REVISOR']);
+  return generarPreliminar_(sesion, idSolicitud);
+}
+
+/** El archivo para descargarlo; el permiso se revisa en el servidor (§4.4). */
+function apiDescargarArchivo(comoUsuario, idArchivo) {
+  return descargarArchivo_(sesionEfectiva_(comoUsuario), idArchivo);
+}
+
 function apiCancelarSolicitud(comoUsuario, idSolicitud, motivo) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
   return cancelarSolicitud_(sesion, idSolicitud, motivo);

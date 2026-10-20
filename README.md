@@ -44,6 +44,7 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   │   ├── Bitacora.gs        registrarBitacora_() y la consulta de la bitácora
 │   │   ├── Solicitudes.gs     Crear, consultar, guardar el borrador, imágenes y cancelar (fase 2)
 │   │   ├── AnalisisSolicitud.gs  Análisis con IA, decisiones, preguntas, vista previa y confirmación (fase 3)
+│   │   ├── Documentos.gs      Word y PDF preliminares desde la plantilla y su descarga (fase 4)
 │   │   └── Catalogos.gs       importarCatalogoInicial() y el árbol departamentos → áreas → subáreas
 │   ├── html/
 │   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro

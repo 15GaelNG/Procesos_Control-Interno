@@ -4,9 +4,24 @@
       <i data-lucide="badge-check" class="ico"></i>
       <div>
         <strong>Confirmaste que este documento describe tu proceso.</strong>
-        <p class="nota">Lo siguiente es generar el documento preliminar y enviarlo a revisión de Procesos (fases 4 y 5). Si cambias algo, tendrás que volver a confirmar.</p>
+        <p class="nota">Ya puedes generar el documento preliminar. Lo siguiente es enviarlo a revisión de Procesos (fase 5). Si cambias algo, tendrás que volver a confirmar.</p>
       </div>
     </div>
+
+    <section class="tarjeta documentos" data-campo="documentos" hidden>
+      <div class="documentos-cabeza">
+        <div>
+          <h2><i data-lucide="file-down" class="ico"></i>Documento preliminar</h2>
+          <p class="nota">Word y PDF con la plantilla institucional y la leyenda «COPIA NO AUTORIZADA». Cada vez que lo generas se crea uno nuevo; los anteriores se conservan.</p>
+        </div>
+        <button type="button" class="boton" data-accion="generar"><i data-lucide="file-plus" class="ico"></i><span>Generar Word y PDF</span></button>
+      </div>
+      <div class="analizando" data-campo="generando" hidden>
+        <span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span>
+        <div><strong>Generando el documento…</strong><p class="nota">Puede tardar hasta un minuto, sobre todo si tiene muchas imágenes.</p></div>
+      </div>
+      <div class="lista-archivos" data-campo="archivos"></div>
+    </section>
 
     <article class="tarjeta documento-previo">
       <header class="documento-encabezado">

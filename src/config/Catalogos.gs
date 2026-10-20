@@ -103,7 +103,9 @@ const NOMBRES_ACCION = {
   CANCELAR_SOLICITUD: 'Solicitud cancelada',
   EDITAR_CONFIRMADO: 'Cambio después de confirmar',
   ANALIZAR_IA: 'Análisis con IA',
-  CONFIRMAR_SOLICITUD: 'Confirmación del colaborador'
+  CONFIRMAR_SOLICITUD: 'Confirmación del colaborador',
+  GENERAR_PRELIMINAR: 'Documento preliminar generado',
+  DESCARGAR_ARCHIVO: 'Descarga de archivo'
 };
 
 const TIPOS_SOLICITUD = {

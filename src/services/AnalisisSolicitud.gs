@@ -390,6 +390,9 @@ function vistaPrevia_(sesion, idSolicitud) {
   det.huella = huellaDeDetalle_(det);
   det.confirmada = fila.ESTADO === ESTADOS.CONFIRMADO && det.huella === String(fila.HUELLA_CONFIRMADA);
   det.puedeConfirmar = permiso.editar && fila.ESTADO !== ESTADOS.CONFIRMADO && !det.faltantes.length;
+  // Documentos generados (fase 4) y si se puede generar uno con el contenido actual.
+  det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_);
+  det.puedeGenerar = puedeGenerarPreliminar_(sesion, fila) && (fila.ESTADO !== ESTADOS.CONFIRMADO || det.confirmada);
   return det;
 }
 

@@ -170,7 +170,7 @@ const ESQUEMA_BD = [
     hoja: 'Archivos', grupo: 'OPERACION',
     descripcion: 'Todo archivo Word/PDF generado. Los preliminares nunca se reemplazan (§4.4).',
     columnas: ['ID_ARCHIVO', 'ID_SOLICITUD', 'REVISION', 'TIPO', 'FORMATO', 'ID_DRIVE', 'CON_MARCA_AGUA',
-      'HUELLA_CONTENIDO', 'GENERADO_POR', 'FECHA']
+      'HUELLA_CONTENIDO', 'GENERADO_POR', 'FECHA', 'NOMBRE', 'PESO_KB']
   },
 
   // ────────────────────────────── Trazabilidad ─────────────────────────────

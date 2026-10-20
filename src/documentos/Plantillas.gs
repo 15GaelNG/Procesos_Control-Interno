@@ -27,21 +27,26 @@ function prepararPlantillas() {
     lineas.push('WORD: ' + word.getName());
 
     const preliminar = buscarDocPorNombre_(carpeta, base + SUFIJO_PRELIMINAR);
+    let idPreliminar = preliminar ? preliminar.getId() : '';
     if (preliminar) {
-      lineas.push('  · Preliminar ya existe (bórrala si quieres regenerarla): ' + urlDoc_(preliminar.getId()));
+      lineas.push('  · Preliminar ya existe (bórrala si quieres regenerarla): ' + urlDoc_(idPreliminar));
     } else {
-      lineas.push('  · Preliminar creada: ' + urlDoc_(convertirAGoogleDocs_(word.getBlob(), base + SUFIJO_PRELIMINAR, carpeta.getId())));
+      idPreliminar = convertirAGoogleDocs_(word.getBlob(), base + SUFIJO_PRELIMINAR, carpeta.getId());
+      lineas.push('  · Preliminar creada: ' + urlDoc_(idPreliminar));
     }
 
     const final = buscarDocPorNombre_(carpeta, base + SUFIJO_FINAL);
+    let idFinal = final ? final.getId() : '';
     if (final) {
-      lineas.push('  · Final ya existe (bórrala si quieres regenerarla): ' + urlDoc_(final.getId()));
+      lineas.push('  · Final ya existe (bórrala si quieres regenerarla): ' + urlDoc_(idFinal));
     } else {
       const sinMarca = docxSinMarcaDeAgua_(word.getBlob(), marca);
       lineas.push('  · Marcas de agua quitadas: ' + sinMarca.quitadas + ' (en ' + sinMarca.encabezados.join(', ') + ')');
       if (!sinMarca.quitadas) lineas.push('    ⚠ No se encontró «' + marca + '» en los encabezados: la versión final saldría igual que la preliminar.');
-      lineas.push('  · Final creada: ' + urlDoc_(convertirAGoogleDocs_(sinMarca.blob, base + SUFIJO_FINAL, carpeta.getId())));
+      idFinal = convertirAGoogleDocs_(sinMarca.blob, base + SUFIJO_FINAL, carpeta.getId());
+      lineas.push('  · Final creada: ' + urlDoc_(idFinal));
     }
+    lineas.push('  · ' + registrarPlantillaEnTipo_(base, idPreliminar, idFinal));
   }
   if (!total) lineas.push('No hay archivos Word (.docx) en la carpeta Plantillas de este ambiente.');
   Logger.log(lineas.join('\n'));
@@ -180,6 +185,17 @@ function probarDocumentoLargo() {
     '  PDF:        ' + pdf.getUrl(),
     '  Word:       ' + docx.getUrl()
   ].join('\n'));
+}
+
+/**
+ * Guarda los IDs de las dos plantillas en el tipo de documento que se llama como el Word
+ * («Procedimiento.docx» → tipo «Procedimiento»), para que la generación no dependa del nombre.
+ */
+function registrarPlantillaEnTipo_(base, idPreliminar, idFinal) {
+  const tipo = leerTabla_('TiposDocumento').filter(function (t) { return normalizar_(t.NOMBRE) === normalizar_(base); })[0];
+  if (!tipo) return 'No hay un tipo de documento llamado «' + base + '»: estas plantillas no se usarán hasta que exista.';
+  actualizarFila_('TiposDocumento', tipo._fila, { ID_PLANTILLA_PRELIMINAR: idPreliminar, ID_PLANTILLA_FINAL: idFinal });
+  return 'Registradas en el tipo «' + tipo.NOMBRE + '» (' + tipo.ID_TIPO + ').';
 }
 
 // ─────────────────────────────────── Marca de agua ───────────────────────────────────
