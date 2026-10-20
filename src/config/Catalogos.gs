@@ -101,7 +101,9 @@ const NOMBRES_ACCION = {
   IMPORTAR_CATALOGO: 'Carga del catálogo',
   CREAR_SOLICITUD: 'Nueva solicitud',
   CANCELAR_SOLICITUD: 'Solicitud cancelada',
-  EDITAR_CONFIRMADO: 'Cambio después de confirmar'
+  EDITAR_CONFIRMADO: 'Cambio después de confirmar',
+  ANALIZAR_IA: 'Análisis con IA',
+  CONFIRMAR_SOLICITUD: 'Confirmación del colaborador'
 };
 
 const TIPOS_SOLICITUD = {
@@ -171,9 +173,16 @@ const ESTATUS_DOCUMENTO = {
   OBSOLETO: 'OBSOLETO'
 };
 
-const ESTADOS_ACLARACION = ['PENDIENTE', 'RESPONDIDA', 'NO_APLICA', 'NO_LO_SE'];
+// REEMPLAZADA: quedó sin contestar/decidir y un análisis nuevo la sustituyó (se conserva para la historia).
+const ESTADOS_ACLARACION = ['PENDIENTE', 'RESPONDIDA', 'NO_APLICA', 'NO_LO_SE', 'REEMPLAZADA'];
+// Cómo se le dice a la IA lo que respondió la persona cuando eligió un botón en lugar de escribir.
+const RESPUESTA_POR_ESTADO = { NO_APLICA: 'No aplica', NO_LO_SE: 'No lo sé' };
 const ESTADOS_OBSERVACION = ['ABIERTA', 'ATENDIDA', 'CERRADA'];
-const DECISIONES_PROPUESTA = ['PENDIENTE', 'ACEPTADA', 'EDITADA', 'RECHAZADA'];
+const DECISIONES_PROPUESTA = ['PENDIENTE', 'ACEPTADA', 'EDITADA', 'RECHAZADA', 'REEMPLAZADA'];
+
+// Qué propone la IA (columna CAMPO de PropuestasIA). ORDEN es solo una sugerencia: la IA nunca
+// reordena (§3.4); la persona reordena a mano si está de acuerdo.
+const CAMPOS_PROPUESTA = ['TEXTO', 'RESPONSABLE', 'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES', 'ORDEN'];
 // Resultado de cada envío a CH (hoja EnviosCH), que Procesos registra a mano (decisión 15).
 const RESULTADOS_CH = ['PENDIENTE', 'AUTORIZADO', 'RECHAZADO'];
 
@@ -182,6 +191,10 @@ const RESULTADOS_CH = ['PENDIENTE', 'AUTORIZADO', 'RECHAZADO'];
 const PREGUNTA_RESPONSABLE = '¿Qué puesto realiza esta actividad?';
 const TIPOS_PREGUNTA = ['responsable', 'entrada', 'documento', 'sistema', 'validacion', 'autorizacion',
   'plazo', 'evidencia', 'excepcion', 'cierre', 'otro'];
+const NOMBRES_TIPO_PREGUNTA = {
+  responsable: 'Responsable', entrada: 'Entrada', documento: 'Documento', sistema: 'Sistema', validacion: 'Validación',
+  autorizacion: 'Autorización', plazo: 'Plazo', evidencia: 'Evidencia', excepcion: 'Excepción', cierre: 'Cierre', otro: 'Otro'
+};
 
 // Motivos del control de cambios (requerimiento §4.2). COMPLETA excluye a los demás.
 const MOTIVOS_CAMBIO = {

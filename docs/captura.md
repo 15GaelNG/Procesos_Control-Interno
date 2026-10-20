@@ -10,8 +10,8 @@ Requerimiento §2 y §3.1–3.2; diseño de la pantalla según el Anexo A (refer
 | 1 | Inicio de sesión (Google) | ✅ |
 | 2 | **Información general** («Nueva solicitud») | ✅ fase 2 |
 | 3 | **Desarrollo del proceso** (la captura) | ✅ fase 2 |
-| 4 | Análisis con IA | fase 3 |
-| 5 | Vista previa y confirmación | fase 3 |
+| 4 | Análisis con IA | ✅ fase 3 ([analisis-ia.md](analisis-ia.md)) |
+| 5 | Vista previa y confirmación | ✅ fase 3 ([analisis-ia.md](analisis-ia.md)) |
 
 ## Paso 2: información general
 

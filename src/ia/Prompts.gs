@@ -10,7 +10,8 @@
  * Arma las instrucciones del análisis de un proceso.
  * @param {Object} e
  * @param {string} e.tipoDocumento · e.nombre · e.departamento · e.inicio · e.fin
- * @param {{id: string, texto: string}[]} e.actividades   En el orden del colaborador.
+ * @param {{id: string, texto: string, responsableIndicado: string}[]} e.actividades   En el orden del colaborador.
+ * @param {{idActividad: string, pregunta: string, respuesta: string}[]} [e.respuestas]   Preguntas ya respondidas.
  * @param {{id: string, nombre: string, sinonimos: string}[]} e.puestos   Catálogo institucional.
  * @return {{sistema: string, usuario: string}}
  */
@@ -40,6 +41,10 @@ function construirPromptAnalisis_(e) {
     '7. Propón objetivo y alcance basados solo en el contenido. "basado_en" lista los IDs de las actividades que los sustentan.',
     '8. Las responsabilidades se agrupan por puesto y solo incluyen lo que ese puesto hace según las actividades.',
     '9. Las definiciones son opcionales: solo términos que aparezcan en el texto y que alguien nuevo no entendería.',
+    '10. Si una actividad trae «Responsable indicado», ese es su responsable: no lo cambies ni preguntes por él.',
+    '11. Las «Respuestas del colaborador» son información que él mismo dio: puedes usarlas para redactar la',
+    '    actividad a la que se refieren, pero no vuelvas a hacer esas preguntas ni otras equivalentes.',
+    '12. Los textos pueden traer marcas como [CORREO 1] o [MONTO 2] en lugar de datos privados: déjalas tal cual.',
     '',
     'Responde SOLO con un objeto JSON con esta forma exacta (sin texto adicional):',
     '{',
@@ -69,10 +74,17 @@ function construirPromptAnalisis_(e) {
     e.inicio || '(sin respuesta)',
     '',
     'Actividades, en el orden del colaborador:',
-    (e.actividades || []).map(function (a, i) { return (i + 1) + '. [' + a.id + '] ' + a.texto; }).join('\n'),
+    (e.actividades || []).map(function (a, i) {
+      return (i + 1) + '. [' + a.id + '] ' + a.texto + (a.responsableIndicado ? '\n   Responsable indicado: ' + a.responsableIndicado : '');
+    }).join('\n'),
     '',
     '¿Cómo finaliza el proceso?',
-    e.fin || '(sin respuesta)'
+    e.fin || '(sin respuesta)',
+    '',
+    'Respuestas del colaborador a preguntas anteriores:',
+    (e.respuestas || []).map(function (q) {
+      return '- ' + (q.idActividad ? '[' + q.idActividad + '] ' : '') + q.pregunta + ' → ' + q.respuesta;
+    }).join('\n') || '(ninguna)'
   ].join('\n');
 
   return { sistema: sistema, usuario: usuario };

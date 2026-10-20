@@ -178,7 +178,7 @@ Cada trámite, de borrador hasta el resultado de CH.
 | `NOMBRE_DOCUMENTO` · `ID_DEPARTAMENTO` · `ID_AREA` · `ID_SUBAREA` | Datos generales (departamento y área arman el código; la subárea es opcional) |
 | `ESTADO` · `REVISOR_ASIGNADO_ID` | Dónde va ([estados](analisis-inicial.md#32-estados-de-una-solicitud-actualizados-con-las-respuestas-de-procesos)) y qué revisor de Procesos la tiene |
 | `INICIO_PROCESO` · `FIN_PROCESO` | Respuestas a «¿Qué sucede para que inicie?» y «¿Cómo finaliza?» |
-| `OBJETIVO` · `ALCANCE` · `RESPONSABILIDADES` · `DEFINICIONES` | Textos derivados (los dos últimos en JSON) |
+| `OBJETIVO` · `ALCANCE` · `RESPONSABILIDADES` · `DEFINICIONES` | Textos derivados. Los dos últimos son listas JSON de renglones «Puesto: …» / «Término: …» (en el documento el texto antes de los dos puntos va en negritas) |
 | `MOTIVOS_CAMBIO` · `DESCRIPCION_CAMBIO` | Solo actualizaciones: motivos (§4.2) y qué cambió, como lo dice el colaborador |
 | `TIPO_CAMBIO` | `MAYOR` o `MENOR`; lo decide Procesos al dar el Vo.Bo. de una actualización |
 | `CODIGO` · `VERSION` | Se asignan con el Vo.Bo. de Procesos; la versión se vuelve oficial cuando CH autoriza |
@@ -191,9 +191,12 @@ Cada trámite, de borrador hasta el resultado de CH.
 
 ### Actividades
 `ID_ACTIVIDAD` · `ID_SOLICITUD` · `ORDEN` (lo define el colaborador; la IA no lo cambia) ·
-`TEXTO_ORIGINAL` (lo que escribió) · `TEXTO_FINAL` (lo que va al documento) · `ID_PUESTO` ·
-`PUESTO_TEXTO` (como lo escribió, si no está en el catálogo) · `RESPONSABLE_CONFIRMADO` · `ELIMINADA` ·
-`FECHA_ACTUALIZACION`.
+`TEXTO_ORIGINAL` (lo que escribió el colaborador) · `TEXTO_FINAL` (la redacción de la IA que aceptó o
+editó; si está vacío, al documento va `TEXTO_ORIGINAL`. Si después edita el texto a mano, se guarda en
+`TEXTO_ORIGINAL` y `TEXTO_FINAL` se vacía) · `ID_PUESTO` (del catálogo, si coincide) · `PUESTO_TEXTO` (el
+responsable como quedó: escrito por el colaborador, aceptado de la IA o respondido a la pregunta) ·
+`RESPONSABLE_CONFIRMADO` (`SI` cuando lo aceptó o respondió en el análisis; cambiarlo a mano lo regresa
+a `NO`) · `ELIMINADA` · `FECHA_ACTUALIZACION`.
 
 ### Imagenes
 `ID_IMAGEN` · `ID_ACTIVIDAD` · `ID_SOLICITUD` · `ORDEN` (dentro de la actividad) · `ID_ARCHIVO` (WebP
@@ -206,14 +209,19 @@ Se ligan a la actividad por ID: reordenar actividades nunca rompe la relación (
 ### Aclaraciones
 Preguntas complementarias. `ID_ACLARACION` · `ID_SOLICITUD` · `ID_ACTIVIDAD` (vacío = general) ·
 `TIPO` (responsable, autorización, excepción, plazo, documento…) · `PREGUNTA` · `RESPUESTA` · `ESTADO`
-(`PENDIENTE`, `RESPONDIDA`, `NO_APLICA`, `NO_LO_SE`) · `ORIGEN` (`IA` o `PROCESOS`) ·
-`FECHA_PREGUNTA` · `FECHA_RESPUESTA`.
+(`PENDIENTE`, `RESPONDIDA`, `NO_APLICA`, `NO_LO_SE`, o `REEMPLAZADA` si quedó sin responder y un análisis
+nuevo la sustituyó) · `ORIGEN` (`IA` o `PROCESOS`) · `FECHA_PREGUNTA` · `FECHA_RESPUESTA`.
+Las respondidas se mandan a la IA en el siguiente análisis para que no las repita. Responder la pregunta
+del responsable deja esa respuesta como responsable de la actividad.
 
 ### PropuestasIA
 Lo que propuso la IA y qué decidió la persona: la IA propone, la persona decide. `ID_PROPUESTA` ·
-`ID_SOLICITUD` · `ID_ACTIVIDAD` · `CAMPO` (`TEXTO`, `OBJETIVO`, `ALCANCE`, `RESPONSABLE`, `ORDEN`,
-`PIE`…) · `VALOR_ANTERIOR` · `PROPUESTA` · `JUSTIFICACION` · `EVIDENCIA` (fragmento del texto del
-colaborador que la sustenta) · `DECISION` (`PENDIENTE`, `ACEPTADA`, `EDITADA`, `RECHAZADA`) ·
+`ID_SOLICITUD` · `ID_ACTIVIDAD` · `CAMPO` (`TEXTO`, `RESPONSABLE`, `OBJETIVO`, `ALCANCE`,
+`RESPONSABILIDADES`, `DEFINICIONES` (estas dos como lista JSON) u `ORDEN`, que solo informa: la IA nunca
+reordena) · `VALOR_ANTERIOR` (lo que había al analizar; si la actividad cambió después, la propuesta ya
+no se puede aceptar) · `PROPUESTA` · `JUSTIFICACION` (incluye el aviso si menciona cifras que no estaban
+en el texto) · `EVIDENCIA` (fragmento del texto del colaborador que la sustenta) · `DECISION`
+(`PENDIENTE`, `ACEPTADA`, `EDITADA`, `RECHAZADA`, o `REEMPLAZADA` si un análisis nuevo la sustituyó) ·
 `VALOR_FINAL` · `FECHA_PROPUESTA` · `FECHA_DECISION`.
 
 ### Observaciones
@@ -252,7 +260,8 @@ Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4
 ### Bitacora
 Toda acción relevante (§4.3). `FECHA` · `USUARIO` (siempre la persona real; si usaba «Ver como», el
 detalle empieza con `[viendo como …]`) · `ACCION` (`ALTA_USUARIO`, `CAMBIO_USUARIO`, `VER_COMO`,
-`IMPORTAR_CATALOGO`, `CREAR_SOLICITUD`, `CANCELAR_SOLICITUD`, `EDITAR_CONFIRMADO`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
+`IMPORTAR_CATALOGO`, `CREAR_SOLICITUD`, `CANCELAR_SOLICITUD`, `EDITAR_CONFIRMADO`, `ANALIZAR_IA`,
+`CONFIRMAR_SOLICITUD`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
 `ESTADO_ANTERIOR` · `ESTADO_NUEVO` · `DETALLE`. Se consulta en la pantalla «Bitácora» y no se edita.
 
 ### UsoIA

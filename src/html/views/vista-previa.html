@@ -1,0 +1,45 @@
+<template id="parte-vista-previa">
+  <div class="vista-previa">
+    <div class="aviso-confirmada" data-campo="confirmada" hidden>
+      <i data-lucide="badge-check" class="ico"></i>
+      <div>
+        <strong>Confirmaste que este documento describe tu proceso.</strong>
+        <p class="nota">Lo siguiente es generar el documento preliminar y enviarlo a revisión de Procesos (fases 4 y 5). Si cambias algo, tendrás que volver a confirmar.</p>
+      </div>
+    </div>
+
+    <article class="tarjeta documento-previo">
+      <header class="documento-encabezado">
+        <span class="folio" data-campo="tipo"></span>
+        <h1 data-campo="nombre"></h1>
+        <div class="datos-automaticos" data-campo="datos"></div>
+      </header>
+      <div data-campo="secciones"></div>
+    </article>
+
+    <section class="tarjeta faltantes" data-campo="faltantes" hidden>
+      <h2><i data-lucide="list-todo" class="ico"></i>Antes de confirmar falta:</h2>
+      <ul data-campo="lista-faltantes"></ul>
+      <div class="pregunta-botones">
+        <button type="button" class="boton secundario" data-accion="ir-desarrollo">Ir al desarrollo (paso 3)</button>
+        <button type="button" class="boton secundario" data-accion="ir-analisis">Ir al análisis (paso 4)</button>
+      </div>
+    </section>
+
+    <section class="tarjeta confirmar" data-campo="confirmar" hidden>
+      <h2>¿El documento describe correctamente cómo se realiza el proceso en tu departamento?</h2>
+      <p class="nota">Al confirmar, queda registrado exactamente este contenido. No es el Vo.Bo. de Procesos: después lo revisarán.</p>
+      <div class="pregunta-botones">
+        <button type="button" class="boton" data-accion="confirmar"><i data-lucide="check" class="ico"></i><span>Sí, lo describe correctamente</span></button>
+        <button type="button" class="boton secundario" data-accion="ajustes"><i data-lucide="pencil" class="ico"></i>Necesita ajustes</button>
+      </div>
+      <div class="ajustes" data-campo="ajustes" hidden>
+        <p>¿Qué necesitas corregir?</p>
+        <div class="pregunta-botones">
+          <button type="button" class="boton secundario" data-accion="ir-desarrollo">Actividades, imágenes, inicio o fin</button>
+          <button type="button" class="boton secundario" data-accion="ir-analisis">Objetivo, alcance, responsabilidades o propuestas de la IA</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>

@@ -74,6 +74,16 @@ const IA_MODELOS_PREFERIDOS = [
   'gemini-2.5-flash'
 ];
 const IA_MAX_MODELOS = 4;
+// Datos que se ocultan antes de mandar un texto a la IA (utils/Privacidad.gs). Lo más específico
+// primero: un RFC o una CURP no deben confundirse con una cuenta.
+const PATRONES_SENSIBLES = [
+  { marca: 'CORREO', patron: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g },
+  { marca: 'CURP', patron: /\b[A-Z][AEIOUX][A-Z]{2}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b/gi },
+  { marca: 'RFC', patron: /\b[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}\b/gi },
+  { marca: 'CUENTA', patron: /\b\d(?:[ -]?\d){10,18}\b/g },
+  { marca: 'TELÉFONO', patron: /(?:\+?52[ -]?)?(?:\(\d{2,3}\)[ -]?|\b\d{2,3}[ -])\d{3,4}[ -]?\d{4}\b|\b\d{10}\b/g },
+  { marca: 'MONTO', patron: /\$\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:MXN|USD|pesos|dólares))?/gi }
+];
 const IA_MAX_CARACTERES_ENTRADA = 60000;   // Tope de texto que se manda en una sola llamada.
 
 // Plantillas (documentos/Plantillas.gs). Procesos sube un Word por tipo con la marca de agua y el
@@ -136,7 +146,11 @@ const LIMITES_CAPTURA = {
   ACTIVIDAD_MAX: 4000,       // Texto de una actividad
   RESPONSABLE_MAX: 120,
   PIE_MAX: 200,
-  IMAGEN_MB_MAX: 4           // Cada archivo ya optimizado que manda el navegador
+  IMAGEN_MB_MAX: 4,          // Cada archivo ya optimizado que manda el navegador
+  DERIVADO_MAX: 2000,        // Objetivo y alcance
+  LINEAS_MAX: 40,            // Renglones de responsabilidades o de definiciones
+  LINEA_MAX: 600,            // Cada uno de esos renglones
+  RESPUESTA_MAX: 2000        // Respuesta a una pregunta de la IA
 };
 // Coincidencias de nombre que se muestran al crear un documento nuevo, y desde qué parecido (0 a 1).
 const COINCIDENCIAS_MAX = 5;

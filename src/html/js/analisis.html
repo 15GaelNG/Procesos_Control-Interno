@@ -1,0 +1,280 @@
+<script>
+  /*
+   * Paso 4 · Análisis con IA (apiAnalisis, apiAnalizar, apiDecidirPropuesta, apiResponderPregunta,
+   * apiGuardarDerivados). La IA propone y la persona decide: cada propuesta se acepta, se edita o se
+   * descarta; las preguntas se responden (o «No aplica» / «No lo sé»). Sin IA, los textos se escriben a mano.
+   */
+  const NOMBRES_CAMPO_PROPUESTA = { TEXTO: 'Redacción', RESPONSABLE: 'Responsable', OBJETIVO: 'Objetivo', ALCANCE: 'Alcance',
+    RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones', ORDEN: 'Orden' };
+  const NOMBRES_DECISION = { ACEPTADA: 'Aceptada', EDITADA: 'Aceptada con cambios', RECHAZADA: 'Descartada' };
+  const CAMPOS_DERIVADOS = [
+    { clave: 'objetivo', campo: 'OBJETIVO', titulo: 'Objetivo', ayuda: 'Para qué existe este proceso.', lista: false },
+    { clave: 'alcance', campo: 'ALCANCE', titulo: 'Alcance', ayuda: 'Dónde empieza, dónde termina y a quién aplica.', lista: false },
+    { clave: 'responsabilidades', campo: 'RESPONSABILIDADES', titulo: 'Responsabilidades (opcional)', ayuda: 'Un renglón por puesto: «Puesto: lo que le toca».', lista: true },
+    { clave: 'definiciones', campo: 'DEFINICIONES', titulo: 'Definiciones (opcional)', ayuda: 'Un renglón por término: «Término: qué significa».', lista: true }
+  ];
+
+  function iniciarAnalisis(raiz, idSolicitud) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    let datos = null;
+    let ui = null;
+    let avisosIa = [];
+    let derivadosSucio = false;
+    let ocupado = false;
+
+    const q = function (campo, base) { return (base || ui).querySelector('[data-campo="' + campo + '"]'); };
+    const lista = function (valores) {
+      const ul = elemento('ul', 'lista-renglones');
+      valores.forEach(function (v) { ul.appendChild(elemento('li', '', v)); });
+      return ul;
+    };
+    const mostrarValor = function (caja, valor) {
+      caja.textContent = '';
+      if (Array.isArray(valor)) caja.appendChild(valor.length ? lista(valor) : elemento('span', 'nota', '(vacío)'));
+      else caja.appendChild(elemento('span', valor ? '' : 'nota', valor || '(vacío)'));
+    };
+
+    function recargar() {
+      const vista = $('#vista');
+      const arriba = vista.scrollTop;
+      return llamar('apiAnalisis', idSolicitud).then(function (d) {
+        if (!contenido.isConnected) return;
+        datos = d;
+        pintar();
+        vista.scrollTop = arriba;
+      });
+    }
+
+    function trabajar(promesa) {
+      ocupado = true;
+      ui.classList.add('ocupado');
+      return promesa.then(function () { return recargar(); }).catch(function (e) {
+        avisar(e.message, 'error');
+        return recargar().catch(function () { /* se queda como estaba */ });
+      }).then(function () { ocupado = false; if (ui) ui.classList.remove('ocupado'); });
+    }
+
+    function guardarDerivados() {
+      if (!derivadosSucio) return Promise.resolve();
+      const enviar = {};
+      CAMPOS_DERIVADOS.forEach(function (c) { enviar[c.clave] = ui.querySelector('textarea[name="' + c.clave + '"]').value; });
+      const estadoG = q('guardado-derivados');
+      estadoG.textContent = 'Guardando…';
+      return llamar('apiGuardarDerivados', idSolicitud, enviar).then(function () {
+        derivadosSucio = false;
+        estadoG.textContent = 'Guardado';
+      }).catch(function (e) { estadoG.textContent = 'No se pudo guardar'; throw e; });
+    }
+
+    function decidir(p, decision, valor) {
+      if (ocupado) return;
+      const antes = ['OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES'].indexOf(p.campo) !== -1 ? guardarDerivados() : Promise.resolve();
+      trabajar(antes.then(function () { return llamar('apiDecidirPropuesta', idSolicitud, p.id, decision, valor); }).then(function (r) {
+        if (r && r.estado === 'BORRADOR' && datos.solicitud.estado === 'CONFIRMADO') avisar('Cambiaste la solicitud después de confirmarla: tendrás que volver a confirmarla.', '');
+      }));
+    }
+
+    function responder(pregunta, estadoR, texto) {
+      if (ocupado) return;
+      trabajar(llamar('apiResponderPregunta', idSolicitud, pregunta.id, estadoR, texto));
+    }
+
+    /* ─────────── Tarjetas ─────────── */
+    function tarjetaPropuesta(p, conEdicion) {
+      const f = clonar('parte-propuesta');
+      const card = f.querySelector('.propuesta');
+      q('campo', card).textContent = NOMBRES_CAMPO_PROPUESTA[p.campo] || p.campo;
+      if (p.campo === 'ORDEN') {
+        q('bloque-antes', card).hidden = true;
+        mostrarValor(q('propuesta', card), p.propuesta);
+        q('justificacion', card).textContent = [p.evidencia, p.justificacion].filter(Boolean).join(' · ');
+      } else if (p.campo === 'RESPONSABLE') {
+        mostrarValor(q('antes', card), p.anterior || '');
+        mostrarValor(q('propuesta', card), p.propuesta);
+        q('justificacion', card).textContent = (p.evidencia ? 'Según tu texto: «' + p.evidencia + '». ' : '') + p.justificacion;
+      } else {
+        mostrarValor(q('antes', card), p.anterior);
+        mostrarValor(q('propuesta', card), p.propuesta);
+        q('justificacion', card).textContent = p.justificacion;
+      }
+      const botones = q('botones', card);
+      if (p.decision !== 'PENDIENTE' || !datos.puedeEditar) {
+        botones.hidden = true;
+        if (p.decision !== 'PENDIENTE') {
+          const chip = q('decision', card);
+          chip.textContent = NOMBRES_DECISION[p.decision] || p.decision;
+          chip.hidden = false;
+        }
+        return f;
+      }
+      const editar = card.querySelector('[data-accion="editar"]');
+      if (!conEdicion) editar.hidden = true;
+      if (p.campo === 'ORDEN') {
+        card.querySelector('[data-accion="aceptar"]').lastChild.textContent = 'Entendido';
+      }
+      const caja = q('edicion', card);
+      const area = caja.querySelector('textarea');
+      card.querySelector('[data-accion="aceptar"]').addEventListener('click', function () { decidir(p, 'ACEPTADA'); });
+      card.querySelector('[data-accion="descartar"]').addEventListener('click', function () { decidir(p, 'RECHAZADA'); });
+      editar.addEventListener('click', function () {
+        if (caja.hidden) {
+          area.value = Array.isArray(p.propuesta) ? p.propuesta.join('\n') : p.propuesta;
+          caja.hidden = false;
+          editar.querySelector('span').textContent = 'Guardar mi versión';
+          area.focus();
+        } else {
+          decidir(p, 'EDITADA', area.value);
+        }
+      });
+      return f;
+    }
+
+    function tarjetaPregunta(pregunta) {
+      const f = clonar('parte-pregunta');
+      const card = f.querySelector('.pregunta');
+      q('tipo', card).textContent = pregunta.nombreTipo;
+      q('donde', card).textContent = pregunta.numero ? 'Actividad ' + pregunta.numero : 'General';
+      q('texto', card).textContent = pregunta.pregunta;
+      const form = q('formulario', card);
+      const area = form.querySelector('textarea');
+      area.value = pregunta.respuesta;
+      if (pregunta.estado !== 'PENDIENTE') {
+        card.classList.add('respondida');
+        const r = q('respondida', card);
+        r.textContent = '';
+        r.appendChild(elemento('span', '', pregunta.estado === 'RESPONDIDA' ? pregunta.respuesta : (pregunta.estado === 'NO_APLICA' ? 'No aplica' : 'No lo sé')));
+        if (datos.puedeEditar) {
+          const cambiar = elemento('button', 'enlace', 'Cambiar');
+          cambiar.type = 'button';
+          cambiar.addEventListener('click', function () { form.hidden = !form.hidden; });
+          r.appendChild(cambiar);
+        }
+        r.hidden = false;
+        form.hidden = true;
+      }
+      if (!datos.puedeEditar) form.hidden = true;
+      form.querySelector('[data-accion="responder"]').addEventListener('click', function () { responder(pregunta, 'RESPONDIDA', area.value); });
+      form.querySelector('[data-accion="no-aplica"]').addEventListener('click', function () { responder(pregunta, 'NO_APLICA', ''); });
+      form.querySelector('[data-accion="no-se"]').addEventListener('click', function () { responder(pregunta, 'NO_LO_SE', ''); });
+      return f;
+    }
+
+    /* ─────────── Pintar ─────────── */
+    function pintar() {
+      contenido.textContent = '';
+      contenido.appendChild(clonar('parte-analisis'));
+      ui = contenido.querySelector('.analisis');
+      derivadosSucio = false;
+      q('folio').textContent = datos.solicitud.id;
+      q('nombre').textContent = datos.solicitud.nombre;
+      q('ultimo').textContent = datos.ultimoAnalisis ? 'Último análisis: ' + datos.ultimoAnalisis : 'Todavía no se ha analizado.';
+
+      const analizar = ui.querySelector('[data-accion="analizar"]');
+      analizar.hidden = !datos.puedeEditar;
+      analizar.disabled = !datos.iaActiva;
+      analizar.querySelector('span').textContent = datos.ultimoAnalisis ? 'Volver a analizar' : 'Analizar con IA';
+      analizar.addEventListener('click', function () {
+        if (ocupado) return;
+        const empezar = function () {
+          q('analizando').hidden = false;
+          analizar.disabled = true;
+          trabajar(guardarDerivados().then(function () { return llamar('apiAnalizar', idSolicitud); }).then(function (r) {
+            avisosIa = r.avisos || [];
+            avisar('La IA hizo ' + r.propuestas + (r.propuestas === 1 ? ' propuesta' : ' propuestas') + ' y ' + r.preguntas +
+              (r.preguntas === 1 ? ' pregunta.' : ' preguntas.'), 'exito');
+          }));
+        };
+        const pendientes = datos.propuestas.filter(function (p) { return p.decision === 'PENDIENTE'; }).length;
+        if (pendientes && !confirm('Tienes ' + pendientes + ' propuestas sin decidir. Al volver a analizar se reemplazan por nuevas. ¿Continuar?')) return;
+        empezar();
+      });
+      q('ia-apagada').hidden = datos.iaActiva || !datos.puedeEditar;
+      q('solo-lectura').hidden = datos.puedeEditar;
+
+      if (avisosIa.length) {
+        const caja = q('avisos');
+        caja.appendChild(elemento('strong', '', 'Lo que el sistema descartó de la IA:'));
+        caja.appendChild(lista(avisosIa));
+        caja.hidden = false;
+      }
+
+      /* Preguntas: pendientes primero. */
+      const preguntas = datos.preguntas.slice().sort(function (a, b) { return (a.estado !== 'PENDIENTE') - (b.estado !== 'PENDIENTE'); });
+      const pendientes = preguntas.filter(function (x) { return x.estado === 'PENDIENTE'; }).length;
+      if (preguntas.length) {
+        q('seccion-preguntas').hidden = false;
+        q('conteo-preguntas').textContent = pendientes ? pendientes + ' por responder' : 'Todas respondidas';
+        q('conteo-preguntas').className = 'chip ' + (pendientes ? 'dorado' : 'exito');
+        preguntas.forEach(function (x) { q('preguntas').appendChild(tarjetaPregunta(x)); });
+      }
+
+      /* Propuestas de actividades, agrupadas por actividad. */
+      const pendientesP = datos.propuestas.filter(function (p) { return p.decision === 'PENDIENTE'; });
+      const deActividad = pendientesP.filter(function (p) { return p.campo === 'TEXTO' || p.campo === 'RESPONSABLE'; });
+      if (deActividad.length) {
+        q('seccion-actividades').hidden = false;
+        datos.actividades.forEach(function (a) {
+          const suyas = deActividad.filter(function (p) { return p.idActividad === a.id; });
+          if (!suyas.length) return;
+          const grupo = elemento('div', 'grupo-actividad');
+          grupo.appendChild(elemento('h3', '', 'Actividad ' + a.numero));
+          suyas.forEach(function (p) { grupo.appendChild(tarjetaPropuesta(p, true)); });
+          q('propuestas-actividades').appendChild(grupo);
+        });
+      }
+      const orden = pendientesP.filter(function (p) { return p.campo === 'ORDEN'; });
+      if (orden.length) {
+        q('seccion-orden').hidden = false;
+        orden.forEach(function (p) { q('propuestas-orden').appendChild(tarjetaPropuesta(p, false)); });
+      }
+
+      /* Textos derivados: propuesta (si hay) y el campo editable. */
+      CAMPOS_DERIVADOS.forEach(function (c) {
+        const bloque = elemento('div', 'derivado');
+        bloque.appendChild(elemento('h3', '', c.titulo));
+        bloque.appendChild(elemento('p', 'nota', c.ayuda));
+        pendientesP.filter(function (p) { return p.campo === c.campo; }).forEach(function (p) { bloque.appendChild(tarjetaPropuesta(p, false)); });
+        const area = elemento('textarea');
+        area.name = c.clave;
+        area.rows = c.lista ? 4 : 3;
+        const valor = datos.derivados[c.clave];
+        area.value = Array.isArray(valor) ? valor.join('\n') : valor;
+        area.readOnly = !datos.puedeEditar;
+        area.placeholder = c.lista ? 'Un renglón por elemento' : 'Escríbelo aquí';
+        area.addEventListener('input', function () { derivadosSucio = true; q('guardado-derivados').textContent = 'Cambios sin guardar'; });
+        bloque.appendChild(area);
+        q('derivados').appendChild(bloque);
+      });
+      const guardarB = ui.querySelector('[data-accion="guardar-derivados"]');
+      guardarB.hidden = !datos.puedeEditar;
+      guardarB.addEventListener('click', function () { guardarDerivados().then(function () { avisar('Guardado.', 'exito'); }).catch(function (e) { avisar(e.message, 'error'); }); });
+
+      /* Lo ya decidido, para consulta. */
+      const decididas = datos.propuestas.filter(function (p) { return p.decision !== 'PENDIENTE'; });
+      if (decididas.length) {
+        q('seccion-decididas').hidden = false;
+        q('titulo-decididas').textContent = 'Ya decidiste ' + decididas.length + (decididas.length === 1 ? ' propuesta' : ' propuestas');
+        decididas.forEach(function (p) {
+          const fila = elemento('div', 'decidida');
+          fila.appendChild(elemento('span', 'chip ' + (p.decision === 'RECHAZADA' ? '' : 'exito'), NOMBRES_DECISION[p.decision] || p.decision));
+          fila.appendChild(elemento('span', '', (p.numero ? 'Actividad ' + p.numero + ' · ' : '') + (NOMBRES_CAMPO_PROPUESTA[p.campo] || p.campo)));
+          q('decididas').appendChild(fila);
+        });
+      }
+
+      ui.querySelector('[data-accion="ir-vista"]').addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':vista'); });
+      pintarIconos();
+    }
+
+    estado.alSalir = function () { return derivadosSucio ? guardarDerivados().catch(function () { /* se avisó */ }) : null; };
+
+    recargar().catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      const t = elemento('div', 'tarjeta');
+      t.appendChild(estadoVacio('triangle-alert', 'No se pudo abrir el análisis', e.message));
+      contenido.appendChild(t);
+      pintarIconos();
+    });
+  }
+</script>

@@ -184,7 +184,19 @@ function resumenSolicitudes_(filas, idUsuario, t, formatear) {
     });
 }
 
-/** Todo lo que necesita la pantalla de captura: datos generales, inicio, actividades con imágenes y fin. */
+/** Lista guardada como JSON en una celda (responsabilidades, definiciones); [] si está vacía o dañada. */
+function listaJson_(v) {
+  try {
+    const lista = JSON.parse(String(v || '[]'));
+    return Array.isArray(lista) ? lista.map(function (x) { return String(x).trim(); }).filter(Boolean) : [];
+  } catch (e) { return []; }
+}
+
+/**
+ * Todo lo que necesitan las pantallas de la solicitud: datos generales, inicio, actividades con
+ * imágenes, fin y los textos derivados (objetivo, alcance, responsabilidades, definiciones). El texto
+ * de cada actividad es el que irá al documento: el que aceptó de la IA (TEXTO_FINAL) o el suyo.
+ */
 function detalleSolicitud_(fila, actividades, imagenes, t, permiso, formatear) {
   const buscar = function (lista, campoId, id) { return lista.filter(function (r) { return r[campoId] === id; })[0] || {}; };
   const tipo = buscar(t.tipos, 'ID_TIPO', fila.ID_TIPO);
@@ -202,10 +214,14 @@ function detalleSolicitud_(fila, actividades, imagenes, t, permiso, formatear) {
     fechaElaboracion: marcaDe_(fila.FECHA_ELABORACION) ? formatear(new Date(marcaDe_(fila.FECHA_ELABORACION))) : '',
     codigo: texto(fila.CODIGO), version: texto(fila.VERSION),
     inicio: texto(fila.INICIO_PROCESO), fin: texto(fila.FIN_PROCESO),
+    objetivo: texto(fila.OBJETIVO), alcance: texto(fila.ALCANCE),
+    responsabilidades: listaJson_(fila.RESPONSABILIDADES), definiciones: listaJson_(fila.DEFINICIONES),
     marca: String(marcaDe_(fila.FECHA_ACTUALIZACION)), puedeEditar: permiso.editar,
+    huellaConfirmada: texto(fila.HUELLA_CONFIRMADA),
     actividades: actividades.filter(vivas).sort(function (a, b) { return Number(a.ORDEN) - Number(b.ORDEN); }).map(function (a) {
       return {
-        id: a.ID_ACTIVIDAD, texto: texto(a.TEXTO_ORIGINAL), responsable: texto(a.PUESTO_TEXTO),
+        id: a.ID_ACTIVIDAD, texto: texto(a.TEXTO_FINAL).trim() ? texto(a.TEXTO_FINAL) : texto(a.TEXTO_ORIGINAL),
+        responsable: texto(a.PUESTO_TEXTO), idPuesto: texto(a.ID_PUESTO), responsableConfirmado: esActivo_(a.RESPONSABLE_CONFIRMADO),
         imagenes: imagenes.filter(function (i) { return vivas(i) && i.ID_ACTIVIDAD === a.ID_ACTIVIDAD; })
           .sort(function (x, y) { return Number(x.ORDEN) - Number(y.ORDEN); })
           .map(function (i) { return { id: i.ID_IMAGEN, pie: texto(i.PIE), ancho: Number(i.ANCHO) || 0, alto: Number(i.ALTO) || 0 }; })
@@ -270,8 +286,13 @@ function planGuardarBorrador_(contenido, fila, actividades, imagenes) {
     vistas.push(a.id);
     const cambios = {};
     if (String(actual.ORDEN) !== orden) cambios.ORDEN = orden;
-    if (limpio(actual.TEXTO_ORIGINAL) !== texto) cambios.TEXTO_ORIGINAL = texto;
-    if (limpio(actual.PUESTO_TEXTO) !== responsable) cambios.PUESTO_TEXTO = responsable;
+    // El texto actual es el aceptado de la IA (TEXTO_FINAL) o el suyo. Si lo edita, vuelve a ser suyo.
+    const textoActual = limpio(actual.TEXTO_FINAL) || limpio(actual.TEXTO_ORIGINAL);
+    if (textoActual !== texto) { cambios.TEXTO_ORIGINAL = texto; cambios.TEXTO_FINAL = ''; }
+    // Si cambia el responsable, queda por cotejar y confirmar en el análisis.
+    if (limpio(actual.PUESTO_TEXTO) !== responsable) {
+      cambios.PUESTO_TEXTO = responsable; cambios.ID_PUESTO = ''; cambios.RESPONSABLE_CONFIRMADO = 'NO';
+    }
     if (Object.keys(cambios).length) plan.actividadesCambios.push({ _fila: actual._fila, cambios: cambios });
 
     // Sin la lista de imágenes no se toca ninguna (así un envío incompleto nunca borra imágenes).
@@ -328,22 +349,37 @@ function guardarBorrador_(sesion, idSolicitud, contenido) {
   plan.imagenesCambios.forEach(function (c) { actualizarFila_('Imagenes', c._fila, c.cambios); });
   plan.imagenesEliminar.forEach(function (f) { actualizarFila_('Imagenes', f, { ELIMINADA: 'SI' }); });
 
-  const cambios = Object.assign({ FECHA_ACTUALIZACION: ahora }, plan.solicitud);
-  if (plan.estadoNuevo) cambios.ESTADO = plan.estadoNuevo;
-  cambios.HUELLA_CONTENIDO = huellaSolicitud_(idSolicitud, fila, Object.assign({}, fila, cambios));
-  actualizarFila_('Solicitudes', fila._fila, cambios);
-  if (plan.estadoNuevo) {
-    registrarBitacora_(sesion, 'EDITAR_CONFIRMADO', 'Se editó después de confirmar: hay que volver a confirmar.', idSolicitud, fila.ESTADO, plan.estadoNuevo);
-  }
-  return { marca: String(ahora.getTime()), ids: ids, estado: cambios.ESTADO || fila.ESTADO };
+  const r = aplicarCambioContenido_(sesion, fila, plan.solicitud, 'Se editó la captura');
+  return { marca: r.marca, ids: ids, estado: r.estado };
 }
 
-/** Huella del contenido tal como quedó en la hoja (después de escribir). */
-function huellaSolicitud_(idSolicitud, fila, filaNueva) {
+/**
+ * Último paso de TODO cambio al contenido (captura, imágenes, decisiones sobre la IA, textos
+ * derivados): nueva marca, nueva huella y, si estaba CONFIRMADA, regresa a BORRADOR (§3.5).
+ */
+function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo) {
+  const ahora = marcaDeTiempo_(new Date());
+  const cambios = Object.assign({ FECHA_ACTUALIZACION: ahora }, cambiosSolicitud || {});
+  const invalida = fila.ESTADO === ESTADOS.CONFIRMADO;
+  if (invalida) cambios.ESTADO = ESTADOS.BORRADOR;
+  cambios.HUELLA_CONTENIDO = huellaSolicitud_(Object.assign({}, fila, cambios));
+  actualizarFila_('Solicitudes', fila._fila, cambios);
+  if (invalida) {
+    registrarBitacora_(sesion, 'EDITAR_CONFIRMADO', motivo + ' después de confirmar: hay que volver a confirmar.',
+      fila.ID_SOLICITUD, fila.ESTADO, cambios.ESTADO);
+  }
+  return { marca: String(ahora.getTime()), estado: cambios.ESTADO || fila.ESTADO };
+}
+
+/** Huella del contenido tal como quedó en la hoja (se llama después de escribir). */
+function huellaSolicitud_(filaNueva) {
   SpreadsheetApp.flush();
-  const det = detalleSolicitud_(filaNueva, leerTabla_('Actividades'), leerTabla_('Imagenes'),
-    { tipos: [], departamentos: [], areas: [], subareas: [] }, { editar: false }, function () { return ''; });
-  return huella_(contenidoCanonico_({ nombre: det.nombre, inicio: det.inicio, fin: det.fin, actividades: det.actividades }));
+  return huellaDeDetalle_(detalleSolicitud_(filaNueva, leerTabla_('Actividades'), leerTabla_('Imagenes'),
+    { tipos: [], departamentos: [], areas: [], subareas: [] }, { editar: false }, function () { return ''; }));
+}
+
+function huellaDeDetalle_(det) {
+  return huella_(contenidoCanonico_(det));
 }
 
 // ─────────────────────────────── Imágenes ───────────────────────────────
@@ -396,14 +432,8 @@ function subirImagen_(sesion, idSolicitud, datos) {
     ALTO: String(Math.round(datos.alto) || ''), PESO_KB: String(Math.round(app.getBytes().length / 1024)),
     PIE: '', ELIMINADA: 'NO', FECHA_CARGA: ahora
   });
-  const cambios = { FECHA_ACTUALIZACION: ahora };
-  if (fila.ESTADO === ESTADOS.CONFIRMADO) cambios.ESTADO = ESTADOS.BORRADOR;
-  cambios.HUELLA_CONTENIDO = huellaSolicitud_(idSolicitud, fila, Object.assign({}, fila, cambios));
-  actualizarFila_('Solicitudes', fila._fila, cambios);
-  if (cambios.ESTADO) {
-    registrarBitacora_(sesion, 'EDITAR_CONFIRMADO', 'Se agregó una imagen después de confirmar.', idSolicitud, fila.ESTADO, cambios.ESTADO);
-  }
-  return { id: id, marca: String(ahora.getTime()), estado: cambios.ESTADO || fila.ESTADO };
+  const r = aplicarCambioContenido_(sesion, fila, {}, 'Se agregó una imagen');
+  return { id: id, marca: r.marca, estado: r.estado };
 }
 
 /** Archivo de una imagen como data URL. cual: 'miniatura' | 'app'. */

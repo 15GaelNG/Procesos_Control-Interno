@@ -56,6 +56,10 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
 - `src/config/CatalogoInicial.gs` es **generado** (`npm run catalogo` desde
   `docs/insumos/catalogo-departamentos-areas.xlsx`); no se edita a mano. `tests/catalogo.test.js`
   falla si no coincide con el Excel.
+- Todo cambio al **contenido** de una solicitud termina en `aplicarCambioContenido_` (nueva marca, nueva
+  huella y, si estaba CONFIRMADA, regresa a BORRADOR). No escribir el contenido por otro camino.
+- Lo que va a la IA pasa antes por `ocultarDatosSensibles_`; lo que regresa, por `validarAnalisis_` y
+  `restaurarDatosSensibles_`. Nunca se usa directo.
 - Se lee y escribe por **nombre de columna** (`leerTabla_`, `agregarFila_`, `actualizarFila_`).
 - Nada se borra físicamente: `ACTIVO = NO` o `ELIMINADA = SI`.
 - Plantillas: el contrato con el generador son los marcadores `{{...}}` de `MARCADORES_PLANTILLA`

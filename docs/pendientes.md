@@ -33,6 +33,15 @@ En este orden:
    - [ ] Que en Drive aparezca `Solicitudes/SOL-…/Imágenes` con los tres archivos por imagen.
    - [ ] Abrir la solicitud como Paola (revisora) y Diego (Soporte CI): deben verla en modo consulta.
    - [ ] Abrir la misma solicitud en dos pestañas y escribir en las dos: la segunda debe pedir recargar.
+   - [ ] **IA (fase 3):** poner `Config → IA_ACTIVA = SI` en la base de pruebas. Con Ana: «Ir al
+     análisis» → «Analizar con IA»; revisar que las propuestas tengan sentido y no inventen, responder
+     las preguntas (también «No aplica» / «No lo sé»), aceptar, editar y descartar propuestas.
+   - [ ] En la hoja `UsoIA` debe aparecer cada llamada; en `PropuestasIA` y `Aclaraciones`, lo decidido.
+   - [ ] Escribir un correo o un monto en una actividad: la propuesta de la IA debe traerlo tal cual
+     (a Gemini solo le llega una marca como `[CORREO 1]`).
+   - [ ] Vista previa: que se vea como el documento y que **confirme**; luego editar algo y ver que
+     regresa a borrador.
+   - [ ] Con `IA_ACTIVA = NO`: el botón de analizar se deshabilita y todo se puede escribir a mano.
 5. Mandar capturas de lo que se vea raro.
 
 ## 2. Por recibir de Procesos

@@ -55,7 +55,10 @@ Ni Claude ni nadie más puede crear la cuenta o la llave por ti: queda a nombre 
   pueda sustentar se vuelve **pregunta**, no dato (requerimiento §3.3: la IA nunca inventa).
 - **Los puestos se cotejan contra el catálogo** `Puestos`. Si no hay coincidencia clara, se pregunta.
 - **La IA propone, la persona decide.** Nada entra al documento sin aceptación; todo queda en
-  `PropuestasIA`.
+  `PropuestasIA`. Cómo se ve y se usa en la app: [analisis-ia.md](analisis-ia.md).
+- **Datos sensibles fuera:** antes de cada envío, `ocultarDatosSensibles_` (`src/utils/Privacidad.gs`)
+  cambia correos, CURP, RFC, cuentas o tarjetas, teléfonos y montos por marcas (`[CORREO 1]`); la
+  respuesta se restaura. Probado en `tests/analisis-solicitud.test.js`.
 - **Nunca reordena actividades sola:** solo sugiere, con el porqué (§3.4).
 - Cada llamada se registra en `UsoIA`.
 
@@ -92,6 +95,9 @@ Lo que responde la IA **nunca se usa directo**. `validarAnalisis_()`:
 - Avisa si la redacción propuesta trae **cifras que no estaban** en el texto original (plazos, montos).
 - Solo deja responsabilidades de puestos confirmados en sus actividades, y definiciones de términos
   que sí aparecen en el texto.
+- Si el colaborador ya indicó el responsable de una actividad, ese manda (solo se coteja con el
+  catálogo) y no se pregunta por él.
+- No repite preguntas que el colaborador ya respondió (se le mandan sus respuestas a la IA).
 - Limpia las preguntas: sin duplicados, con tipos válidos y ligadas solo a actividades existentes.
 
 ## Prueba de concepto (fase 0)

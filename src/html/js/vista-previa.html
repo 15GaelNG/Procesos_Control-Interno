@@ -1,0 +1,146 @@
+<script>
+  /*
+   * Paso 5 · Vista previa y confirmación (apiVistaPrevia, apiConfirmar; requerimiento §3.4 y §3.5).
+   * Muestra el borrador integral en el orden de la plantilla (las secciones opcionales vacías se quitan
+   * y las demás se renumeran, como en el documento). La confirmación manda la huella de lo que se ve:
+   * si algo cambió mientras tanto, el servidor no confirma.
+   */
+  function verImagenGrande(idImagen, fuente, pie) {
+    const f = clonar('parte-visor');
+    const visor = f.querySelector('.visor');
+    const img = visor.querySelector('img');
+    img.src = fuente || '';
+    visor.querySelector('[data-campo="pie"]').textContent = pie || '';
+    const cerrar = function () { visor.remove(); document.removeEventListener('keydown', teclas); };
+    const teclas = function (e) { if (e.key === 'Escape') cerrar(); };
+    visor.addEventListener('click', function (e) { if (e.target === visor || e.target.closest('[data-accion="cerrar"]')) cerrar(); });
+    document.addEventListener('keydown', teclas);
+    document.body.appendChild(f);
+    pintarIconos();
+    llamar('apiImagen', idImagen).then(function (url) { if (visor.isConnected && url) img.src = url; }).catch(function () { /* se queda la miniatura */ });
+  }
+
+  function iniciarVistaPrevia(raiz, idSolicitud) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    let d = null;
+
+    function seccion(numero, titulo) {
+      const s = elemento('section', 'documento-seccion');
+      s.appendChild(elemento('h2', '', numero + '. ' + titulo));
+      return s;
+    }
+    function texto(valor, vacio) {
+      return valor ? elemento('p', 'documento-texto', valor) : elemento('p', 'nota falta', vacio);
+    }
+    function renglones(valores) {
+      const ul = elemento('ul', 'documento-lista');
+      valores.forEach(function (v) {
+        const li = elemento('li');
+        const i = v.indexOf(':');
+        if (i > 0 && i < 80) { li.appendChild(elemento('strong', '', v.slice(0, i + 1))); li.appendChild(document.createTextNode(v.slice(i + 1))); }
+        else li.textContent = v;
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+
+    function pintar() {
+      contenido.textContent = '';
+      contenido.appendChild(clonar('parte-vista-previa'));
+      const ui = contenido.querySelector('.vista-previa');
+      const q = function (c) { return ui.querySelector('[data-campo="' + c + '"]'); };
+      q('tipo').textContent = d.tipoDocumento + ' · ' + d.id;
+      q('nombre').textContent = d.nombre;
+      [['Código', d.codigo || (d.prefijo + '-' + d.cuerpo + '-___ (lo asigna Procesos)')], ['Departamento', d.departamento + ' / ' + d.area],
+        ['Versión', d.version || 'Se asigna al autorizarse'], ['Elabora', d.elaborador + (d.puesto ? ' · ' + d.puesto : '')]].forEach(function (x) {
+        const div = elemento('div');
+        div.appendChild(elemento('span', '', x[0]));
+        div.appendChild(elemento('strong', '', x[1]));
+        q('datos').appendChild(div);
+      });
+
+      const secciones = q('secciones');
+      let n = 0;
+      let s = seccion(++n, 'Objetivo'); s.appendChild(texto(d.objetivo, 'Falta el objetivo.')); secciones.appendChild(s);
+      s = seccion(++n, 'Alcance'); s.appendChild(texto(d.alcance, 'Falta el alcance.')); secciones.appendChild(s);
+      s = seccion(++n, 'Puestos involucrados');
+      s.appendChild(d.puestos.length ? renglones(d.puestos) : texto('', 'Aún no hay responsables en las actividades.'));
+      secciones.appendChild(s);
+      if (d.responsabilidades.length) { s = seccion(++n, 'Responsabilidades'); s.appendChild(renglones(d.responsabilidades)); secciones.appendChild(s); }
+      if (d.definiciones.length) { s = seccion(++n, 'Definiciones'); s.appendChild(renglones(d.definiciones)); secciones.appendChild(s); }
+      s = seccion(++n, 'Desarrollo');
+      if (d.inicio) s.appendChild(elemento('p', 'documento-contexto', 'Inicia: ' + d.inicio));
+      d.actividades.forEach(function (a, i) {
+        const act = elemento('div', 'documento-actividad');
+        act.appendChild(elemento('h3', '', 'Actividad ' + (i + 1) + (a.responsable ? ' · ' + a.responsable : '')));
+        act.appendChild(texto(a.texto, 'Actividad vacía.'));
+        if (!a.responsable) act.appendChild(elemento('p', 'nota falta', 'Falta quién la realiza.'));
+        a.imagenes.forEach(function (im, j) {
+          const fig = elemento('figure', 'documento-imagen');
+          const boton = elemento('button', 'imagen-vista');
+          boton.type = 'button';
+          const img = elemento('img');
+          img.alt = im.pie || 'Imagen ' + (i + 1) + '.' + (j + 1);
+          img.dataset.imagen = im.id;
+          boton.appendChild(img);
+          boton.addEventListener('click', function () { verImagenGrande(im.id, img.src, im.pie); });
+          fig.appendChild(boton);
+          fig.appendChild(elemento('figcaption', '', 'Imagen ' + (i + 1) + '.' + (j + 1) + (im.pie ? ' – ' + im.pie : '')));
+          act.appendChild(fig);
+        });
+        s.appendChild(act);
+      });
+      if (d.fin) s.appendChild(elemento('p', 'documento-contexto', 'Termina: ' + d.fin));
+      secciones.appendChild(s);
+      secciones.appendChild(elemento('p', 'nota', 'El control de cambios y la tabla de firmas (elaboró, revisó y autorizó) los completa el sistema al generar el documento.'));
+
+      q('confirmada').hidden = !d.confirmada;
+      if (d.puedeEditar && d.faltantes.length) {
+        q('faltantes').hidden = false;
+        d.faltantes.forEach(function (f) { q('lista-faltantes').appendChild(elemento('li', '', f)); });
+      }
+      q('confirmar').hidden = !d.puedeConfirmar;
+      ui.querySelectorAll('[data-accion="ir-desarrollo"]').forEach(function (b) { b.addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':desarrollo'); }); });
+      ui.querySelectorAll('[data-accion="ir-analisis"]').forEach(function (b) { b.addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':analisis'); }); });
+      const ajustes = ui.querySelector('[data-accion="ajustes"]');
+      if (ajustes) ajustes.addEventListener('click', function () { q('ajustes').hidden = !q('ajustes').hidden; });
+      const confirmar = ui.querySelector('[data-accion="confirmar"]');
+      confirmar.addEventListener('click', function () {
+        confirmar.disabled = true;
+        confirmar.querySelector('span').textContent = 'Confirmando…';
+        llamar('apiConfirmar', idSolicitud, d.huella).then(function () {
+          avisar('Confirmaste el documento. Lo siguiente es enviarlo a revisión de Procesos.', 'exito');
+          return cargar();
+        }).catch(function (e) {
+          avisar(e.message, 'error');
+          confirmar.disabled = false;
+          confirmar.querySelector('span').textContent = 'Sí, lo describe correctamente';
+        });
+      });
+      pintarIconos();
+
+      if (d.actividades.some(function (a) { return a.imagenes.length; })) {
+        llamar('apiMiniaturas', idSolicitud).then(function (m) {
+          ui.querySelectorAll('img[data-imagen]').forEach(function (img) { if (m[img.dataset.imagen]) img.src = m[img.dataset.imagen]; });
+        }).catch(function () { /* sin miniaturas */ });
+      }
+    }
+
+    function cargar() {
+      return llamar('apiVistaPrevia', idSolicitud).then(function (r) {
+        if (!contenido.isConnected) return;
+        d = r;
+        pintar();
+      });
+    }
+
+    cargar().catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      const t = elemento('div', 'tarjeta');
+      t.appendChild(estadoVacio('triangle-alert', 'No se pudo abrir la vista previa', e.message));
+      contenido.appendChild(t);
+      pintarIconos();
+    });
+  }
+</script>

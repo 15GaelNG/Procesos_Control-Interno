@@ -11,7 +11,11 @@
  *    se descarta y se pregunta «¿Qué puesto realiza esta actividad?».
  *  - Un puesto solo se liga al catálogo si el ID existe; si el nombre no coincide claramente con el
  *    catálogo, queda marcado para que el colaborador lo confirme.
- *  - Si la redacción propuesta trae cifras que no estaban en el texto original, se avisa.
+ *  - Si la redacción propuesta trae cifras que no estaban en el texto original (ni en las respuestas
+ *    del colaborador a esa actividad), se avisa.
+ *  - Si el colaborador ya indicó el responsable de una actividad, ese manda: no se toma el de la IA ni
+ *    se pregunta (solo se coteja con el catálogo).
+ *  - No se repiten preguntas que el colaborador ya respondió (entrada.respuestas).
  */
 
 /**
@@ -33,28 +37,42 @@ function validarAnalisis_(entrada, salida) {
   }).length;
   if (sobrantes) avisos.push('La IA propuso ' + sobrantes + ' actividad(es) que no existían; se descartaron.');
 
+  const respuestas = Array.isArray(entrada.respuestas) ? entrada.respuestas : [];
+  const yaRespondida = function (q) {
+    return respuestas.some(function (r) {
+      return normalizar_(r.pregunta) === normalizar_(q.pregunta) ||
+        (q.tipo !== 'otro' && r.tipo === q.tipo && (r.idActividad || null) === (q.idActividad || null));
+    });
+  };
   const preguntas = [];
+  const preguntarResponsable = function (id) {
+    const q = { idActividad: id, tipo: 'responsable', pregunta: PREGUNTA_RESPONSABLE };
+    if (!yaRespondida(q)) preguntas.push(q);
+  };
   const actividades = entrada.actividades.map(function (original) {
     const propuesta = porId[original.id];
+    const indicado = original.responsableIndicado ? responsableIndicado_(original.responsableIndicado, puestos) : null;
     if (!propuesta) {
       avisos.push('La IA no devolvió la actividad ' + original.id + '; se conserva tal como la escribiste.');
-      preguntas.push({ idActividad: original.id, tipo: 'responsable', pregunta: PREGUNTA_RESPONSABLE });
+      if (!indicado) preguntarResponsable(original.id);
       return { id: original.id, textoOriginal: original.texto, textoPropuesto: original.texto, cambios: '',
-        responsable: null, cifrasNuevas: [] };
+        responsable: indicado, cifrasNuevas: [] };
     }
     const textoPropuesto = texto_(propuesta.texto_propuesto) || original.texto;
-    const cifrasNuevas = cifrasNuevas_(original.texto, textoPropuesto);
+    const contexto = [original.texto].concat(respuestas.filter(function (q) { return q.idActividad === original.id; })
+      .map(function (q) { return q.respuesta; })).join(' ');
+    const cifrasNuevas = cifrasNuevas_(contexto, textoPropuesto);
     if (cifrasNuevas.length) {
       avisos.push('La redacción propuesta para ' + original.id + ' menciona datos que no estaban en tu texto (' +
         cifrasNuevas.join(', ') + '). Revísala antes de aceptarla.');
     }
-    const responsable = validarResponsable_(propuesta.responsable, original.texto, puestos);
+    const responsable = indicado || validarResponsable_(propuesta.responsable, original.texto, puestos);
     if (!responsable) {
       if (propuesta.responsable && propuesta.responsable.puesto) {
         avisos.push('Se descartó el responsable «' + propuesta.responsable.puesto + '» de ' + original.id +
           ' porque tu texto no lo menciona.');
       }
-      preguntas.push({ idActividad: original.id, tipo: 'responsable', pregunta: PREGUNTA_RESPONSABLE });
+      preguntarResponsable(original.id);
     }
     return { id: original.id, textoOriginal: original.texto, textoPropuesto: textoPropuesto,
       cambios: texto_(propuesta.cambios), responsable: responsable, cifrasNuevas: cifrasNuevas };
@@ -65,10 +83,15 @@ function validarAnalisis_(entrada, salida) {
     if (!pregunta) return;
     const idActividad = q.id_actividad && ids.indexOf(q.id_actividad) !== -1 ? q.id_actividad : null;
     const tipo = TIPOS_PREGUNTA.indexOf(q.tipo) !== -1 ? q.tipo : 'otro';
-    // La pregunta de responsable la pone el validador; no se duplica.
-    if (tipo === 'responsable' && idActividad && preguntas.some(function (p) { return p.idActividad === idActividad && p.tipo === 'responsable'; })) return;
+    // La pregunta de responsable la pone el validador; no se duplica ni se pregunta si ya se indicó.
+    if (tipo === 'responsable' && idActividad) {
+      const act = actividades.filter(function (a) { return a.id === idActividad; })[0];
+      if ((act && act.responsable) || preguntas.some(function (p) { return p.idActividad === idActividad && p.tipo === 'responsable'; })) return;
+    }
     if (preguntas.some(function (p) { return normalizar_(p.pregunta) === normalizar_(pregunta); })) return;
-    preguntas.push({ idActividad: idActividad, tipo: tipo, pregunta: pregunta });
+    const nueva = { idActividad: idActividad, tipo: tipo, pregunta: pregunta };
+    if (yaRespondida(nueva)) return;
+    preguntas.push(nueva);
   });
 
   const analisis = {
@@ -129,6 +152,17 @@ function validarResponsable_(r, textoActividad, puestos) {
   };
 }
 
+/** El responsable que escribió el colaborador, cotejado con el catálogo (si no coincide, se marca por confirmar). */
+function responsableIndicado_(indicado, puestos) {
+  const t = texto_(indicado);
+  const exacto = puestos.filter(function (p) { return nombresDelPuesto_(p).some(function (n) { return normalizar_(n) === normalizar_(t); }); });
+  const mencionados = exacto.length ? exacto : puestos.filter(function (p) {
+    return nombresDelPuesto_(p).some(function (n) { return aparece_(n, t); });
+  });
+  const p = mencionados.length === 1 ? mencionados[0] : null;
+  return { puesto: p ? p.nombre : t, idPuesto: p ? p.id : null, evidencia: t, requiereConfirmacion: !p, indicado: true };
+}
+
 function idPuestoValido_(id, puestos) {
   return id && puestos.some(function (p) { return p.id === id; }) ? id : null;
 }
@@ -152,7 +186,8 @@ function cifrasNuevas_(original, propuesto) {
 }
 
 function textoCompleto_(e) {
-  return [e.inicio, e.fin].concat(e.actividades.map(function (a) { return a.texto; })).join(' ');
+  return [e.inicio, e.fin].concat(e.actividades.map(function (a) { return a.texto; }))
+    .concat((e.respuestas || []).map(function (q) { return q.respuesta; })).join(' ');
 }
 
 /** ¿El fragmento aparece en el texto? Sin importar mayúsculas, acentos, puntuación ni espacios. */

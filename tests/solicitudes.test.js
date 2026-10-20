@@ -196,11 +196,39 @@ test('guardar: actividad nueva, texto editado, reordenar y fin del proceso', fun
   const p = plano(planGuardar(c));
   assert.deepStrictEqual(p.actividadesNuevas, [{ clave: 'n1', ORDEN: '3', TEXTO_ORIGINAL: 'Notifica al área', PUESTO_TEXTO: 'Jefe de compras' }]);
   assert.deepStrictEqual(p.actividadesCambios, [
-    { _fila: 2, cambios: { ORDEN: '1', TEXTO_ORIGINAL: 'Captura los datos en SAP' } },
+    { _fila: 2, cambios: { ORDEN: '1', TEXTO_ORIGINAL: 'Captura los datos en SAP', TEXTO_FINAL: '' } },
     { _fila: 3, cambios: { ORDEN: '2' } }
   ]);
   assert.deepStrictEqual(p.solicitud, { FIN_PROCESO: 'Cuando el proveedor queda activo' });
   assert.deepStrictEqual(p.actividadesEliminar, []);
+});
+
+test('detalle: muestra el texto aceptado de la IA (TEXTO_FINAL) y los textos derivados', function () {
+  const acts = ACTIVIDADES.map(function (a) { return Object.assign({}, a); });
+  acts[1].TEXTO_FINAL = 'El Auxiliar de Compras recibe la solicitud.';
+  const fila = Object.assign({}, FILA, { OBJETIVO: 'Dar de alta proveedores', RESPONSABILIDADES: '["Auxiliar: recibe"]', DEFINICIONES: 'dañado' });
+  const d = plano(gs.detalleSolicitud_(fila, acts, IMAGENES, tablas(), { editar: true }, function () { return ''; }));
+  assert.strictEqual(d.actividades[0].texto, 'El Auxiliar de Compras recibe la solicitud.');
+  assert.deepStrictEqual([d.objetivo, d.responsabilidades, d.definiciones], ['Dar de alta proveedores', ['Auxiliar: recibe'], []]);
+});
+
+test('guardar: si edita a mano un texto que había aceptado de la IA, vuelve a ser suyo', function () {
+  const acts = ACTIVIDADES.map(function (a) { return Object.assign({}, a); });
+  acts[1].TEXTO_FINAL = 'El Auxiliar de Compras recibe la solicitud.';
+  const igual = contenido();
+  igual.actividades[0] = Object.assign({}, igual.actividades[0], { texto: 'El Auxiliar de Compras recibe la solicitud.' });
+  assert.strictEqual(gs.planGuardarBorrador_(igual, FILA, acts, IMAGENES).sinCambios, true, 'el texto aceptado no cuenta como cambio');
+  const editado = contenido();
+  editado.actividades[0] = Object.assign({}, editado.actividades[0], { texto: 'El auxiliar recibe la solicitud por correo.' });
+  const p = plano(gs.planGuardarBorrador_(editado, FILA, acts, IMAGENES));
+  assert.deepStrictEqual(p.actividadesCambios, [{ _fila: 3, cambios: { TEXTO_ORIGINAL: 'El auxiliar recibe la solicitud por correo.', TEXTO_FINAL: '' } }]);
+});
+
+test('guardar: cambiar el responsable lo deja por confirmar', function () {
+  const c = contenido();
+  c.actividades[0] = Object.assign({}, c.actividades[0], { responsable: 'Jefe de compras' });
+  const p = plano(planGuardar(c));
+  assert.deepStrictEqual(p.actividadesCambios, [{ _fila: 3, cambios: { PUESTO_TEXTO: 'Jefe de compras', ID_PUESTO: '', RESPONSABLE_CONFIRMADO: 'NO' } }]);
 });
 
 test('guardar: quitar una actividad la marca eliminada junto con sus imágenes (nada se borra)', function () {
@@ -243,6 +271,15 @@ test('guardar: respeta los topes de captura', function () {
 });
 
 // ─────────────────────────────── Huella ───────────────────────────────
+
+test('huella: cuenta objetivo, alcance, responsabilidades y definiciones', function () {
+  const base = { nombre: 'Alta', objetivo: 'A', alcance: 'B', responsabilidades: ['X: y'], definiciones: [], actividades: [] };
+  ['objetivo', 'alcance'].forEach(function (k) {
+    const otro = Object.assign({}, base); otro[k] = 'cambio';
+    assert.notStrictEqual(gs.contenidoCanonico_(base), gs.contenidoCanonico_(otro), k);
+  });
+  assert.notStrictEqual(gs.contenidoCanonico_(base), gs.contenidoCanonico_(Object.assign({}, base, { definiciones: ['SAP: sistema'] })));
+});
 
 test('huella: los espacios de más no cuentan; cambiar un texto, un pie o el orden sí', function () {
   const base = { nombre: 'Alta', inicio: 'Cuando  llega', fin: '', actividades: [{ texto: 'Uno', responsable: '', imagenes: [{ id: 'IMG-1', pie: 'a' }] }, { texto: 'Dos' }] };

@@ -10,10 +10,6 @@
    */
   function iniciarEditor(raiz, idSolicitud) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
-    const volver = raiz.querySelector('[data-accion="volver"]');
-    const destino = modulo('mis-solicitudes') ? 'mis-solicitudes' : 'inicio';
-    volver.lastChild.textContent = destino === 'inicio' ? 'Inicio' : 'Mis solicitudes';
-    volver.addEventListener('click', function () { ir(destino, true); });
 
     let sol = null;
     let editor = null;
@@ -101,8 +97,12 @@
       if (antes === 'CONFIRMADO') avisar('Cambiaste la solicitud después de confirmarla: tendrás que volver a confirmarla.', '');
     }
 
-    /* Al salir de la pantalla, lo pendiente se guarda de inmediato. */
-    estado.alSalir = function () { if (sucio) guardar(); };
+    /* Al salir de la pantalla, lo pendiente se guarda de inmediato y se espera (también las imágenes que suben). */
+    estado.alSalir = function () {
+      if (detenido) return null;
+      if (sucio) guardar();
+      return cola;
+    };
     window.onbeforeunload = function (e) {
       if (!editor || !editor.isConnected || !sucio) return undefined;
       e.preventDefault();
@@ -337,6 +337,10 @@
       inicio.readOnly = fin.readOnly = !sol.puedeEditar;
       inicio.addEventListener('input', function () { sol.inicio = inicio.value; marcarCambio(); });
       fin.addEventListener('input', function () { sol.fin = fin.value; marcarCambio(); });
+
+      editor.querySelector('[data-accion="ir-analisis"]').addEventListener('click', function () {
+        ir('solicitud', true, idSolicitud + ':analisis');
+      });
 
       const agregar = editor.querySelector('[data-accion="agregar"]');
       agregar.hidden = !sol.puedeEditar;

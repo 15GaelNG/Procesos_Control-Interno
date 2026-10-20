@@ -1,0 +1,108 @@
+<template id="parte-analisis">
+  <div class="analisis">
+    <section class="tarjeta analisis-encabezado">
+      <div>
+        <span class="folio" data-campo="folio"></span>
+        <h1 data-campo="nombre"></h1>
+        <p class="nota" data-campo="explicacion">La IA revisa la redacción de cada actividad, identifica quién la realiza, propone el objetivo, el alcance y las responsabilidades, y te pregunta lo que falte. <strong>Nunca inventa información ni cambia el orden</strong>: tú decides qué aceptar.</p>
+        <p class="nota" data-campo="ultimo"></p>
+      </div>
+      <button type="button" class="boton" data-accion="analizar"><i data-lucide="sparkles" class="ico"></i><span>Analizar con IA</span></button>
+    </section>
+
+    <div class="aviso-consulta" data-campo="ia-apagada" hidden>
+      <i data-lucide="power-off" class="ico"></i>
+      <span>La IA está apagada en este momento. Puedes escribir tú el objetivo, el alcance y las responsabilidades aquí abajo, y los responsables en el paso 3.</span>
+    </div>
+    <div class="aviso-consulta" data-campo="solo-lectura" hidden>
+      <i data-lucide="eye" class="ico"></i><span>Modo consulta: solo quien elaboró la solicitud puede decidir sobre las propuestas.</span>
+    </div>
+    <div class="analizando tarjeta" data-campo="analizando" hidden>
+      <span class="vacio-icono"><i data-lucide="sparkles" class="ico girando-lento"></i></span>
+      <div><strong>Analizando tu proceso…</strong><p class="nota">Puede tardar hasta un minuto. No cierres esta pantalla.</p></div>
+    </div>
+    <div class="avisos-ia" data-campo="avisos" hidden></div>
+
+    <section class="tarjeta seccion-analisis" data-campo="seccion-preguntas" hidden>
+      <h2><i data-lucide="circle-help" class="ico"></i>Preguntas para completar tu proceso <span class="chip dorado" data-campo="conteo-preguntas"></span></h2>
+      <p class="nota">Contéstalas con lo que sepas. Si no aplica a tu proceso o no lo sabes, elígelo: también cuenta como respuesta.</p>
+      <div class="lista-preguntas" data-campo="preguntas"></div>
+    </section>
+
+    <section class="tarjeta seccion-analisis" data-campo="seccion-actividades" hidden>
+      <h2><i data-lucide="list-checks" class="ico"></i>Propuestas para tus actividades</h2>
+      <div data-campo="propuestas-actividades"></div>
+    </section>
+
+    <section class="tarjeta seccion-analisis" data-campo="seccion-orden" hidden>
+      <h2><i data-lucide="arrow-down-up" class="ico"></i>Sugerencias sobre el orden</h2>
+      <p class="nota">La IA no cambia el orden. Si estás de acuerdo, reordena las actividades en el paso 3.</p>
+      <div data-campo="propuestas-orden"></div>
+    </section>
+
+    <section class="tarjeta seccion-analisis">
+      <h2><i data-lucide="file-text" class="ico"></i>Objetivo, alcance, responsabilidades y definiciones</h2>
+      <p class="nota">Van al inicio del documento. Puedes usar lo que propone la IA y luego ajustarlo, o escribirlo tú.</p>
+      <div class="derivados" data-campo="derivados"></div>
+      <div class="acciones-formulario">
+        <span class="estado-guardado" data-campo="guardado-derivados"></span>
+        <button type="button" class="boton" data-accion="guardar-derivados"><i data-lucide="save" class="ico"></i><span>Guardar</span></button>
+      </div>
+    </section>
+
+    <details class="tarjeta decididas" data-campo="seccion-decididas" hidden>
+      <summary data-campo="titulo-decididas"></summary>
+      <div data-campo="decididas"></div>
+    </details>
+
+    <div class="tarjeta siguiente-paso">
+      <div>
+        <strong>Siguiente paso: vista previa y confirmación</strong>
+        <p class="nota">Verás el documento completo tal como irá y confirmarás si describe tu proceso.</p>
+      </div>
+      <button type="button" class="boton" data-accion="ir-vista"><span>Ver la vista previa</span><i data-lucide="arrow-right" class="ico"></i></button>
+    </div>
+  </div>
+</template>
+
+<template id="parte-pregunta">
+  <article class="pregunta">
+    <div class="pregunta-cabeza">
+      <span class="chip" data-campo="tipo"></span>
+      <span class="nota" data-campo="donde"></span>
+      <span class="chip exito" data-campo="estado" hidden></span>
+    </div>
+    <p class="pregunta-texto" data-campo="texto"></p>
+    <div data-campo="respondida" class="pregunta-respuesta" hidden></div>
+    <div data-campo="formulario" class="pregunta-formulario">
+      <textarea rows="2" maxlength="2000" placeholder="Tu respuesta"></textarea>
+      <div class="pregunta-botones">
+        <button type="button" class="boton" data-accion="responder">Guardar respuesta</button>
+        <button type="button" class="boton secundario" data-accion="no-aplica">No aplica</button>
+        <button type="button" class="boton secundario" data-accion="no-se">No lo sé</button>
+      </div>
+    </div>
+  </article>
+</template>
+
+<template id="parte-propuesta">
+  <article class="propuesta">
+    <div class="propuesta-cabeza">
+      <span class="chip" data-campo="campo"></span>
+      <span class="chip dorado" data-campo="decision" hidden></span>
+    </div>
+    <div class="comparacion">
+      <div class="antes" data-campo="bloque-antes"><span>Ahora</span><div data-campo="antes"></div></div>
+      <div class="despues"><span>Propuesta</span><div data-campo="propuesta"></div></div>
+    </div>
+    <p class="nota" data-campo="justificacion"></p>
+    <div class="edicion" data-campo="edicion" hidden>
+      <textarea rows="3"></textarea>
+    </div>
+    <div class="propuesta-botones" data-campo="botones">
+      <button type="button" class="boton" data-accion="aceptar"><i data-lucide="check" class="ico"></i>Aceptar</button>
+      <button type="button" class="boton secundario" data-accion="editar"><i data-lucide="pencil" class="ico"></i><span>Editar</span></button>
+      <button type="button" class="boton secundario" data-accion="descartar"><i data-lucide="x" class="ico"></i>Descartar</button>
+    </div>
+  </article>
+</template>

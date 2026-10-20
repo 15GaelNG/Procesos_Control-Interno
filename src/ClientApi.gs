@@ -108,6 +108,55 @@ function apiImagen(comoUsuario, idImagen) {
   return imagenCompleta_(sesionEfectiva_(comoUsuario), idImagen);
 }
 
+// ─────────────────────────────── Análisis con IA y confirmación (fase 3) ───────────────────────────────
+
+/** Paso 4: actividades, propuestas y preguntas vigentes, y textos derivados. */
+function apiAnalisis(comoUsuario, idSolicitud) {
+  const sesion = sesionEfectiva_(comoUsuario);
+  const fila = filaSolicitud_(idSolicitud);
+  const permiso = permisoSolicitud_(sesion, fila);
+  if (!permiso.ver) throw new Error('No puedes ver esta solicitud.');
+  const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
+  const estado = estadoAnalisis_(det, leerTabla_('PropuestasIA'), leerTabla_('Aclaraciones'), obtenerConfig_('IA_ACTIVA', 'NO') === 'SI', formatoFecha_);
+  estado.solicitud = { id: det.id, nombre: det.nombre, estado: det.estado, esSuya: fila.ELABORO_ID === sesion.idUsuario };
+  return estado;
+}
+
+/** Manda el proceso a la IA (puede tardar hasta un minuto). */
+function apiAnalizar(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return analizarSolicitud_(sesion, idSolicitud);
+}
+
+/** decision: ACEPTADA | EDITADA | RECHAZADA. */
+function apiDecidirPropuesta(comoUsuario, idSolicitud, idPropuesta, decision, valor) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor);
+}
+
+/** estado: RESPONDIDA | NO_APLICA | NO_LO_SE. */
+function apiResponderPregunta(comoUsuario, idSolicitud, idAclaracion, estado, respuesta) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return responderAclaracion_(sesion, idSolicitud, idAclaracion, estado, respuesta);
+}
+
+/** Objetivo, alcance, responsabilidades y definiciones escritos a mano. */
+function apiGuardarDerivados(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return guardarDerivados_(sesion, idSolicitud, datos);
+}
+
+/** Paso 5: el borrador integral, lo que falta y la huella de lo que se está viendo. */
+function apiVistaPrevia(comoUsuario, idSolicitud) {
+  return vistaPrevia_(sesionEfectiva_(comoUsuario), idSolicitud);
+}
+
+/** «¿El documento describe correctamente cómo se realiza el proceso?» → Sí. */
+function apiConfirmar(comoUsuario, idSolicitud, huella) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return confirmarSolicitud_(sesion, idSolicitud, huella);
+}
+
 function apiCancelarSolicitud(comoUsuario, idSolicitud, motivo) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
   return cancelarSolicitud_(sesion, idSolicitud, motivo);

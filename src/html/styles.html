@@ -391,19 +391,20 @@
   .aviso-flotante.saliendo { opacity: 0; transform: translateY(6px); }
 
   /* ─────────── Captura (fase 2) ─────────── */
-  .pasos-captura { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
-  .pasos-captura li {
+  .pasos-captura { display: flex; gap: 8px; flex-wrap: wrap; }
+  .paso-captura {
     display: flex; align-items: center; gap: 8px; padding: 7px 12px 7px 7px; border-radius: 999px;
     background: var(--superficie); border: 1px solid var(--borde); font-size: 12.5px; color: var(--texto-suave); font-weight: 500;
+    font-family: inherit;
   }
-  .pasos-captura li span {
+  button.paso-captura:hover { border-color: var(--dorado); color: var(--texto); }
+  .paso-captura > span {
     width: 22px; height: 22px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
     background: var(--fondo); font-size: 11.5px; font-weight: 700;
   }
-  .pasos-captura li.actual { border-color: var(--dorado); color: var(--texto); font-weight: 600; }
-  .pasos-captura li.actual span { background: var(--dorado); color: #06263A; }
-  .pasos-captura li.hecho span { background: var(--exito-suave); color: var(--exito); }
-  .pasos-captura li.pronto { opacity: .6; }
+  .paso-captura.actual { border-color: var(--dorado); color: var(--texto); font-weight: 600; }
+  .paso-captura.actual > span { background: var(--dorado); color: #06263A; }
+  .paso-captura.hecho > span { background: var(--exito-suave); color: var(--exito); }
 
   .formulario-nueva { display: flex; flex-direction: column; gap: 20px; }
   .opciones-tarjeta { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
@@ -542,6 +543,80 @@
   .visor-pie { margin: 0; color: #e8eef1; font-size: 13px; text-align: center; }
   .visor-cerrar { position: absolute; top: 14px; right: 14px; }
 
+  /* ─────────── Análisis con IA (paso 4) ─────────── */
+  .analisis { display: flex; flex-direction: column; gap: 18px; }
+  .analisis.ocupado { opacity: .7; pointer-events: none; }
+  .analisis-encabezado { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .analisis-encabezado h1 { margin: 2px 0 6px; font-size: 20px; font-weight: 600; }
+  .analisis-encabezado > div { flex: 1; min-width: 260px; }
+  .analizando { display: flex; align-items: center; gap: 14px; border-color: var(--dorado); }
+  .girando-lento { animation: girar 2.4s linear infinite; }
+  .avisos-ia { padding: 12px 14px; border-radius: 10px; background: var(--dorado-suave); color: var(--aviso); font-size: 12.5px; }
+  .seccion-analisis { display: flex; flex-direction: column; gap: 12px; }
+  .seccion-analisis h2 { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .seccion-analisis h2 .ico { color: var(--dorado); }
+  .lista-preguntas { display: flex; flex-direction: column; gap: 10px; }
+  .pregunta { border: 1px solid var(--dorado); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .pregunta.respondida { border-color: var(--borde); }
+  .pregunta-cabeza { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pregunta-texto { margin: 0; font-weight: 600; font-size: 13.5px; }
+  .pregunta-respuesta { display: flex; align-items: baseline; gap: 10px; color: var(--texto-suave); font-size: 13px; }
+  .pregunta-formulario { display: flex; flex-direction: column; gap: 8px; }
+  .pregunta-formulario textarea, .edicion textarea, .derivado textarea {
+    width: 100%; resize: vertical; border: 1px solid var(--borde); border-radius: 10px; background: var(--fondo); color: var(--texto);
+    padding: 10px 12px; font-family: inherit; font-size: 13px; line-height: 1.5;
+  }
+  .pregunta-formulario textarea:focus, .edicion textarea:focus, .derivado textarea:focus { outline: none; border-color: var(--dorado); }
+  .pregunta-botones, .propuesta-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .enlace { border: 0; background: transparent; color: var(--primario); font-weight: 600; font-size: 12.5px; padding: 0; }
+  .grupo-actividad { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }
+  .grupo-actividad + .grupo-actividad { border-top: 1px solid var(--borde); padding-top: 14px; }
+  .grupo-actividad h3, .derivado h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .propuesta { border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--superficie); }
+  .propuesta-cabeza { display: flex; gap: 8px; flex-wrap: wrap; }
+  .comparacion { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .comparacion > div { border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+  .comparacion > div > span { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 4px; }
+  .comparacion .antes { background: var(--fondo); color: var(--texto-suave); }
+  .comparacion .despues { background: var(--exito-suave); }
+  .comparacion .despues > span { color: var(--exito); }
+  .lista-renglones { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+  .derivados { display: flex; flex-direction: column; gap: 18px; }
+  .derivado { display: flex; flex-direction: column; gap: 8px; }
+  .derivado .nota { margin: 0; }
+  .acciones-formulario { gap: 12px; align-items: center; }
+  .decididas summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+  .decididas[open] summary { margin-bottom: 10px; }
+  .decidida { display: flex; gap: 10px; align-items: center; padding: 6px 0; font-size: 12.5px; border-top: 1px solid var(--borde); }
+
+  /* ─────────── Vista previa (paso 5) ─────────── */
+  .vista-previa { display: flex; flex-direction: column; gap: 18px; }
+  .aviso-confirmada {
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 12px;
+    background: var(--exito-suave); color: var(--exito);
+  }
+  .aviso-confirmada .nota { color: inherit; opacity: .85; margin: 4px 0 0; }
+  .documento-previo { display: flex; flex-direction: column; gap: 20px; border-top: 4px solid var(--dorado); }
+  .documento-encabezado h1 { margin: 2px 0 12px; font-size: 22px; font-weight: 700; }
+  .documento-seccion { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .documento-seccion > h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--primario); border-bottom: 1px solid var(--borde); padding-bottom: 6px; }
+  .documento-texto { margin: 0; line-height: 1.6; white-space: pre-wrap; }
+  .documento-lista { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
+  .documento-contexto { margin: 0; font-size: 12.5px; color: var(--texto-suave); font-style: italic; }
+  .documento-actividad { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px dashed var(--borde); }
+  .documento-actividad h3 { margin: 0; font-size: 14px; font-weight: 700; }
+  .documento-imagen { margin: 6px 0 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .documento-imagen .imagen-vista { height: auto; max-width: 420px; width: 100%; }
+  .documento-imagen img { max-height: 260px; }
+  .documento-imagen figcaption { font-size: 11.5px; font-style: italic; color: var(--texto-suave); }
+  .nota.falta { color: var(--aviso); font-weight: 600; }
+  .faltantes { border-color: var(--dorado); }
+  .faltantes h2, .confirmar h2 { margin: 0 0 8px; font-size: 16px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+  .faltantes ul { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+  .confirmar { border-color: var(--primario); display: flex; flex-direction: column; gap: 10px; }
+  .ajustes { padding-top: 6px; border-top: 1px solid var(--borde); }
+  .ajustes p { margin: 0 0 8px; font-weight: 600; }
+
   /* Sin acceso */
   .pantalla-completa { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
   .sin-acceso { max-width: 460px; width: 100%; text-align: center; }
@@ -598,7 +673,8 @@
     .solicitud-botones { justify-content: flex-end; }
     .actividad { padding: 12px; }
     .imagenes { grid-template-columns: repeat(2, 1fr); }
-    .pasos-captura li { font-size: 11.5px; }
+    .paso-captura { font-size: 11.5px; }
+    .comparacion { grid-template-columns: 1fr; }
     .avisos { left: 16px; right: 16px; }
   }
   @media (max-width: 560px) {

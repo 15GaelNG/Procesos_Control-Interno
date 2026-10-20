@@ -1,6 +1,12 @@
 <template id="vista-solicitud">
   <div class="vista-ancho">
     <button type="button" class="enlace-volver" data-accion="volver"><i data-lucide="arrow-left" class="ico"></i>Mis solicitudes</button>
+    <nav class="pasos-captura" aria-label="Pasos de la solicitud">
+      <span class="paso-captura hecho"><span>2</span>Información general</span>
+      <button type="button" class="paso-captura" data-paso="desarrollo"><span>3</span>Desarrollo del proceso</button>
+      <button type="button" class="paso-captura" data-paso="analisis"><span>4</span>Análisis con IA</button>
+      <button type="button" class="paso-captura" data-paso="vista"><span>5</span>Vista previa y confirmación</button>
+    </nav>
     <div data-campo="contenido">
       <div class="tarjeta"><div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Abriendo la solicitud…</p></div></div>
     </div>
@@ -18,13 +24,6 @@
     </div>
     <div class="datos-automaticos" data-campo="datos"></div>
   </div>
-
-  <ol class="pasos-captura" aria-label="Pasos">
-    <li class="hecho"><span>2</span>Información general</li>
-    <li class="actual"><span>3</span>Desarrollo del proceso</li>
-    <li class="pronto"><span>4</span>Análisis con IA</li>
-    <li class="pronto"><span>5</span>Vista previa y confirmación</li>
-  </ol>
 
   <div class="aviso-consulta" data-campo="solo-lectura" hidden>
     <i data-lucide="eye" class="ico"></i><span data-campo="solo-lectura-texto"></span>
@@ -68,9 +67,9 @@
   <div class="tarjeta siguiente-paso">
     <div>
       <strong>Siguiente paso: análisis con IA</strong>
-      <p class="nota">La IA revisará la redacción, los responsables y lo que falte, y te hará preguntas. Llega en la fase 3; mientras tanto tu borrador queda guardado.</p>
+      <p class="nota">La IA revisará la redacción, los responsables y lo que falte, y te hará preguntas. Tú decides qué aceptar.</p>
     </div>
-    <button type="button" class="boton" disabled title="Llega en la fase 3"><i data-lucide="sparkles" class="ico"></i>Analizar con IA</button>
+    <button type="button" class="boton" data-accion="ir-analisis"><span>Ir al análisis</span><i data-lucide="arrow-right" class="ico"></i></button>
   </div>
 </template>
 
