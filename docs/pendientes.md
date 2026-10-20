@@ -6,74 +6,88 @@ que agregue algo aquí; lo hecho se tacha con la fecha.
 
 ## 1. Cuando Gael tenga acceso a Apps Script
 
-En este orden:
+Todo lo de las fases 1 a 6 está en el código pero **nada se ha probado en Apps Script real**. Primero se
+prepara el ambiente de pruebas (una sola vez) y luego se recorre **una solicitud de principio a fin**,
+en el mismo orden en que la usará la gente.
+
+### 1.1 Preparación (una sola vez)
 
 1. **Activar la API de Apps Script** en https://script.google.com/home/usersettings (la subida con
-   clasp falló el 19/10/2026 porque estaba desactivada). Avisar para subir a pruebas.
-2. **Subir a pruebas:** `npm run pruebas -- "Fase 1 completa y captura"` (sube y publica en el mismo
-   link de la web app).
-3. En el editor de **BD Procesos - PRUEBAS**, F5 y correr:
-   1. `instalarPruebas()` — crea la hoja `Subareas`, agrega `OBSERVACIONES` a `Areas`, reacomoda las
-      hojas vacías (`Solicitudes`, `Documentos`, `Imagenes`…). Revisar el registro.
+   clasp falló el 19/10/2026 porque estaba desactivada).
+2. **Subir a pruebas:** avisar a Claude, o correr `npm run pruebas -- "Fases 1 a 6"` (sube y publica en
+   el mismo link de la web app).
+3. En el editor de **BD Procesos - PRUEBAS**, F5 y correr en este orden (revisar el registro de cada una):
+   1. `instalarPruebas()` — pone la base al día: hoja `Subareas`, `OBSERVACIONES` en `Areas`,
+      `FECHA_ENVIO_REVISION` al final de `Solicitudes`, hojas vacías reacomodadas, retiro de las que ya
+      no se usan.
    2. `verificarBase()` → debe decir `"correcto": true`.
-   3. `crearUsuariosDePrueba()` — agrega a Diego Herrera (Soporte CI).
-   4. `importarCatalogoInicial()` — en **producción**, solo con el catálogo corregido (ver sección 2).
-      En **pruebas** se puede cargar el actual para no detener las pruebas de la captura (sin
-      departamentos nadie puede crear solicitudes); cuando llegue el corregido, se vacían a mano las
-      hojas `Departamentos`, `Areas` y `Subareas` de pruebas y se vuelve a importar.
-4. **Revisar en la app de pruebas** (con «Ver como»):
-   - [ ] Usuarios y perfiles: alta, edición, baja; que no deje cambiar tus propios perfiles.
-   - [ ] Soporte CI (Diego): todo en consulta, sin botones para cambiar.
-   - [ ] Bitácora: aparecen los «Ver como», altas y cambios.
-   - [ ] Catálogos: departamentos, áreas, subáreas y buscador.
-   - [ ] Asignar departamento a Ana y Luis (colaboradores de prueba) para que puedan crear solicitudes.
-   - [ ] **Captura (fase 2)** con Ana (colaboradora, ya con departamento): crear una solicitud, ver el
-     aviso de nombre parecido, escribir actividades, reordenarlas, pegar capturas con Ctrl + V,
-     ponerles pie, salir y volver (que todo siga), cancelar una solicitud.
-   - [ ] Que en Drive aparezca `Solicitudes/SOL-…/Imágenes` con los tres archivos por imagen.
-   - [ ] Abrir la solicitud como Paola (revisora) y Diego (Soporte CI): deben verla en modo consulta.
-   - [ ] Abrir la misma solicitud en dos pestañas y escribir en las dos: la segunda debe pedir recargar.
-   - [ ] **IA (fase 3):** poner `Config → IA_ACTIVA = SI` en la base de pruebas. Con Ana: «Ir al
-     análisis» → «Analizar con IA»; revisar que las propuestas tengan sentido y no inventen, responder
-     las preguntas (también «No aplica» / «No lo sé»), aceptar, editar y descartar propuestas.
-   - [ ] En la hoja `UsoIA` debe aparecer cada llamada; en `PropuestasIA` y `Aclaraciones`, lo decidido.
-   - [ ] Escribir un correo o un monto en una actividad: la propuesta de la IA debe traerlo tal cual
-     (a Gemini solo le llega una marca como `[CORREO 1]`).
-   - [ ] Vista previa: que se vea como el documento y que **confirme**; luego editar algo y ver que
-     regresa a borrador.
-   - [ ] Con `IA_ACTIVA = NO`: el botón de analizar se deshabilita y todo se puede escribir a mano.
-   - [ ] **Documento preliminar (fase 4):** volver a correr `prepararPlantillas()` para que registre las
-     plantillas en `TiposDocumento` (el registro debe decir «Registradas en el tipo Procedimiento»).
-   - [ ] Con una solicitud confirmada: «Generar Word y PDF» y **revisar los dos archivos**: marca de
-     agua, portada, encabezado y pie en todas las hojas, «Página x de y», versión 0.0, código «Por
-     asignar», actividades con imágenes y pies, firmas de quien elaboró. Mandar capturas a Procesos.
-   - [ ] Que en Drive quede `Solicitudes/<folio>/Documentos` con el PDF y el Word (el Google Doc
-     intermedio en la papelera).
-   - [ ] **Revisión (fase 5):** volver a correr `instalarPruebas()` (agrega `FECHA_ENVIO_REVISION` al
-     final de `Solicitudes`) y `verificarBase()`.
-   - [ ] Con Ana: en la vista previa de una solicitud confirmada, «Enviar a revisión de Procesos». En
-     Drive debe aparecer `Solicitudes/<folio>/Instantáneas` con un JSON.
-   - [ ] Con Paola: «Bandeja de revisión» → «Sin asignar» → **Tomar**; hacer observaciones con
-     «Observar» (una general y una de actividad) y **Devolver**.
-   - [ ] Con Ana: ver el aviso «Procesos te regresó…», corregir, marcar las observaciones como
-     atendidas, **confirmar otra vez** y **reenviar**. Debe volver a la pestaña «Mías» de Paola.
-   - [ ] Con Paola: cerrar las observaciones y dar el **Vo.Bo.** con el código propuesto (o corregirlo).
-     Revisar en `Solicitudes`: código, versión 0.0, `REVISO_*`; y en `Consecutivos`, la serie `COD-…`.
-   - [ ] Probar **No procedente** (pide motivo) y que Ana vea el motivo.
-   - [ ] Con el administrador: la bandeja solo con el selector para **reasignar**.
-   - [ ] Que Paola no pueda tomar una solicitud que ella elaboró (si tiene también perfil de colaboradora).
-   - [ ] **CH y documento final (fase 6):** revisar que `TiposDocumento` (Procedimiento) tenga
-     `ID_PLANTILLA_FINAL` (lo pone `prepararPlantillas()`; es la plantilla sin marca).
-   - [ ] Con Paola, en «Envíos a CH»: **Generar archivos para CH** de la solicitud con Vo.Bo., descargarlos
-     y revisar que traigan código, versión 0.0 y «Revisó». **Registrar que ya se subió** (fecha y folio).
-   - [ ] En «En CH» registrar **Lo autorizó** (nombre, puesto, fecha). Debe generarse el **final sin marca**;
-     revisar el PDF y el Word: sin «COPIA NO AUTORIZADA», con «Autorizó» y la fecha de CH.
-   - [ ] En el **Inventario documental**: el documento como vigente, versión 0.0, su historial y la descarga.
-     Con Sofía (administradora) y Diego (Soporte CI) también debe verse y descargarse.
-   - [ ] Con Ana: la vista previa debe decir «Autorizado en el sistema CH» y ofrecer el documento final.
-   - [ ] Probar **Lo rechazó** con otra solicitud: Ana debe verla devuelta con la observación «Rechazado en
-     el sistema CH: …»; al corregir y reenviar, el nuevo Vo.Bo. debe conservar el código.
-5. Mandar capturas de lo que se vea raro.
+   3. `crearUsuariosDePrueba()` — agrega a Diego Herrera (Soporte CI) y los perfiles que falten.
+   4. `importarCatalogoInicial()` — en **pruebas** se puede cargar el catálogo actual para no detener
+      nada (sin departamentos nadie crea solicitudes); cuando llegue el corregido, se vacían a mano
+      `Departamentos`, `Areas` y `Subareas` de pruebas y se vuelve a importar. En **producción**, solo
+      con el corregido (sección 2).
+   5. `prepararPlantillas()` — registra las dos plantillas (con y sin marca) en `TiposDocumento`: el
+      registro debe decir «Registradas en el tipo Procedimiento» y la fila del Procedimiento debe tener
+      `ID_PLANTILLA_PRELIMINAR` e `ID_PLANTILLA_FINAL`.
+4. En la hoja `Config` de pruebas: `IA_ACTIVA = SI`.
+5. En la app de pruebas, pantalla **Usuarios**: asignar departamento a Ana y a Luis (colaboradores de
+   prueba) y, si ya hay puestos, un puesto a Paola y a Carlos (sale en «Revisó» del documento).
+
+### 1.2 Recorrido de prueba (con «Ver como»)
+
+**Administración (fase 1)**
+- [ ] Usuarios y perfiles: alta, edición, baja; que no deje cambiar tus propios perfiles.
+- [ ] Soporte CI (Diego): todo en consulta, sin botones para cambiar.
+- [ ] Bitácora: aparecen los «Ver como», altas y cambios.
+- [ ] Catálogos: departamentos, áreas, subáreas y buscador.
+
+**Captura (fase 2)** — con Ana
+- [ ] Crear una solicitud, ver el aviso de nombre parecido, escribir actividades, reordenarlas, pegar
+  capturas con Ctrl + V, ponerles pie, salir y volver (que todo siga), cancelar otra solicitud.
+- [ ] En Drive, `Solicitudes/SOL-…/Imágenes` con los tres archivos por imagen.
+- [ ] Abrir la solicitud como Paola (revisora) y Diego (Soporte CI): deben verla en modo consulta.
+- [ ] Abrir la misma solicitud en dos pestañas y escribir en las dos: la segunda debe pedir recargar.
+
+**Análisis con IA y confirmación (fase 3)** — con Ana
+- [ ] «Ir al análisis» → «Analizar con IA»: que las propuestas tengan sentido y no inventen; responder
+  las preguntas (también «No aplica» / «No lo sé»); aceptar, editar y descartar propuestas.
+- [ ] En `UsoIA` aparece cada llamada; en `PropuestasIA` y `Aclaraciones`, lo decidido.
+- [ ] Escribir un correo o un monto en una actividad: la propuesta debe traerlo tal cual (a Gemini solo
+  le llega una marca como `[CORREO 1]`).
+- [ ] Vista previa: que se vea como el documento y que **confirme**; luego editar algo y ver que regresa
+  a borrador. Volver a confirmar.
+- [ ] Con `IA_ACTIVA = NO`: el botón de analizar se deshabilita y todo se puede escribir a mano.
+
+**Documento preliminar (fase 4)** — con Ana, ya confirmada
+- [ ] «Generar Word y PDF» y **revisar los dos archivos**: marca de agua, portada, encabezado y pie en
+  todas las hojas, «Página x de y», versión 0.0, código «Por asignar», actividades con imágenes y pies,
+  firma de quien elaboró. Mandar capturas a Procesos.
+- [ ] En Drive, `Solicitudes/<folio>/Documentos` con el PDF y el Word (el Google Doc intermedio, en la papelera).
+
+**Revisión de Procesos (fase 5)**
+- [ ] Ana: «Enviar a revisión de Procesos». En Drive, `Solicitudes/<folio>/Instantáneas` con un JSON.
+- [ ] Paola: «Bandeja de revisión» → «Sin asignar» → **Tomar**; observaciones con «Observar» (una general
+  y una de actividad) y **Devolver**.
+- [ ] Ana: aviso «Procesos te regresó…», corregir, marcar las observaciones como atendidas, **confirmar
+  otra vez** y **reenviar**. Debe volver a la pestaña «Mías» de Paola.
+- [ ] Paola: cerrar las observaciones y dar el **Vo.Bo.** con el código propuesto (o corregirlo). En
+  `Solicitudes`: código, versión 0.0, `REVISO_*`; en `Consecutivos`, la serie `COD-…`.
+- [ ] **No procedente** con otra solicitud (pide motivo) y que Ana vea el motivo.
+- [ ] Sofía (administradora): la bandeja solo con el selector para **reasignar**.
+- [ ] Carlos (revisor y colaborador): no puede tomar una solicitud que él elaboró.
+
+**CH, documento final e inventario (fase 6)** — con Paola
+- [ ] «Envíos a CH» → «Por subir»: **Generar archivos para CH**, descargarlos y revisar que traigan
+  código, versión 0.0 y «Revisó». **Registrar que ya se subió** (fecha y folio).
+- [ ] «En CH» → **Lo autorizó** (nombre, puesto, fecha). Se genera el **final sin marca**: revisar el PDF
+  y el Word (sin «COPIA NO AUTORIZADA», con «Autorizó» y la fecha de CH).
+- [ ] **Inventario documental**: el documento vigente, versión 0.0, su historial y la descarga. Con Sofía
+  y Diego también debe verse y descargarse.
+- [ ] Ana: su vista previa dice «Autorizado en el sistema CH» y ofrece el documento final.
+- [ ] **Lo rechazó** con otra solicitud: Ana la ve devuelta con la observación «Rechazado en el sistema
+  CH: …»; al corregir y reenviar, el nuevo Vo.Bo. conserva el código.
+
+Mandar capturas de lo que se vea raro.
 
 ## 2. Por recibir de Procesos
 
