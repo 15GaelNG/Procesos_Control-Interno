@@ -1,0 +1,23 @@
+<template id="vista-bitacora">
+  <div class="vista-ancho">
+    <div>
+      <h1 class="titulo-vista"><i data-lucide="scroll-text" class="ico"></i>Bitácora</h1>
+      <p class="subtitulo">Quién hizo qué y cuándo: altas y cambios de usuarios, cargas de catálogo, uso de «Ver como» y, más adelante, cada paso de las solicitudes. No se puede editar.</p>
+    </div>
+    <div class="tarjeta">
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por usuario, solicitud o detalle">
+        </label>
+        <select class="selector" data-campo="filtro-accion" aria-label="Filtrar por acción">
+          <option value="">Todas las acciones</option>
+        </select>
+      </div>
+      <p class="nota" data-campo="resumen"></p>
+      <div data-campo="contenido" class="bitacora-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando bitácora…</p></div>
+      </div>
+    </div>
+  </div>
+</template>

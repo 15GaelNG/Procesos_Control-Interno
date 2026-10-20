@@ -35,6 +35,7 @@ function datosIniciales_() {
     verComo: [],
     error: '',
     nombresPerfil: NOMBRES_PERFIL,
+    descripcionesPerfil: DESCRIPCIONES_PERFIL,
     nombresEstado: NOMBRES_ESTADO
   };
   try {

@@ -87,6 +87,20 @@ function requierePerfil_(sesion, perfilesPermitidos) {
   return sesion;
 }
 
+/** El correo de la persona real detrás de la sesión (aunque esté usando «ver como»). */
+function correoReal_(sesion) {
+  return sesion.verComo ? sesion.verComo.correoReal : sesion.correo;
+}
+
+/**
+ * ¿Puede esta sesión revisar (observar, devolver, dar Vo.Bo.) esta solicitud? Hace falta el perfil
+ * REVISOR y no haberla elaborado: nadie revisa lo suyo (decisión 19), aunque también sea colaborador.
+ */
+function puedeRevisarSolicitud_(sesion, solicitud) {
+  if (!sesion || !sesion.registrado || sesion.perfiles.indexOf('REVISOR') === -1) return false;
+  return !!solicitud && solicitud.ELABORO_ID !== sesion.idUsuario;
+}
+
 /** Usuarios activos con sus perfiles, para el selector «ver como». */
 function usuariosParaVerComo_(usuarios, perfiles) {
   return usuarios.filter(function (u) { return String(u.ACTIVO).trim().toUpperCase() === 'SI'; })

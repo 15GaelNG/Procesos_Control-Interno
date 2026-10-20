@@ -1,0 +1,79 @@
+<template id="vista-usuarios">
+  <div class="vista-ancho">
+    <div class="encabezado-vista">
+      <div>
+        <h1 class="titulo-vista"><i data-lucide="users" class="ico"></i>Usuarios y perfiles</h1>
+        <p class="subtitulo">Quién entra al sistema, con qué perfil y por qué departamentos documenta.</p>
+      </div>
+      <button type="button" class="boton" data-accion="nuevo" hidden><i data-lucide="user-plus" class="ico"></i>Nuevo usuario</button>
+    </div>
+
+    <div class="aviso-consulta" data-campo="solo-lectura" hidden>
+      <i data-lucide="eye" class="ico"></i>
+      <span>Modo consulta (Soporte CI): puedes ver todo, pero no cambiar nada.</span>
+    </div>
+
+    <div class="tarjeta">
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por nombre, correo o departamento">
+        </label>
+        <select class="selector" data-campo="filtro-perfil" aria-label="Filtrar por perfil">
+          <option value="">Todos los perfiles</option>
+        </select>
+        <label class="interruptor">
+          <input type="checkbox" data-campo="bajas">
+          <span>Mostrar dados de baja</span>
+        </label>
+      </div>
+      <div class="chips" data-campo="resumen"></div>
+      <div data-campo="contenido" class="usuarios-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando usuarios…</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-fondo" data-campo="panel" hidden>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-usuario-titulo">
+      <header class="panel-encabezado">
+        <h2 id="panel-usuario-titulo" data-campo="panel-titulo">Nuevo usuario</h2>
+        <button type="button" class="btn-icono" data-accion="cerrar" title="Cerrar"><i data-lucide="x" class="ico"></i></button>
+      </header>
+      <form class="panel-cuerpo" data-campo="formulario" novalidate>
+        <label class="campo">
+          <span>Correo de Google</span>
+          <input type="email" name="correo" autocomplete="off" required>
+          <small data-campo="ayuda-correo"></small>
+        </label>
+        <label class="campo">
+          <span>Nombre completo</span>
+          <input type="text" name="nombre" maxlength="120" autocomplete="off" required>
+        </label>
+        <fieldset class="campo">
+          <legend>Perfiles</legend>
+          <div class="opciones-perfil" data-campo="perfiles"></div>
+          <small class="nota-propia" data-campo="nota-propia" hidden>No puedes cambiar tus propios perfiles ni darte de baja: pídeselo a otro administrador.</small>
+        </fieldset>
+        <fieldset class="campo">
+          <legend>Departamentos <span class="contador" data-campo="conteo-deptos"></span></legend>
+          <small>Por cuáles puede documentar. El <strong>principal</strong> se propone al crear una solicitud.</small>
+          <label class="buscador buscador-chico">
+            <i data-lucide="search" class="ico"></i>
+            <input type="search" data-campo="buscar-depto" placeholder="Buscar departamento">
+          </label>
+          <div class="lista-deptos" data-campo="deptos"></div>
+        </fieldset>
+        <label class="interruptor">
+          <input type="checkbox" name="activo" checked>
+          <span>Activo: puede entrar al sistema</span>
+        </label>
+        <div class="errores" data-campo="errores" hidden></div>
+      </form>
+      <footer class="panel-pie">
+        <button type="button" class="boton secundario" data-accion="cerrar">Cancelar</button>
+        <button type="button" class="boton" data-accion="guardar"><i data-lucide="save" class="ico"></i><span>Guardar</span></button>
+      </footer>
+    </div>
+  </div>
+</template>

@@ -178,8 +178,15 @@ const ids = function (perfiles) { return plano(gs.modulosDe_(perfiles)).map(func
 test('cada perfil ve solo sus pantallas (requerimiento §1 y decisión 10)', function () {
   assert.deepStrictEqual(ids(['COLABORADOR']), ['inicio', 'mis-solicitudes', 'nueva']);
   assert.deepStrictEqual(ids(['REVISOR']), ['inicio', 'revision', 'envios-ch', 'inventario']);
-  assert.deepStrictEqual(ids(['ADMINISTRADOR']), ['inicio', 'inventario', 'usuarios', 'catalogos', 'plantillas']);
+  assert.deepStrictEqual(ids(['ADMINISTRADOR']), ['inicio', 'inventario', 'usuarios', 'catalogos', 'plantillas', 'bitacora']);
+  assert.deepStrictEqual(ids(['SOPORTE_CI']), ['inicio', 'inventario', 'solicitudes', 'usuarios', 'catalogos', 'plantillas', 'bitacora']);
   assert.deepStrictEqual(ids([]), ['inicio']);
+});
+
+test('Soporte CI consulta todo pero no tiene ninguna pantalla para capturar, revisar ni registrar en CH', function () {
+  ['mis-solicitudes', 'nueva', 'revision', 'envios-ch'].forEach(function (id) {
+    assert.ok(ids(['SOPORTE_CI']).indexOf(id) === -1, id);
+  });
 });
 
 test('ser administrador no da la bandeja de revisión; tener dos perfiles suma lo de ambos', function () {

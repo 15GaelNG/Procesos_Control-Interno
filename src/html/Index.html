@@ -65,10 +65,13 @@
   </div>
 
   <div id="sin-acceso" class="pantalla-completa" hidden></div>
+  <div id="avisos" class="avisos" aria-live="polite"></div>
 
   <?!= include('views/inicio'); ?>
   <?!= include('views/mis-solicitudes'); ?>
   <?!= include('views/catalogos'); ?>
+  <?!= include('views/usuarios'); ?>
+  <?!= include('views/bitacora'); ?>
   <?!= include('views/en-construccion'); ?>
   <?!= include('views/sin-acceso'); ?>
 
@@ -79,6 +82,8 @@
   <?!= include('js/api'); ?>
   <!-- Pantallas con datos: antes de app, que las arranca al entrar a ellas (PANTALLAS en app.html). -->
   <?!= include('js/catalogos'); ?>
+  <?!= include('js/usuarios'); ?>
+  <?!= include('js/bitacora'); ?>
   <?!= include('js/app'); ?>
 </body>
 </html>

@@ -47,6 +47,10 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
 - El navegador solo llama funciones `api…` de `src/ClientApi.gs`. Cada una recibe primero
   `comoUsuario`, pide la sesión con `sesionEfectiva_(comoUsuario)` (nunca con `sesionActual_` ni
   confiando en lo que mande el navegador) y revisa permisos con `requierePerfil_`.
+- **Soporte CI solo consulta:** una función `api…` que escribe nunca incluye `SOPORTE_CI` en su
+  `requierePerfil_`. No hay superusuario (decisión 19).
+- Toda acción relevante se anota con `registrarBitacora_(sesion, ACCION, detalle)`, que guarda a la
+  persona real aunque use «Ver como». Las acciones nuevas llevan su nombre en `NOMBRES_ACCION`.
 - Qué pantallas ve cada perfil: `MODULOS_APP` (`src/config/Catalogos.gs`), probado en
   `tests/base.test.js`.
 - `src/config/CatalogoInicial.gs` es **generado** (`npm run catalogo` desde

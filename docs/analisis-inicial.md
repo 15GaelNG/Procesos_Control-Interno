@@ -32,6 +32,7 @@
 | 16 | **Gemini en su nivel gratuito, aprobado por Gael** (sustituye la validación de TI que pidió Procesos). Se mantiene el filtro de datos personales. | 13/10/2026 |
 | 17 | **Letra Montserrat** en los documentos generados: en los PDF de Google, la «M» y la «W» de Century Gothic salen rotas ([plantillas.md](plantillas.md#plantilla-v2-de-procedimiento-13102026)). | 13/10/2026 |
 | 18 | **Plantilla v2 de Procedimiento validada por Procesos** (Marco). Los documentos se generan en **Google Docs** (plan A): se llenan los 26 marcadores y se exporta a PDF y Word. Se descarta generar el Word desde su XML (plan B). | 13/10/2026 |
+| 19 | **Perfiles sin superusuario** (§1: ser administrador no da facultades de revisar). Quien necesita más acceso recibe varios perfiles explícitos. Perfil nuevo **Soporte CI**: consulta todo (solicitudes, usuarios, catálogos, bitácora) y no cambia nada. Reglas: **nadie revisa su propia solicitud**; **nadie cambia sus propios perfiles ni se da de baja** (lo hace otro administrador); **siempre queda al menos un administrador activo**; todo cambio de usuarios y permisos queda en la **bitácora** con la persona real (aunque use «Ver como»). | 20/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 
@@ -431,7 +432,7 @@ K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; ma
 | Fase | Entregable | Depende de |
 |---|---|---|
 | **0. Definición y pruebas de concepto** ✅ *13/10/2026* | Respuestas de Procesos · IA con respuesta estructurada y validador (`probarIA`) · plantilla v2 validada, con y sin marca, en PDF y Word (`probarPlantillas`). La compresión de imágenes pasa a la fase 2, donde se usa | — |
-| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google, perfiles y «Ver como» para pruebas ✅ · carga del catálogo de departamentos, áreas y subáreas y pantalla de consulta ✅ · usuarios y perfiles · puestos | Fase 0 · archivo de catálogos |
+| **1. Base** | Repo, ambientes, `instalarBase()` ✅ · esquema ajustado a las respuestas de Procesos ✅ · esqueleto de la web app ✅ · acceso con Google, perfiles y «Ver como» para pruebas ✅ · usuarios y perfiles, Soporte CI y bitácora ✅ · carga del catálogo de departamentos, áreas y subáreas y pantalla de consulta ✅ · puestos | Fase 0 · archivo de catálogos |
 | **2. Captura** | Información general, desarrollo por actividades, imágenes con Ctrl+V, guardado de borradores | Fase 1 |
 | **3. IA y confirmación** | Análisis, aclaraciones, propuestas aceptables, vista previa, confirmación con huella | Fase 2 · proveedor de IA |
 | **4. Documento preliminar** | Word/PDF con marca de agua desde la plantilla | Fase 3 · plantillas |

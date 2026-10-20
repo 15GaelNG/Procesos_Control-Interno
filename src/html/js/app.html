@@ -18,7 +18,9 @@
 
   /* Pantallas que piden datos al servidor al abrirse: id del módulo → función que recibe el contenedor. */
   const PANTALLAS = {
-    catalogos: iniciarCatalogos
+    catalogos: iniciarCatalogos,
+    usuarios: iniciarUsuarios,
+    bitacora: iniciarBitacora
   };
 
   /* ─────────── Utilidades ─────────── */
@@ -36,6 +38,15 @@
   function iniciales(nombre) {
     const partes = String(nombre || '').replace(/@.*$/, '').replace(/\(.*\)/, '').split(/[\s._-]+/).filter(Boolean);
     return ((partes[0] || '?').charAt(0) + (partes[1] || '').charAt(0)).toUpperCase();
+  }
+  /* Aviso flotante que se quita solo (tipo: 'exito' o 'error'). */
+  function avisar(texto, tipo) {
+    const aviso = document.createElement('div');
+    aviso.className = 'aviso-flotante ' + (tipo || '');
+    aviso.textContent = texto;
+    $('#avisos').appendChild(aviso);
+    setTimeout(function () { aviso.classList.add('saliendo'); }, 3500);
+    setTimeout(function () { aviso.remove(); }, 4000);
   }
   function primerNombre(nombre) {
     const texto = String(nombre || '');

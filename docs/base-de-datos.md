@@ -103,10 +103,12 @@ No se edita a mano.
 
 ### UsuarioPerfiles
 Una persona puede tener varios perfiles (§1). `ID_USUARIO_PERFIL` · `ID_USUARIO` · `PERFIL`
-(`COLABORADOR`, `REVISOR`, `ADMINISTRADOR`) · `ID_DEPARTAMENTO` (alcance; vacío = todos) · `ACTIVO` ·
-`FECHA_ALTA`.
-Ser `ADMINISTRADOR` no da permiso de revisar. No hay perfil de autorizador: el responsable y el
-director autorizan en el sistema CH (decisión 10).
+(`COLABORADOR`, `REVISOR`, `ADMINISTRADOR`, `SOPORTE_CI`) · `ID_DEPARTAMENTO` (alcance; vacío = todos) ·
+`ACTIVO` · `FECHA_ALTA`.
+Ser `ADMINISTRADOR` no da permiso de revisar y `SOPORTE_CI` solo consulta (decisión 19). No hay perfil
+de autorizador: el responsable y el director autorizan en el sistema CH (decisión 10). Quitar un
+perfil no borra el renglón: queda con `ACTIVO = NO`; volver a darlo agrega un renglón nuevo, así se ve
+la historia.
 
 ### UsuarioDepartamentos
 Departamentos por los que una persona puede elaborar documentos; si tiene varios, elige al crear la
@@ -246,8 +248,10 @@ Control de cambios oficial: solo se escribe cuando CH autoriza una versión (§4
 `AUTORIZO_NOMBRE` · `AUTORIZO_PUESTO` · `ID_SOLICITUD`.
 
 ### Bitacora
-Toda acción relevante (§4.3). `FECHA` · `USUARIO` · `ACCION` · `ID_SOLICITUD` · `ESTADO_ANTERIOR` ·
-`ESTADO_NUEVO` · `DETALLE`.
+Toda acción relevante (§4.3). `FECHA` · `USUARIO` (siempre la persona real; si usaba «Ver como», el
+detalle empieza con `[viendo como …]`) · `ACCION` (`ALTA_USUARIO`, `CAMBIO_USUARIO`, `VER_COMO`,
+`IMPORTAR_CATALOGO`…; sus nombres en pantalla están en `NOMBRES_ACCION`) · `ID_SOLICITUD` ·
+`ESTADO_ANTERIOR` · `ESTADO_NUEVO` · `DETALLE`. Se consulta en la pantalla «Bitácora» y no se edita.
 
 ### UsoIA
 Cada llamada a la IA, para cuidar la cuota gratuita y auditar. `FECHA` · `USUARIO` · `ID_SOLICITUD` ·

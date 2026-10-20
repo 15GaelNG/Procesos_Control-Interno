@@ -106,15 +106,18 @@ Cada perfil ve solo sus pantallas (`MODULOS_APP` en `src/config/Catalogos.gs`):
 |---|---|
 | Colaborador | Mis solicitudes · Nueva solicitud |
 | Revisor de Procesos | Bandeja de revisión · Envíos a CH · Inventario documental |
-| Administrador | Inventario documental · Usuarios y perfiles · Catálogos · Plantillas y parámetros |
+| Administrador | Inventario documental · Usuarios y perfiles · Catálogos · Plantillas y parámetros · Bitácora |
+| Soporte CI | Inventario · Todas las solicitudes · Usuarios · Catálogos · Plantillas · Bitácora, **todo en consulta** |
 
-Quien tiene varios perfiles ve lo de todos. Ser administrador no da la bandeja de revisión (§1).
+Quien tiene varios perfiles ve lo de todos. No hay superusuario: ser administrador no da la bandeja
+de revisión (§1), y Soporte CI nunca cambia nada (las funciones que escriben piden otro perfil). Las
+reglas completas están en la decisión 19 del análisis.
 
 Para probar cada perfil sin una cuenta de Google por persona:
 
 1. En el editor del proyecto de **pruebas**, correr `crearUsuariosDePrueba()`. Da de alta a los
    usuarios de `USUARIOS_DE_PRUEBA` (`src/config/Config.gs`): dos colaboradores, una revisora, un
-   revisor que también es colaborador y una administradora. Sus correos son `@procesos.test`, un
+   revisor que también es colaborador, una administradora y uno de Soporte CI. Sus correos son `@procesos.test`, un
    dominio que no existe, así que ningún aviso le llega a nadie.
 2. En la app, un **administrador** ve arriba **«Ver como»** y elige a cualquier usuario activo. La
    franja de arriba se pone verde y dice como quién está viendo; **«Volver a mi usuario»** regresa.

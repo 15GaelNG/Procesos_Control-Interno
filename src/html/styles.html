@@ -303,6 +303,93 @@
   .girando { animation: girar 1s linear infinite; }
   @keyframes girar { to { transform: rotate(360deg); } }
 
+  /* Encabezado de pantalla con botón a la derecha */
+  .encabezado-vista { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .aviso-consulta {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px;
+    background: var(--primario-suave); color: var(--primario); font-size: 13px; font-weight: 500;
+  }
+  .selector {
+    border: 1px solid var(--borde); border-radius: 10px; background: var(--fondo); color: var(--texto);
+    padding: 9px 12px; font-family: inherit; font-size: 13px;
+  }
+  .nota { margin: 4px 0 0; font-size: 12px; color: var(--texto-suave); }
+
+  /* Usuarios */
+  .usuarios-lista { display: flex; flex-direction: column; margin-top: 12px; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+  .usuario-fila { display: flex; gap: 14px; align-items: flex-start; padding: 14px; border-top: 1px solid var(--borde); }
+  .usuario-fila:first-child { border-top: 0; }
+  .usuario-fila.inactiva { opacity: .6; }
+  .usuario-datos-fila { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .usuario-nombre { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; font-size: 13.5px; }
+  .usuario-correo { font-size: 12px; color: var(--texto-suave); word-break: break-all; }
+  .usuario-deptos { font-size: 12px; color: var(--texto-suave); }
+
+  /* Panel lateral (alta y edición) */
+  .panel-fondo { position: fixed; inset: 0; z-index: 60; background: rgba(6,38,58,.45); display: flex; justify-content: flex-end; }
+  .panel {
+    width: min(520px, 100%); height: 100%; background: var(--superficie); box-shadow: var(--sombra-grande);
+    display: flex; flex-direction: column; animation: entrar .2s ease;
+  }
+  @keyframes entrar { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .panel-encabezado { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--borde); }
+  .panel-encabezado h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .panel-cuerpo { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; }
+  .panel-pie { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); }
+  .campo { display: flex; flex-direction: column; gap: 6px; border: 0; padding: 0; margin: 0; min-width: 0; }
+  .campo > span, .campo legend { font-size: 12.5px; font-weight: 600; padding: 0; margin-bottom: 2px; }
+  .campo input[type="email"], .campo input[type="text"] {
+    border: 1px solid var(--borde); border-radius: 10px; background: var(--fondo); color: var(--texto);
+    padding: 10px 12px; font-family: inherit; font-size: 13.5px;
+  }
+  .campo input:focus { outline: none; border-color: var(--dorado); }
+  .campo input[readonly] { opacity: .7; }
+  .campo small { font-size: 11.5px; color: var(--texto-suave); line-height: 1.45; }
+  .contador { font-weight: 500; color: var(--texto-suave); }
+  .opciones-perfil { display: flex; flex-direction: column; gap: 8px; }
+  .opcion-perfil {
+    display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--borde);
+    border-radius: 10px; cursor: pointer;
+  }
+  .opcion-perfil:has(input:checked) { border-color: var(--dorado); background: var(--dorado-suave); }
+  .opcion-perfil input { margin-top: 3px; accent-color: var(--primario); width: 16px; height: 16px; flex-shrink: 0; }
+  .opcion-perfil span { display: flex; flex-direction: column; gap: 2px; }
+  .opcion-perfil strong { font-size: 13px; }
+  .nota-propia { color: var(--aviso) !important; font-weight: 500; }
+  .buscador-chico input { padding: 8px 0; font-size: 12.5px; }
+  .lista-deptos { max-height: 260px; overflow-y: auto; border: 1px solid var(--borde); border-radius: 10px; }
+  .depto-opcion { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--borde); }
+  .depto-opcion:first-child { border-top: 0; }
+  .depto-opcion.marcado { background: var(--primario-suave); }
+  .depto-nombre { display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; min-width: 0; }
+  .depto-nombre input, .depto-principal input { accent-color: var(--primario); flex-shrink: 0; }
+  .depto-nombre .catalogo-clave { min-width: 0; font-size: 11px; padding: 1px 6px; }
+  .depto-principal { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--texto-suave); white-space: nowrap; cursor: pointer; }
+  .errores {
+    padding: 10px 12px; border-radius: 10px; background: var(--dorado-suave); color: var(--aviso);
+    font-size: 12.5px; font-weight: 500; line-height: 1.5;
+  }
+
+  /* Bitácora */
+  .bitacora-lista { display: flex; flex-direction: column; margin-top: 10px; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+  .bitacora-fila { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-top: 1px solid var(--borde); }
+  .bitacora-fila:first-child { border-top: 0; }
+  .bitacora-cabeza { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .bitacora-usuario { font-size: 12.5px; font-weight: 600; word-break: break-all; }
+  .bitacora-fecha { margin-left: auto; font-size: 12px; color: var(--texto-suave); white-space: nowrap; }
+  .bitacora-solicitud { font-size: 12px; font-weight: 600; color: var(--dorado-hover); }
+  .bitacora-detalle { font-size: 12.5px; color: var(--texto-suave); line-height: 1.5; word-break: break-word; }
+
+  /* Avisos flotantes */
+  .avisos { position: fixed; bottom: 18px; right: 18px; z-index: 80; display: flex; flex-direction: column; gap: 8px; }
+  .aviso-flotante {
+    padding: 11px 16px; border-radius: 10px; box-shadow: var(--sombra-grande); font-size: 13px; font-weight: 500;
+    background: var(--primario); color: #fff; transition: opacity .4s ease, transform .4s ease;
+  }
+  .aviso-flotante.exito { background: #1e7d4f; }
+  .aviso-flotante.error { background: var(--aviso); }
+  .aviso-flotante.saliendo { opacity: 0; transform: translateY(6px); }
+
   /* Sin acceso */
   .pantalla-completa { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
   .sin-acceso { max-width: 460px; width: 100%; text-align: center; }
@@ -310,10 +397,14 @@
   .correo { font-weight: 600; word-break: break-all; }
 
   /* ─────────── Tableta y celular ─────────── */
+  /* Con «Ver como» la barra se llena: primero se va la fecha y la palabra «Ver como». */
+  .barra-izq { flex-shrink: 0; }
+  @media (max-width: 1280px) {
+    .barra-fecha, .ver-como-texto { display: none; }
+    .ver-como select { max-width: 190px; }
+  }
   @media (max-width: 1000px) {
     .pasos { grid-template-columns: repeat(2, 1fr); }
-    .barra-fecha { display: none; }
-    .ver-como-texto { display: none; }
     .ver-como select { max-width: 170px; }
   }
   @media (max-width: 860px) {
@@ -345,6 +436,13 @@
     .catalogo-cuerpo { min-width: 52px; }
     .catalogo-conteo { display: none; }
     .codigo-parte strong { font-size: 16px; padding: 5px 9px; }
+  }
+  @media (max-width: 640px) {
+    .usuario-fila { gap: 10px; padding: 12px; }
+    .usuario-fila .avatar { display: none; }
+    .panel-cuerpo, .panel-encabezado, .panel-pie { padding-left: 16px; padding-right: 16px; }
+    .bitacora-fecha { margin-left: 0; width: 100%; }
+    .avisos { left: 16px; right: 16px; }
   }
   @media (max-width: 560px) {
     .barra-logo.logo-claro, .barra-logo.logo-oscuro { display: none !important; }

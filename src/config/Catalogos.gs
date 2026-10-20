@@ -6,20 +6,31 @@
  * datos, no aquí.
  */
 
-// Perfiles (requerimiento §1). Una persona puede tener varios (hoja UsuarioPerfiles).
-// Ser ADMINISTRADOR no da permiso de revisar. No hay perfil de autorizador: el responsable y el
-// director autorizan en el sistema CH (decisión 10).
+// Perfiles (requerimiento §1 y decisión 19). Una persona puede tener varios (hoja UsuarioPerfiles).
+// No hay superusuario: ser ADMINISTRADOR no da permiso de revisar, y quien necesita más recibe varios
+// perfiles explícitos. No hay perfil de autorizador: el responsable y el director autorizan en el
+// sistema CH (decisión 10).
 const PERFILES = {
   COLABORADOR: 'COLABORADOR',     // Elabora y captura el proceso
   REVISOR: 'REVISOR',             // Área de Procesos: revisa, observa, devuelve, da Vo.Bo., registra lo de CH
-  ADMINISTRADOR: 'ADMINISTRADOR'  // Usuarios, catálogos, plantillas y parámetros
+  ADMINISTRADOR: 'ADMINISTRADOR', // Usuarios, catálogos, plantillas y parámetros
+  SOPORTE_CI: 'SOPORTE_CI'        // Control Interno: consulta todo, incluida la bitácora; no cambia nada
 };
 
 // Cómo se llama cada perfil en pantalla.
 const NOMBRES_PERFIL = {
   COLABORADOR: 'Colaborador',
   REVISOR: 'Revisor de Procesos',
-  ADMINISTRADOR: 'Administrador'
+  ADMINISTRADOR: 'Administrador',
+  SOPORTE_CI: 'Soporte CI'
+};
+
+// Qué hace cada perfil, para la pantalla de usuarios.
+const DESCRIPCIONES_PERFIL = {
+  COLABORADOR: 'Documenta sus procesos y los envía a revisión.',
+  REVISOR: 'Área de Procesos: revisa, hace observaciones, da el Vo.Bo. y registra el resultado de CH. Nunca revisa lo que él mismo elaboró.',
+  ADMINISTRADOR: 'Usuarios, catálogos, plantillas y parámetros. No revisa documentos.',
+  SOPORTE_CI: 'Consulta todo (solicitudes, usuarios, catálogos y bitácora) sin poder cambiar nada.'
 };
 
 // Pantallas de la app y qué perfiles las ven (requerimiento §1, ajustado por la decisión 10).
@@ -52,27 +63,43 @@ const MODULOS_APP = [
       'Registrar lo que resolvió CH: autorizado (quién y cuándo) o rechazado',
       'Con «autorizado», generar el documento final sin marca de agua'] },
   { id: 'inventario', seccion: 'Área de Procesos', nombre: 'Inventario documental', icono: 'library',
-    fase: 'la fase 6', perfiles: ['REVISOR', 'ADMINISTRADOR'],
+    fase: 'la fase 6', perfiles: ['REVISOR', 'ADMINISTRADOR', 'SOPORTE_CI'],
     descripcion: 'Documentos vigentes, su versión y su historial de cambios.',
     acciones: ['Consultar los documentos vigentes con su código y versión',
       'Ver el historial de versiones y el control de cambios', 'Descargar el documento oficial'] },
+  { id: 'solicitudes', seccion: 'Consulta', nombre: 'Todas las solicitudes', icono: 'folder-search',
+    fase: 'la fase 2', perfiles: ['SOPORTE_CI'],
+    descripcion: 'Todas las solicitudes del sistema, en modo de solo lectura.',
+    acciones: ['Ver todas las solicitudes y en qué estado va cada una',
+      'Abrir cualquier solicitud con su contenido, observaciones e historial',
+      'Sin poder editar, revisar ni aprobar nada'] },
   { id: 'usuarios', seccion: 'Administración', nombre: 'Usuarios y perfiles', icono: 'users',
-    fase: 'esta fase (fase 1)', perfiles: ['ADMINISTRADOR'],
-    descripcion: 'Quién entra al sistema y con qué perfil.',
-    acciones: ['Dar de alta a las personas con su correo de Ciudad Maderas', 'Asignar uno o varios perfiles',
-      'Indicar por qué departamentos puede documentar cada quien', 'Dar de baja sin borrar su historial'] },
+    perfiles: ['ADMINISTRADOR', 'SOPORTE_CI'],
+    descripcion: 'Quién entra al sistema, con qué perfil y por qué departamentos documenta.' },
   { id: 'catalogos', seccion: 'Administración', nombre: 'Catálogos', icono: 'list-tree',
-    perfiles: ['ADMINISTRADOR'],
+    perfiles: ['ADMINISTRADOR', 'SOPORTE_CI'],
     descripcion: 'Departamentos, áreas y subáreas con su clave para el código documental.',
     acciones: ['Consultar departamentos, áreas y subáreas con su clave (P-CI04-001)',
       'Puestos: la IA los usa para reconocer al responsable de cada actividad (siguiente paso)',
       'Agregar, corregir o dar de baja sin borrar (siguiente paso)'] },
   { id: 'plantillas', seccion: 'Administración', nombre: 'Plantillas y parámetros', icono: 'sliders-horizontal',
-    fase: 'la fase 4', perfiles: ['ADMINISTRADOR'],
+    fase: 'la fase 4', perfiles: ['ADMINISTRADOR', 'SOPORTE_CI'],
     descripcion: 'Plantilla de cada tipo de documento y ajustes del sistema.',
     acciones: ['Subir la plantilla de cada tipo de documento (preliminar y final)',
-      'Ajustar la marca de agua, las imágenes y el uso de la IA'] }
+      'Ajustar la marca de agua, las imágenes y el uso de la IA',
+      'Soporte CI solo consulta'] },
+  { id: 'bitacora', seccion: 'Administración', nombre: 'Bitácora', icono: 'scroll-text',
+    perfiles: ['ADMINISTRADOR', 'SOPORTE_CI'],
+    descripcion: 'Quién hizo qué y cuándo: altas, cambios de permisos, cargas de catálogo y más.' }
 ];
+
+// Cómo se llama en pantalla cada acción de la Bitacora (las que no estén aquí se muestran tal cual).
+const NOMBRES_ACCION = {
+  ALTA_USUARIO: 'Alta de usuario',
+  CAMBIO_USUARIO: 'Cambio de usuario',
+  VER_COMO: 'Ver como (pruebas)',
+  IMPORTAR_CATALOGO: 'Carga del catálogo'
+};
 
 const TIPOS_SOLICITUD = {
   NUEVO: 'NUEVO',

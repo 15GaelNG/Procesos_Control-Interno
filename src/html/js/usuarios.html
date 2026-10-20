@@ -1,0 +1,263 @@
+<script>
+  /*
+   * Pantalla «Usuarios y perfiles» (apiUsuarios, apiGuardarUsuario).
+   * El administrador da de alta y edita; Soporte CI solo consulta. Las reglas (nadie cambia sus propios
+   * perfiles, siempre queda un administrador…) las valida el servidor; aquí solo se adelantan avisos.
+   */
+  function iniciarUsuarios(raiz) {
+    const q = function (campo) { return raiz.querySelector('[data-campo="' + campo + '"]'); };
+    const contenido = q('contenido');
+    const buscar = q('buscar');
+    const filtroPerfil = q('filtro-perfil');
+    const bajas = q('bajas');
+    const panel = q('panel');
+    const formulario = q('formulario');
+    const listaDeptos = q('deptos');
+    const errores = q('errores');
+    const botonGuardar = raiz.querySelector('[data-accion="guardar"]');
+    let datos = null;
+    let editando = null;
+    let seleccion = { deptos: [], principal: '' };
+
+    const comparable = function (t) {
+      return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+    };
+    const el = function (etiqueta, clase, texto) {
+      const n = document.createElement(etiqueta);
+      if (clase) n.className = clase;
+      if (texto !== undefined) n.textContent = texto;
+      return n;
+    };
+    const icono = function (nombre) {
+      const i = el('i', 'ico');
+      i.setAttribute('data-lucide', nombre);
+      return i;
+    };
+
+    Object.keys(DATOS.nombresPerfil).forEach(function (p) {
+      const o = el('option', '', DATOS.nombresPerfil[p]);
+      o.value = p;
+      filtroPerfil.appendChild(o);
+    });
+
+    /* ─────────── Lista ─────────── */
+    function pintarResumen() {
+      const resumen = q('resumen');
+      resumen.textContent = '';
+      const activos = datos.usuarios.filter(function (u) { return u.activo; });
+      resumen.appendChild(el('span', 'chip', activos.length + ' activos'));
+      Object.keys(DATOS.nombresPerfil).forEach(function (p) {
+        const n = activos.filter(function (u) { return u.perfiles.indexOf(p) !== -1; }).length;
+        resumen.appendChild(el('span', 'chip subarea', DATOS.nombresPerfil[p] + ': ' + n));
+      });
+      const deBaja = datos.usuarios.length - activos.length;
+      if (deBaja) resumen.appendChild(el('span', 'chip dorado', deBaja + (deBaja === 1 ? ' dado de baja' : ' dados de baja')));
+    }
+
+    function filaUsuario(u) {
+      const fila = el('div', 'usuario-fila' + (u.activo ? '' : ' inactiva'));
+      fila.appendChild(el('span', 'avatar', iniciales(u.nombre)));
+      const datosU = el('div', 'usuario-datos-fila');
+      const nombre = el('div', 'usuario-nombre', u.nombre);
+      if (u.id === datos.yo) nombre.appendChild(el('span', 'chip exito', 'Tú'));
+      if (!u.activo) nombre.appendChild(el('span', 'chip dorado', 'Baja'));
+      datosU.appendChild(nombre);
+      datosU.appendChild(el('div', 'usuario-correo', u.correo));
+      const chips = el('div', 'chips');
+      if (!u.perfiles.length) chips.appendChild(el('span', 'chip dorado', 'Sin perfil'));
+      u.perfiles.forEach(function (p) { chips.appendChild(el('span', 'chip', DATOS.nombresPerfil[p] || p)); });
+      datosU.appendChild(chips);
+      if (u.departamentos.length) {
+        datosU.appendChild(el('div', 'usuario-deptos', u.departamentos.map(function (d) {
+          return d.nombre + (d.principal && u.departamentos.length > 1 ? ' (principal)' : '');
+        }).join(' · ')));
+      }
+      fila.appendChild(datosU);
+      if (datos.puedeEditar) {
+        const editar = el('button', 'btn-icono');
+        editar.type = 'button';
+        editar.title = 'Editar';
+        editar.setAttribute('aria-label', 'Editar a ' + u.nombre);
+        editar.appendChild(icono('pencil'));
+        editar.addEventListener('click', function () { abrirPanel(u); });
+        fila.appendChild(editar);
+      }
+      return fila;
+    }
+
+    function pintarLista() {
+      const texto = comparable(buscar.value);
+      const perfil = filtroPerfil.value;
+      contenido.textContent = '';
+      const visibles = datos.usuarios.filter(function (u) {
+        if (!u.activo && !bajas.checked) return false;
+        if (perfil && u.perfiles.indexOf(perfil) === -1) return false;
+        if (!texto) return true;
+        return [u.nombre, u.correo].concat(u.departamentos.map(function (d) { return d.nombre; }))
+          .some(function (t) { return comparable(t).indexOf(texto) !== -1; });
+      });
+      visibles.forEach(function (u) { contenido.appendChild(filaUsuario(u)); });
+      if (!visibles.length) {
+        const v = el('div', 'vacio');
+        v.appendChild(el('p', '', datos.usuarios.length ? 'Nadie coincide con el filtro.' : 'Aún no hay usuarios.'));
+        contenido.appendChild(v);
+      }
+      pintarIconos();
+    }
+
+    function cargar() {
+      return llamar('apiUsuarios').then(function (r) {
+        if (!contenido.isConnected) return;
+        datos = r;
+        raiz.querySelector('[data-accion="nuevo"]').hidden = !datos.puedeEditar;
+        q('solo-lectura').hidden = datos.puedeEditar;
+        q('ayuda-correo').textContent = 'Con este correo entra a Google. Solo ' +
+          datos.dominios.map(function (d) { return '@' + d; }).join(' o ') + '. No se puede cambiar después.';
+        pintarResumen();
+        pintarLista();
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        const v = el('div', 'vacio');
+        v.appendChild(el('h2', '', 'No se pudieron cargar los usuarios'));
+        v.appendChild(el('p', '', e.message));
+        contenido.appendChild(v);
+      });
+    }
+
+    /* ─────────── Panel de alta y edición ─────────── */
+    function pintarPerfiles(propio) {
+      const caja = q('perfiles');
+      caja.textContent = '';
+      Object.keys(DATOS.nombresPerfil).forEach(function (p) {
+        const opcion = el('label', 'opcion-perfil');
+        const casilla = el('input');
+        casilla.type = 'checkbox';
+        casilla.name = 'perfil';
+        casilla.value = p;
+        casilla.checked = !!editando && editando.perfiles.indexOf(p) !== -1;
+        casilla.disabled = propio;
+        const texto = el('span');
+        texto.appendChild(el('strong', '', DATOS.nombresPerfil[p]));
+        texto.appendChild(el('small', '', DATOS.descripcionesPerfil[p] || ''));
+        opcion.appendChild(casilla);
+        opcion.appendChild(texto);
+        caja.appendChild(opcion);
+      });
+    }
+
+    function pintarDeptos() {
+      const texto = comparable(q('buscar-depto').value);
+      listaDeptos.textContent = '';
+      q('conteo-deptos').textContent = seleccion.deptos.length ? '(' + seleccion.deptos.length + ')' : '';
+      if (!datos.departamentos.length) {
+        listaDeptos.appendChild(el('p', 'nota', 'Todavía no hay departamentos: primero se carga el catálogo.'));
+        return;
+      }
+      const elegidos = datos.departamentos.filter(function (d) { return seleccion.deptos.indexOf(d.id) !== -1; });
+      const resto = datos.departamentos.filter(function (d) { return seleccion.deptos.indexOf(d.id) === -1; });
+      elegidos.concat(resto).forEach(function (d) {
+        const marcado = seleccion.deptos.indexOf(d.id) !== -1;
+        if (texto && !marcado && comparable(d.nombre + ' ' + d.clave).indexOf(texto) === -1) return;
+        const fila = el('div', 'depto-opcion' + (marcado ? ' marcado' : ''));
+        const etiqueta = el('label', 'depto-nombre');
+        const casilla = el('input');
+        casilla.type = 'checkbox';
+        casilla.checked = marcado;
+        casilla.addEventListener('change', function () {
+          if (casilla.checked) seleccion.deptos.push(d.id);
+          else seleccion.deptos = seleccion.deptos.filter(function (x) { return x !== d.id; });
+          if (seleccion.deptos.indexOf(seleccion.principal) === -1) seleccion.principal = seleccion.deptos[0] || '';
+          pintarDeptos();
+        });
+        etiqueta.appendChild(casilla);
+        etiqueta.appendChild(el('span', '', d.nombre));
+        etiqueta.appendChild(el('span', 'catalogo-clave', d.clave));
+        fila.appendChild(etiqueta);
+        if (marcado) {
+          const principal = el('label', 'depto-principal');
+          const radio = el('input');
+          radio.type = 'radio';
+          radio.name = 'principal';
+          radio.checked = seleccion.principal === d.id;
+          radio.addEventListener('change', function () { seleccion.principal = d.id; });
+          principal.appendChild(radio);
+          principal.appendChild(el('span', '', 'Principal'));
+          fila.appendChild(principal);
+        }
+        listaDeptos.appendChild(fila);
+      });
+    }
+
+    function abrirPanel(usuario) {
+      editando = usuario || null;
+      const propio = !!editando && editando.id === datos.yo;
+      formulario.reset();
+      q('panel-titulo').textContent = editando ? 'Editar usuario' : 'Nuevo usuario';
+      formulario.correo.value = editando ? editando.correo : '';
+      formulario.correo.readOnly = !!editando;
+      formulario.nombre.value = editando ? editando.nombre : '';
+      formulario.activo.checked = editando ? editando.activo : true;
+      formulario.activo.disabled = propio;
+      q('nota-propia').hidden = !propio;
+      seleccion = {
+        deptos: editando ? editando.departamentos.map(function (d) { return d.id; }) : [],
+        principal: editando ? ((editando.departamentos.filter(function (d) { return d.principal; })[0] || {}).id || '') : ''
+      };
+      if (seleccion.deptos.length && seleccion.deptos.indexOf(seleccion.principal) === -1) seleccion.principal = seleccion.deptos[0];
+      q('buscar-depto').value = '';
+      errores.hidden = true;
+      pintarPerfiles(propio);
+      pintarDeptos();
+      panel.hidden = false;
+      pintarIconos();
+      (editando ? formulario.nombre : formulario.correo).focus();
+    }
+
+    function cerrarPanel() {
+      panel.hidden = true;
+      editando = null;
+    }
+
+    function guardar() {
+      const perfiles = Array.prototype.slice.call(formulario.querySelectorAll('input[name="perfil"]:checked'))
+        .map(function (c) { return c.value; });
+      const enviar = {
+        idUsuario: editando ? editando.id : '',
+        correo: formulario.correo.value,
+        nombre: formulario.nombre.value,
+        activo: formulario.activo.checked,
+        perfiles: perfiles,
+        departamentos: seleccion.deptos,
+        principal: seleccion.principal
+      };
+      errores.hidden = true;
+      botonGuardar.disabled = true;
+      botonGuardar.querySelector('span').textContent = 'Guardando…';
+      llamar('apiGuardarUsuario', enviar).then(function (r) {
+        cerrarPanel();
+        avisar(r.mensaje, 'exito');
+        return cargar();
+      }).catch(function (e) {
+        errores.textContent = e.message;
+        errores.hidden = false;
+      }).then(function () {
+        botonGuardar.disabled = false;
+        botonGuardar.querySelector('span').textContent = 'Guardar';
+      });
+    }
+
+    raiz.querySelector('[data-accion="nuevo"]').addEventListener('click', function () { abrirPanel(null); });
+    raiz.querySelectorAll('[data-accion="cerrar"]').forEach(function (b) { b.addEventListener('click', cerrarPanel); });
+    panel.addEventListener('click', function (e) { if (e.target === panel) cerrarPanel(); });
+    panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarPanel(); });
+    botonGuardar.addEventListener('click', guardar);
+    formulario.addEventListener('submit', function (e) { e.preventDefault(); guardar(); });
+    q('buscar-depto').addEventListener('input', pintarDeptos);
+    buscar.addEventListener('input', function () { if (datos) pintarLista(); });
+    filtroPerfil.addEventListener('change', function () { if (datos) pintarLista(); });
+    bajas.addEventListener('change', function () { if (datos) pintarLista(); });
+
+    cargar();
+  }
+</script>

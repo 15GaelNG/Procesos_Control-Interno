@@ -114,8 +114,18 @@ const USUARIOS_DE_PRUEBA = [
   { correo: 'colaborador.dos@procesos.test', nombre: 'Luis Ramírez (prueba)', perfiles: ['COLABORADOR'] },
   { correo: 'revisor@procesos.test', nombre: 'Paola Méndez (prueba)', perfiles: ['REVISOR'] },
   { correo: 'revisor.colaborador@procesos.test', nombre: 'Carlos Ruiz (prueba)', perfiles: ['REVISOR', 'COLABORADOR'] },
-  { correo: 'administrador@procesos.test', nombre: 'Sofía Torres (prueba)', perfiles: ['ADMINISTRADOR'] }
+  { correo: 'administrador@procesos.test', nombre: 'Sofía Torres (prueba)', perfiles: ['ADMINISTRADOR'] },
+  { correo: 'soporte@procesos.test', nombre: 'Diego Herrera (prueba)', perfiles: ['SOPORTE_CI'] }
 ];
+
+// Dominios de correo que se pueden dar de alta. En pruebas también el de los usuarios de prueba.
+const DOMINIOS_CORREO = {
+  PRODUCCION: ['ciudadmaderas.com'],
+  PRUEBAS: ['ciudadmaderas.com', 'procesos.test']
+};
+
+// Cuántos renglones de la Bitacora muestra la pantalla (los más recientes).
+const BITACORA_MAX_RENGLONES = 500;
 
 // Colores institucionales (los mismos que SIVET / Control Interno y la plantilla).
 const COLOR_AZUL = '#1E252B';

@@ -37,6 +37,8 @@ datos, **Google Drive** para archivos y **Google Docs** para generar los documen
 │   ├── UsuariosDePrueba.gs  crearUsuariosDePrueba(): un usuario por perfil, solo en pruebas
 │   ├── services/
 │   │   ├── Sesion.gs          Quién abrió la app, sus perfiles, sus pantallas y «Ver como» (pruebas)
+│   │   ├── Usuarios.gs        Altas y cambios de usuarios con las reglas de la decisión 19
+│   │   ├── Bitacora.gs        registrarBitacora_() y la consulta de la bitácora
 │   │   └── Catalogos.gs       importarCatalogoInicial() y el árbol departamentos → áreas → subáreas
 │   ├── html/
 │   │   ├── Index.html         Armazón: menú lateral, barra superior, tema claro/oscuro
