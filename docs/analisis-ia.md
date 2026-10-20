@@ -71,7 +71,7 @@ preliminar y enviarlo a revisión (fases 4 y 5).
 - Pantallas: `src/html/views/analisis.html`, `views/vista-previa.html`, `js/analisis.html`,
   `js/vista-previa.html`.
 
-Probado el 21/10/2026 en una vista previa local que corre estas mismas funciones con una IA simulada:
+Probado el 20/10/2026 en una vista previa local que corre estas mismas funciones con una IA simulada:
 datos ocultos y restaurados, preguntas respondidas (la del responsable se ligó al catálogo),
 propuestas aceptadas, editadas y descartadas, confirmación, regreso a borrador al editar y rechazo de
 una confirmación con contenido cambiado. **Falta probarlo con Gemini real en pruebas.**
