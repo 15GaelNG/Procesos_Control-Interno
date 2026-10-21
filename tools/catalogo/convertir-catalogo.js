@@ -4,24 +4,21 @@
 //   npm run catalogo                         → usa docs/insumos/catalogo-departamentos-areas.xlsx
 //   npm run catalogo -- ruta/al/archivo.xlsx → usa otro archivo
 //
-// Si el Excel rompe sus propias reglas (cuerpo ≠ nomenclatura + clave, subárea sin área…) se detiene
-// sin escribir nada.
+// Si el Excel rompe sus propias reglas (una clave con dos áreas, un departamento con dos códigos…) se
+// detiene sin escribir nada.
 const fs = require('fs');
 const path = require('path');
 const { leerXlsx } = require('../lib/xlsx');
-const { catalogoDesdeRenglones, pendientesDesdeRenglones } = require('./catalogo');
+const { catalogoDesdeRenglones, hojaDelCatalogo } = require('./catalogo');
 
 const RAIZ = path.join(__dirname, '..', '..');
 const entrada = path.resolve(RAIZ, process.argv[2] || 'docs/insumos/catalogo-departamentos-areas.xlsx');
 const salida = path.join(RAIZ, 'src', 'config', 'CatalogoInicial.gs');
 
 const hojas = leerXlsx(entrada);
-const nombres = Object.keys(hojas);
-const principal = nombres.filter(function (n) { return /cat[aá]logo/i.test(n); })[0] || nombres[0];
-const cambios = nombres.filter(function (n) { return /cambio/i.test(n); })[0];
-
+const principal = hojaDelCatalogo(hojas);
+if (!principal) throw new Error('Ninguna hoja de ' + entrada + ' trae los encabezados del catálogo (DEPARTAMENTO, CODIGO_DEPARTAMENTO…).');
 const catalogo = catalogoDesdeRenglones(hojas[principal]);
-const pendientes = cambios ? pendientesDesdeRenglones(hojas[cambios]) : [];
 
 const js = function (v) { return JSON.stringify(v); };
 const lineas = [];
@@ -63,4 +60,3 @@ fs.writeFileSync(salida, contenido, 'utf8');
 console.log('Escrito ' + path.relative(RAIZ, salida) + ': ' + catalogo.departamentos.length + ' departamentos, ' +
   totalAreas + ' áreas, ' + totalSub + ' subáreas.');
 if (catalogo.avisos.length) console.log('\nAvisos (se cargan tal cual; Procesos decide):\n  · ' + catalogo.avisos.join('\n  · '));
-if (pendientes.length) console.log('\nPendientes que el archivo NO incorpora (hoja «' + cambios + '»):\n  · ' + pendientes.join('\n  · '));

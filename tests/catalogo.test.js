@@ -4,35 +4,49 @@ const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
 const { leerXlsx } = require('../tools/lib/xlsx');
-const { catalogoDesdeRenglones, pendientesDesdeRenglones } = require('../tools/catalogo/catalogo');
+const { catalogoDesdeRenglones, hojaDelCatalogo } = require('../tools/catalogo/catalogo');
 const { cargarGs } = require('./cargar-gs');
 
 const plano = function (v) { return JSON.parse(JSON.stringify(v)); };
 const ARCHIVO = path.join(__dirname, '..', 'docs', 'insumos', 'catalogo-departamentos-areas.xlsx');
 const hojas = leerXlsx(ARCHIVO);
-const catalogo = catalogoDesdeRenglones(hojas['Catálogo para códigos']);
+const catalogo = catalogoDesdeRenglones(hojas[hojaDelCatalogo(hojas)]);
 const depto = function (nombre) { return catalogo.departamentos.filter(function (d) { return d.nombre === nombre; })[0]; };
+const area = function (nombreDepto, clave) { return depto(nombreDepto).areas.filter(function (a) { return a.clave === clave; })[0]; };
 const gs = cargarGs(['src/utils/Texto.gs', 'src/services/Catalogos.gs', 'src/config/CatalogoInicial.gs'], {}, ['CATALOGO_INICIAL']);
 
 // ─────────────────────────────── El archivo de Procesos ───────────────────────────────
 
-test('el archivo de Procesos trae 37 departamentos, 204 áreas y 28 subáreas', function () {
+test('la lista maestra de Procesos (21/10/2026) trae 27 departamentos, 147 áreas (17 de baja) y 28 subáreas', function () {
   const areas = catalogo.departamentos.reduce(function (n, d) { return n + d.areas.length; }, 0);
+  const bajas = catalogo.departamentos.reduce(function (n, d) { return n + d.areas.filter(function (a) { return a.activo === 'NO'; }).length; }, 0);
   const subareas = catalogo.departamentos.reduce(function (n, d) {
     return n + d.areas.reduce(function (m, a) { return m + a.subareas.length; }, 0);
   }, 0);
-  assert.deepStrictEqual([catalogo.departamentos.length, areas, subareas], [37, 204, 28]);
+  assert.deepStrictEqual([catalogo.departamentos.length, areas, bajas, subareas], [27, 147, 17, 28]);
 });
 
 test('src/config/CatalogoInicial.gs está al día con el Excel (se genera con npm run catalogo)', function () {
   assert.deepStrictEqual(plano(gs.CATALOGO_INICIAL), plano(catalogo.departamentos));
 });
 
-test('dentro de un departamento no se repite nombre + clave de un área (así empata la importación)', function () {
+test('dentro de un departamento cada clave es de una sola área (así empata la importación)', function () {
   catalogo.departamentos.forEach(function (d) {
-    const llaves = d.areas.map(function (a) { return a.nombre.toUpperCase() + '|' + a.clave; });
-    assert.strictEqual(new Set(llaves).size, llaves.length, d.nombre);
+    const claves = d.areas.map(function (a) { return a.clave; });
+    assert.strictEqual(new Set(claves).size, claves.length, d.nombre);
   });
+});
+
+test('Procesos es subárea de Análisis de Datos y Procesos (CI04); el área Procesos (CI02) quedó de baja', function () {
+  assert.strictEqual(area('CONTROL INTERNO', '04').nombre, 'ANÁLISIS DE DATOS Y PROCESOS');
+  assert.deepStrictEqual(area('CONTROL INTERNO', '04').subareas.map(function (s) { return s.nombre; }), ['ANÁLISIS DE DATOS', 'PROCESOS', 'CAJAS CHICAS']);
+  assert.deepStrictEqual([area('CONTROL INTERNO', '02').nombre, area('CONTROL INTERNO', '02').activo], ['PROCESOS', 'NO']);
+});
+
+test('un área que solo aparece con sus subáreas se crea una vez, con todas ellas y sin repetir', function () {
+  const facturacion = area('ADMINISTRACION OOAM', '05');
+  assert.deepStrictEqual(facturacion.subareas.map(function (s) { return s.nombre; }), ['DOMICILIACIONES', 'ESTADOS DE CUENTA', 'DEVOLUCIONES Y TRASPASOS']);
+  assert.strictEqual(area('POST VENTA', '01').subareas.length, 2, 'Post Venta 01 aparece con y sin subárea');
 });
 
 test('Capital Humano tiene dos SUBDIRECCION (06 de baja y 09 activa) y la importación crea las dos', function () {
@@ -45,51 +59,47 @@ test('Capital Humano tiene dos SUBDIRECCION (06 de baja y 09 activa) y la import
   assert.strictEqual(otraVez.areas.length, 0);
 });
 
-test('Procesos es subárea de Análisis de Datos y Procesos: hereda CI04 y guarda su clave anterior CI02', function () {
-  const adyp = depto('CONTROL INTERNO').areas.filter(function (a) { return a.clave === '04'; })[0];
-  assert.strictEqual(adyp.nombre, 'ANÁLISIS DE DATOS Y PROCESOS');
-  const procesos = adyp.subareas.filter(function (s) { return s.nombre === 'PROCESOS'; })[0];
-  assert.strictEqual(procesos.claveAnterior, 'CI02');
-});
-
-test('las áreas «(OBSOLETO)» quedan dadas de baja y sin el prefijo en el nombre', function () {
-  const comunicacion = depto('CAPITAL HUMANO').areas.filter(function (a) { return a.clave === '03'; })[0];
+test('las áreas «(OBSOLETO)» quedan dadas de baja, sin el prefijo y con la razón en sus notas', function () {
+  const comunicacion = area('CAPITAL HUMANO', '03');
   assert.deepStrictEqual([comunicacion.nombre, comunicacion.activo], ['COMUNICACION', 'NO']);
-  assert.ok(/YA NO PERTENECE/.test(comunicacion.observaciones));
-  const bajas = catalogo.departamentos.reduce(function (n, d) { return n + d.areas.filter(function (a) { return a.activo === 'NO'; }).length; }, 0);
-  assert.strictEqual(bajas, 5);
+  assert.ok(/OBSOLETO/.test(comunicacion.observaciones));
+  assert.ok(depto('COMPRAS').areas.every(function (a) { return a.activo === 'NO'; }), 'Compras quedó todo de baja');
 });
 
-test('se avisan las claves compartidas que el archivo deja pendientes y se listan sus pendientes', function () {
-  ['CI01', 'FCM00', 'FN03', 'nomenclatura CO'].forEach(function (t) {
-    assert.ok(catalogo.avisos.some(function (a) { return a.indexOf(t) !== -1; }), t);
-  });
-  const pendientes = pendientesDesdeRenglones(hojas['Cambios de nombres']);
-  assert.strictEqual(pendientes.length, 13);
-  assert.ok(pendientes.every(function (p) { return p.indexOf('PENDIENTE:') === 0; }));
+test('se avisa la clave escrita sin los dos dígitos (Post Venta «3» → 03)', function () {
+  assert.strictEqual(area('POST VENTA', '03').nombre, 'ADMINISTRACIÓN DE OFICINA');
+  assert.ok(catalogo.avisos.some(function (a) { return /«3».*03/.test(a); }));
 });
 
 // ─────────────────────────────── Reglas de la conversión ───────────────────────────────
 
-const ENCABEZADO = ['Departamento', 'Nomenclatura', 'Área', 'Clave de área', 'Subárea', 'Cuerpo del código', 'Nivel',
-  'Origen de clave', 'Clave anterior subárea', 'Observación'];
+const ENCABEZADO = ['', 'DEPARTAMENTO', 'CODIGO_ DEPARTAMENTO ', 'AREA ', 'CODIGO_ AREA ', 'SUB AREA '];
+const renglon = function (depto, codigo, area, clave, sub) { return ['', depto, codigo, area, clave, sub || '']; };
 
-test('se detiene si el cuerpo del código no es nomenclatura + clave a dos dígitos', function () {
-  assert.throws(function () {
-    catalogoDesdeRenglones([['Título'], ENCABEZADO, ['TI', 'TI', 'SOPORTE', '3', '', 'TI3', 'Área']]);
-  }, /no es TI \+ 03/);
+test('encuentra los encabezados aunque traigan espacios, guiones bajos o vengan después de un título', function () {
+  const r = catalogoDesdeRenglones([['Lista maestra'], ENCABEZADO, renglon('TI', 'ti', 'SOPORTE TI', '03'), [], ['', '', '', '', '', '']]);
+  assert.deepStrictEqual(plano(r.departamentos), [{ nombre: 'TI', clave: 'TI', areas: [
+    { nombre: 'SOPORTE TI', clave: '03', activo: 'SI', observaciones: '', subareas: [] }] }]);
+  assert.strictEqual(hojaDelCatalogo({ Notas: [['x']], Lista: [ENCABEZADO] }), 'Lista');
 });
 
-test('se detiene si una subárea apunta a un área que no existe', function () {
+test('se detiene si una clave tiene dos áreas distintas o un departamento dos códigos', function () {
   assert.throws(function () {
-    catalogoDesdeRenglones([ENCABEZADO, ['TI', 'TI', 'SOPORTE', '3', 'MESA', 'TI03', 'Subárea']]);
-  }, /no está antes en el archivo/);
+    catalogoDesdeRenglones([ENCABEZADO, renglon('TI', 'TI', 'SOPORTE', '03'), renglon('TI', 'TI', 'REDES', '03')]);
+  }, /TI03 ya es de «SOPORTE»/);
+  assert.throws(function () {
+    catalogoDesdeRenglones([ENCABEZADO, renglon('TI', 'TI', 'SOPORTE', '03'), renglon('TI', 'SIS', 'REDES', '04')]);
+  }, /dos códigos \(TI y SIS\)/);
+  assert.throws(function () { catalogoDesdeRenglones([ENCABEZADO, renglon('TI', 'TI', 'SOPORTE', 'tres')]); }, /clave de área inválida/);
+  assert.throws(function () { catalogoDesdeRenglones([['DEPTO', 'AREA']]); }, /No se encontró el renglón de encabezados/);
 });
 
-test('las notas sin valor se quitan y las útiles se conservan', function () {
-  const r = catalogoDesdeRenglones([ENCABEZADO,
-    ['TI', 'TI', 'DESARROLLO', '2', '', 'TI02', 'Área', 'Clave validada contra catálogo unificado adjunto', '', 'Estatus origen: Activo; Agregado de reporte']]);
-  assert.strictEqual(r.departamentos[0].areas[0].observaciones, 'Agregado de reporte');
+test('avisa si dos departamentos usan el mismo código o si un área sigue activa con dos claves', function () {
+  const r = catalogoDesdeRenglones([ENCABEZADO, renglon('COBRANZA', 'CO', 'COBRANZA', '01'), renglon('COBRANZA LOTES', 'CO', 'CALIDAD', '02'),
+    renglon('TI', 'TI', 'SOPORTE', '01'), renglon('TI', 'TI', 'SOPORTE', '05'), renglon('TI', 'TI', '(OBSOLETO) REDES', '02'), renglon('TI', 'TI', 'REDES', '06')]);
+  assert.ok(r.avisos.some(function (a) { return /CO lo usan varios departamentos/.test(a); }));
+  assert.ok(r.avisos.some(function (a) { return /SOPORTE está activa con dos claves \(TI01 y TI05\)/.test(a); }));
+  assert.ok(!r.avisos.some(function (a) { return /REDES/.test(a); }), 'una de baja y otra activa no es aviso');
 });
 
 // ─────────────────────────────── Importación a la base ───────────────────────────────
@@ -139,7 +149,7 @@ test('empata sin importar acentos ni mayúsculas, y si la base tiene otra clave 
 
 test('el catálogo inicial completo se importa sin avisos sobre una base vacía', function () {
   const p = gs.planImportacionCatalogo_(gs.CATALOGO_INICIAL, vacio, contador());
-  assert.deepStrictEqual([p.departamentos.length, p.areas.length, p.subareas.length, p.avisos.length], [37, 204, 28, 0]);
+  assert.deepStrictEqual([p.departamentos.length, p.areas.length, p.subareas.length, p.avisos.length], [27, 147, 28, 0]);
 });
 
 // ─────────────────────────────── Árbol de la pantalla ───────────────────────────────

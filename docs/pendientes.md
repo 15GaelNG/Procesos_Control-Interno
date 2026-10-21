@@ -22,10 +22,8 @@ en el mismo orden en que la usará la gente.
       no se usan.
    2. `verificarBase()` → debe decir `"correcto": true`.
    3. `crearUsuariosDePrueba()` — agrega a Diego Herrera (Soporte CI) y los perfiles que falten.
-   4. `importarCatalogoInicial()` — en **pruebas** se puede cargar el catálogo actual para no detener
-      nada (sin departamentos nadie crea solicitudes); cuando llegue el corregido, se vacían a mano
-      `Departamentos`, `Areas` y `Subareas` de pruebas y se vuelve a importar. En **producción**, solo
-      con el corregido (sección 2).
+   4. `importarCatalogoInicial()` — carga la lista maestra corregida del 21/10/2026 (27 departamentos,
+      147 áreas, 28 subáreas). El registro debe decir cuántos creó y ningún aviso.
    5. `prepararPlantillas()` — registra las dos plantillas (con y sin marca) en `TiposDocumento`: el
       registro debe decir «Registradas en el tipo Procedimiento» y la fila del Procedimiento debe tener
       `ID_PLANTILLA_PRELIMINAR` e `ID_PLANTILLA_FINAL`.
@@ -91,9 +89,10 @@ Mandar capturas de lo que se vea raro.
 
 ## 2. Por recibir de Procesos
 
-- [ ] **Catálogo de departamentos y áreas corregido** (el del 19/10/2026 tenía errores). Al llegar:
-  reemplazar `docs/insumos/catalogo-departamentos-areas.xlsx`, `npm run catalogo`, `npm test` y revisar
-  los avisos. Los pendientes del archivo anterior están en [catalogos.md](catalogos.md#pendientes-para-procesos).
+- [x] ~~Catálogo de departamentos y áreas corregido~~ → llegó la lista maestra el 21/10/2026 y ya está en
+  el código. Quedan por confirmar con Procesos tres cosas ([catalogos.md](catalogos.md#pendientes-para-procesos)):
+  si los documentos vigentes conservan su código anterior (52 áreas cambiaron de clave), los 10
+  departamentos que ya no vienen y unas posibles erratas.
 - [ ] **Catálogo de puestos** por departamento (la IA lo usa para reconocer responsables). También el
   **puesto de cada revisor**: con el Vo.Bo. se guarda en `REVISO_PUESTO` y sale en «Revisó» del documento.
 - [ ] **Lista de usuarios** con su perfil y departamento.

@@ -54,7 +54,8 @@ nunca borra datos:
 ### Catálogo de Procesos (19/10/2026)
 
 - `Areas` con `OBSERVACIONES`; nueva hoja **`Subareas`**; `ID_SUBAREA` en `Solicitudes` y
-  `Documentos`. Los datos se cargan con `importarCatalogoInicial()` ([catalogos.md](catalogos.md)).
+  `Documentos`. Los datos se cargan con `importarCatalogoInicial()` ([catalogos.md](catalogos.md)); desde
+  el 21/10/2026, de la lista maestra corregida (sin cambios en las hojas).
 
 ### Cambios de la fase 1 (14/10/2026), por las respuestas de Procesos
 
@@ -131,7 +132,8 @@ catálogo de Procesos: de dónde salió la clave, decisiones pendientes). El có
 ### Subareas
 Subáreas de un área (catálogo de Procesos). **No cambian el código**: heredan la clave de su área
 (Procesos es subárea de Análisis de Datos y Procesos y usa `CI04`). `ID_SUBAREA` (`SUB-0001`) ·
-`ID_AREA` · `NOMBRE` · `CLAVE_ANTERIOR` (el cuerpo que tenía antes de volverse subárea, p. ej. `CI02`) ·
+`ID_AREA` · `NOMBRE` · `CLAVE_ANTERIOR` (el cuerpo que tenía antes de volverse subárea; la lista maestra
+del 21/10/2026 no lo trae, así que por ahora queda vacía) ·
 `ACTIVO` · `OBSERVACIONES`. Sirven para saber de qué equipo es cada documento.
 
 ### Puestos

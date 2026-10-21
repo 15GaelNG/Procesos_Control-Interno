@@ -412,7 +412,8 @@ Las 12 preguntas originales quedaron resueltas por las decisiones 1–14 y las
 A. ~~Conexión con el sistema CH~~ → resuelto: no hay conexión (decisión 15).
 B. ~~Validación de TI del nivel gratuito de Gemini~~ → resuelto (decisión 16).
 C. ~~Catálogo en Control Interno~~ → no existe; Procesos entregó el catálogo de departamentos, áreas y
-   subáreas (19/10/2026, [catalogos.md](catalogos.md)). Lo que el archivo deja pendiente está ahí.
+   subáreas (19/10/2026) y su lista maestra corregida (21/10/2026, [catalogos.md](catalogos.md)). Lo que
+   queda por confirmar (documentos con claves anteriores, departamentos que ya no vienen) está ahí.
 
 **Para el área de Procesos:**
 
