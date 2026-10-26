@@ -134,6 +134,12 @@ function apiDecidirPropuesta(comoUsuario, idSolicitud, idPropuesta, decision, va
   return decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor);
 }
 
+/** Acepta de una vez todas las correcciones de redacción pendientes. */
+function apiAceptarRedacciones(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return aceptarRedacciones_(sesion, idSolicitud);
+}
+
 /** estado: RESPONDIDA | NO_APLICA | NO_LO_SE. */
 function apiResponderPregunta(comoUsuario, idSolicitud, idAclaracion, estado, respuesta) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);

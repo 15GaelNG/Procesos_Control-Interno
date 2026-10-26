@@ -562,6 +562,16 @@
   .analizando { display: flex; align-items: center; gap: 14px; border-color: var(--dorado); }
   .girando-lento { animation: girar 2.4s linear infinite; }
   .avisos-ia { padding: 12px 14px; border-radius: 10px; background: var(--dorado-suave); color: var(--aviso); font-size: 12.5px; }
+  .resultado-ia {
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 12px;
+    background: var(--exito-suave); color: var(--exito);
+  }
+  .resultado-ia > .ico { flex-shrink: 0; margin-top: 2px; }
+  .resultado-ia .nota { color: inherit; opacity: .9; margin: 4px 0 0; }
+  .resultado-ia.error { background: var(--peligro-suave); color: var(--peligro); }
+  .seccion-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .seccion-cabeza h2 { margin: 0; }
+  .desarrollo-acciones { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
   .seccion-analisis { display: flex; flex-direction: column; gap: 12px; }
   .seccion-analisis h2 { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .seccion-analisis h2 .ico { color: var(--dorado); }

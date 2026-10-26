@@ -1,8 +1,10 @@
 <script>
   /*
-   * Paso 4 · Análisis con IA (apiAnalisis, apiAnalizar, apiDecidirPropuesta, apiResponderPregunta,
-   * apiGuardarDerivados). La IA propone y la persona decide: cada propuesta se acepta, se edita o se
-   * descarta; las preguntas se responden (o «No aplica» / «No lo sé»). Sin IA, los textos se escriben a mano.
+   * Paso 4 · Corregir y analizar con IA (apiAnalisis, apiAnalizar, apiDecidirPropuesta,
+   * apiAceptarRedacciones, apiResponderPregunta, apiGuardarDerivados). La IA propone y la persona decide:
+   * cada propuesta se acepta, se edita o se descarta (las correcciones de redacción, también todas de una
+   * vez); las preguntas se responden (o «No aplica» / «No lo sé»). Sin IA, los textos se escriben a mano.
+   * Desde el paso 3, «Corregir y analizar con IA» llega aquí con estado.analizarAlAbrir y arranca solo.
    */
   const NOMBRES_CAMPO_PROPUESTA = { TEXTO: 'Redacción', RESPONSABLE: 'Responsable', OBJETIVO: 'Objetivo', ALCANCE: 'Alcance',
     RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones', ORDEN: 'Orden' };
@@ -19,6 +21,7 @@
     let datos = null;
     let ui = null;
     let avisosIa = [];
+    let resultadoIa = null;     /* Lo que pasó en el último análisis de esta pantalla: { ok… } o { error }. */
     let derivadosSucio = false;
     let ocupado = false;
 
@@ -172,22 +175,14 @@
       const analizar = ui.querySelector('[data-accion="analizar"]');
       analizar.hidden = !datos.puedeEditar;
       analizar.disabled = !datos.iaActiva;
-      analizar.querySelector('span').textContent = datos.ultimoAnalisis ? 'Volver a analizar' : 'Analizar con IA';
+      analizar.querySelector('span').textContent = datos.ultimoAnalisis ? 'Volver a corregir y analizar' : 'Corregir y analizar con IA';
       analizar.addEventListener('click', function () {
         if (ocupado) return;
-        const empezar = function () {
-          q('analizando').hidden = false;
-          analizar.disabled = true;
-          trabajar(guardarDerivados().then(function () { return llamar('apiAnalizar', idSolicitud); }).then(function (r) {
-            avisosIa = r.avisos || [];
-            avisar('La IA hizo ' + r.propuestas + (r.propuestas === 1 ? ' propuesta' : ' propuestas') + ' y ' + r.preguntas +
-              (r.preguntas === 1 ? ' pregunta.' : ' preguntas.'), 'exito');
-          }));
-        };
         const pendientes = datos.propuestas.filter(function (p) { return p.decision === 'PENDIENTE'; }).length;
         if (pendientes && !confirm('Tienes ' + pendientes + ' propuestas sin decidir. Al volver a analizar se reemplazan por nuevas. ¿Continuar?')) return;
-        empezar();
+        analizarAhora();
       });
+      pintarResultado();
       q('ia-apagada').hidden = datos.iaActiva || !datos.puedeEditar;
       q('solo-lectura').hidden = datos.puedeEditar;
 
@@ -211,8 +206,20 @@
       /* Propuestas de actividades, agrupadas por actividad. */
       const pendientesP = datos.propuestas.filter(function (p) { return p.decision === 'PENDIENTE'; });
       const deActividad = pendientesP.filter(function (p) { return p.campo === 'TEXTO' || p.campo === 'RESPONSABLE'; });
+      const redaccion = pendientesP.filter(function (p) { return p.campo === 'TEXTO'; }).length;
       if (deActividad.length) {
         q('seccion-actividades').hidden = false;
+        const todas = ui.querySelector('[data-accion="aceptar-redaccion"]');
+        todas.hidden = !redaccion || !datos.puedeEditar;
+        todas.querySelector('span').textContent = redaccion === 1 ? 'Aceptar la corrección de redacción' : 'Aceptar las ' + redaccion + ' correcciones de redacción';
+        todas.addEventListener('click', function () {
+          if (ocupado) return;
+          trabajar(llamar('apiAceptarRedacciones', idSolicitud).then(function (r) {
+            avisar(r.aceptadas === 1 ? 'Se aplicó 1 corrección.' : 'Se aplicaron ' + r.aceptadas + ' correcciones.', 'exito');
+            if (r.sinAplicar) avisar(r.sinAplicar + ' no se aplicaron porque cambiaste esas actividades después del análisis.', '');
+            if (r.estado === 'BORRADOR' && datos.solicitud.estado === 'CONFIRMADO') avisar('Cambiaste la solicitud después de confirmarla: tendrás que volver a confirmarla.', '');
+          }));
+        });
         datos.actividades.forEach(function (a) {
           const suyas = deActividad.filter(function (p) { return p.idActividad === a.id; });
           if (!suyas.length) return;
@@ -266,9 +273,64 @@
       pintarIconos();
     }
 
+    /* Corre el análisis con un reloj a la vista; el resultado (o el error) se queda en pantalla. */
+    function analizarAhora() {
+      const inicio = Date.now();
+      resultadoIa = null;
+      q('resultado-ia').hidden = true;
+      q('analizando').hidden = false;
+      ui.querySelector('[data-accion="analizar"]').disabled = true;
+      const reloj = setInterval(function () {
+        const t = ui && q('analizando-tiempo');
+        if (t) t.textContent = Math.round((Date.now() - inicio) / 1000) + ' s';
+      }, 1000);
+      const analisis = guardarDerivados().then(function () { return llamar('apiAnalizar', idSolicitud); }).then(function (r) {
+        avisosIa = r.avisos || [];
+        resultadoIa = Object.assign({ ok: true }, r);
+      }, function (e) {
+        resultadoIa = { error: e.message };
+        throw e;
+      });
+      return trabajar(analisis).then(function () {
+        clearInterval(reloj);
+        if (ui && !q('resultado-ia').hidden) q('resultado-ia').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    function pintarResultado() {
+      const r = resultadoIa;
+      const caja = q('resultado-ia');
+      caja.hidden = !r;
+      if (!r) return;
+      caja.classList.toggle('error', !!r.error);
+      q('resultado-icono').setAttribute('data-lucide', r.error ? 'triangle-alert' : 'sparkles');
+      if (r.error) {
+        q('resultado-titulo').textContent = 'La IA no pudo terminar';
+        q('resultado-texto').textContent = r.error + ' Intenta de nuevo en un momento; mientras, todo se puede escribir a mano.';
+        return;
+      }
+      const otras = r.propuestas - r.redaccion;
+      q('resultado-titulo').textContent = r.redaccion
+        ? 'La IA propone corregir la redacción de ' + r.redaccion + (r.redaccion === 1 ? ' actividad.' : ' actividades.')
+        : 'La IA no encontró faltas de redacción que corregir.';
+      q('resultado-texto').textContent = [
+        otras ? otras + (otras === 1 ? ' propuesta más' : ' propuestas más') + ' (responsables, objetivo, alcance…)' : '',
+        r.preguntas ? r.preguntas + (r.preguntas === 1 ? ' pregunta' : ' preguntas') + ' para completar tu proceso' : ''
+      ].filter(Boolean).join(' y ') + (otras || r.preguntas ? '. ' : '') + 'Nada cambia hasta que lo aceptes. ' +
+        'Respondió en ' + r.segundos + ' s' + (r.modelo ? ' (' + r.modelo + ')' : '') + '.';
+    }
+
     estado.alSalir = function () { return derivadosSucio ? guardarDerivados().catch(function () { /* se avisó */ }) : null; };
 
-    recargar().catch(function (e) {
+    recargar().then(function () {
+      /* Llegó desde el paso 3 con «Corregir y analizar con IA»: arranca solo. */
+      if (estado.analizarAlAbrir !== idSolicitud || !ui) return;
+      estado.analizarAlAbrir = '';
+      const boton = ui.querySelector('[data-accion="analizar"]');
+      if (boton.hidden) return;
+      if (boton.disabled) { avisar('La IA está apagada en este momento: puedes escribir todo a mano.', 'error'); return; }
+      boton.click();
+    }).catch(function (e) {
       if (!contenido.isConnected) return;
       contenido.textContent = '';
       const t = elemento('div', 'tarjeta');

@@ -341,6 +341,14 @@
       editor.querySelector('[data-accion="ir-analisis"]').addEventListener('click', function () {
         ir('solicitud', true, idSolicitud + ':analisis');
       });
+      /* Pasa al paso 4 y ahí arranca el análisis (ir() espera a que se guarde lo pendiente). */
+      editor.querySelectorAll('[data-accion="corregir-ia"]').forEach(function (b) {
+        b.hidden = !sol.puedeEditar;
+        b.addEventListener('click', function () {
+          estado.analizarAlAbrir = idSolicitud;
+          ir('solicitud', true, idSolicitud + ':analisis');
+        });
+      });
 
       const agregar = editor.querySelector('[data-accion="agregar"]');
       agregar.hidden = !sol.puedeEditar;

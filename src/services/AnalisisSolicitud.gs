@@ -123,6 +123,7 @@ function planPropuestas_(analisis, det, propuestasActuales, aclaracionesActuales
 }
 
 function analizarSolicitud_(sesion, idSolicitud) {
+  const inicio = Date.now();
   const fila = filaSolicitud_(idSolicitud);
   if (!permisoSolicitud_(sesion, fila).editar) throw new Error('No puedes editar esta solicitud.');
   if (obtenerConfig_('IA_ACTIVA', 'NO') !== 'SI') {
@@ -151,7 +152,9 @@ function analizarSolicitud_(sesion, idSolicitud) {
   agregarFilas_('Aclaraciones', plan.aclaraciones.map(function (q, i) { return Object.assign({ ID_ACLARACION: idsA[i] }, q); }));
   registrarBitacora_(sesion, 'ANALIZAR_IA', plan.propuestas.length + ' propuestas y ' + plan.aclaraciones.length +
     ' preguntas (' + r.modelo + ').', idSolicitud);
-  return { propuestas: plan.propuestas.length, preguntas: plan.aclaraciones.length, avisos: avisos, modelo: r.modelo };
+  return { propuestas: plan.propuestas.length, preguntas: plan.aclaraciones.length, avisos: avisos, modelo: r.modelo,
+    redaccion: plan.propuestas.filter(function (p) { return p.CAMPO === 'TEXTO'; }).length,
+    segundos: Math.round((Date.now() - inicio) / 1000) };
 }
 
 // ─────────────────────────────── Estado para la pantalla ───────────────────────────────
@@ -282,6 +285,42 @@ function decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor) {
     return aplicarCambioContenido_(sesion, fila, plan.solicitud, 'Se aceptó una propuesta de la IA');
   }
   return { marca: String(marcaDe_(fila.FECHA_ACTUALIZACION)), estado: fila.ESTADO };
+}
+
+/**
+ * Las correcciones de redacción pendientes que se pueden aceptar de una vez (sin tocar Google): las de
+ * actividades que no cambiaron después del análisis. Las demás quedan como vencidas.
+ */
+function planAceptarRedacciones_(propuestas, actividades, det, idSolicitud) {
+  const plan = { aplicar: [], vencidas: [] };
+  propuestas.filter(function (p) { return p.ID_SOLICITUD === idSolicitud && p.CAMPO === 'TEXTO' && p.DECISION === 'PENDIENTE'; })
+    .forEach(function (p) {
+      const actividad = actividades.filter(function (a) { return a.ID_ACTIVIDAD === p.ID_ACTIVIDAD && !esActivo_(a.ELIMINADA); })[0];
+      const d = planDecision_(p, 'ACEPTADA', '', actividad, det, []);
+      if (d.errores.length) plan.vencidas.push({ propuesta: p, obsoleta: d.obsoleta });
+      else plan.aplicar.push({ propuesta: p, actividad: actividad, plan: d });
+    });
+  return plan;
+}
+
+/** «Aceptar todas las correcciones de redacción»: una sola llamada y un solo cambio de contenido. */
+function aceptarRedacciones_(sesion, idSolicitud) {
+  const fila = filaSolicitud_(idSolicitud);
+  if (!permisoSolicitud_(sesion, fila).editar) throw new Error('No puedes editar esta solicitud.');
+  const actividades = leerTabla_('Actividades');
+  const det = detalleSolicitud_(fila, actividades, leerTabla_('Imagenes'), tablasSolicitud_(), { editar: true }, formatoFecha_);
+  const plan = planAceptarRedacciones_(leerTabla_('PropuestasIA'), actividades, det, idSolicitud);
+  if (!plan.aplicar.length && !plan.vencidas.length) throw new Error('No hay correcciones de redacción pendientes.');
+  const ahora = new Date();
+  plan.vencidas.forEach(function (v) { if (v.obsoleta) actualizarFila_('PropuestasIA', v.propuesta._fila, { DECISION: 'REEMPLAZADA' }); });
+  plan.aplicar.forEach(function (x) {
+    actualizarFila_('PropuestasIA', x.propuesta._fila, Object.assign({ FECHA_DECISION: ahora }, x.plan.propuesta));
+    actualizarFila_('Actividades', x.actividad._fila, Object.assign({ FECHA_ACTUALIZACION: ahora }, x.plan.actividad));
+  });
+  const r = plan.aplicar.length
+    ? aplicarCambioContenido_(sesion, fila, {}, 'Se aceptaron ' + plan.aplicar.length + ' correcciones de la IA')
+    : { marca: String(marcaDe_(fila.FECHA_ACTUALIZACION)), estado: fila.ESTADO };
+  return Object.assign({ aceptadas: plan.aplicar.length, sinAplicar: plan.vencidas.length }, r);
 }
 
 /** Responde una pregunta. Si es la del responsable, la respuesta queda como responsable de la actividad. */

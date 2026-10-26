@@ -174,6 +174,21 @@ test('decidir texto: si la actividad cambió después del análisis, la propuest
   assert.ok(/vuelve a analizar/.test(r.errores.join()));
 });
 
+test('aceptar todas las correcciones: solo redacción pendiente de esta solicitud; las de actividades que cambiaron quedan vencidas', function () {
+  const propuestas = [
+    propuesta('TEXTO'),
+    propuesta('TEXTO', { ID_PROPUESTA: 'PIA-2', ID_ACTIVIDAD: 'ACT-2', VALOR_ANTERIOR: 'Texto que ya cambió' }),
+    propuesta('TEXTO', { ID_PROPUESTA: 'PIA-3', DECISION: 'RECHAZADA' }),
+    propuesta('RESPONSABLE', { ID_PROPUESTA: 'PIA-4' }),
+    propuesta('TEXTO', { ID_PROPUESTA: 'PIA-5', ID_SOLICITUD: 'OTRA' })
+  ];
+  const actividades = [ACT_FILA, { _fila: 6, ID_ACTIVIDAD: 'ACT-2', ELIMINADA: 'NO' }];
+  const p = plano(gs.planAceptarRedacciones_(propuestas, actividades, detalle(), 'SOL-2026-0001'));
+  assert.deepStrictEqual(p.aplicar.map(function (x) { return x.propuesta.ID_PROPUESTA + ':' + x.plan.actividad.TEXTO_FINAL; }),
+    ['PIA-1:El Auxiliar de Compras recibe la solicitud.']);
+  assert.deepStrictEqual(p.vencidas.map(function (v) { return v.propuesta.ID_PROPUESTA + ':' + v.obsoleta; }), ['PIA-2:true']);
+});
+
 test('decidir responsable: se liga al catálogo cuando coincide y queda confirmado', function () {
   assert.deepStrictEqual(decidir(propuesta('RESPONSABLE', { PROPUESTA: 'aux. compras' }), 'ACEPTADA').actividad,
     { PUESTO_TEXTO: 'Auxiliar de Compras', ID_PUESTO: 'PUE-1', RESPONSABLE_CONFIRMADO: 'SI' });

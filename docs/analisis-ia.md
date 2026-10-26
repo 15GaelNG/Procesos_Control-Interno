@@ -4,9 +4,10 @@ Pasos 4 y 5 de una solicitud. Requerimiento §3.3 (análisis y preguntas), §3.4
 confirmación) y §3.5 (borrador y confirmación del colaborador). Proveedor, límites y validador:
 [ia.md](ia.md).
 
-## Paso 4 · Análisis con IA
+## Paso 4 · Corregir y analizar con IA
 
-Con el botón **«Analizar con IA»** el sistema:
+El botón **«Corregir y analizar con IA»** está en el paso 4 y también en el paso 3 (arriba del
+desarrollo y al final): desde el paso 3 guarda lo pendiente, pasa al paso 4 y arranca solo. El sistema:
 
 1. Arma el proceso: nombre, departamento, inicio, actividades (con el responsable que el colaborador ya
    indicó), fin, el catálogo de puestos y **las respuestas que ya dio** a preguntas anteriores.
@@ -19,17 +20,21 @@ Con el botón **«Analizar con IA»** el sistema:
 5. Restaura los datos ocultos y guarda **propuestas** (`PropuestasIA`) y **preguntas** (`Aclaraciones`).
    Lo pendiente de un análisis anterior queda como `REEMPLAZADA`; lo ya decidido o respondido se respeta.
 
+Mientras trabaja se ve un reloj con los segundos. Al terminar queda en pantalla (no como aviso que se
+va) **qué encontró**: cuántas actividades propone corregir, cuántas propuestas y preguntas más, en
+cuánto tiempo respondió y con qué modelo; si falló, el motivo. Nada cambia hasta que la persona lo acepta.
+
 La pantalla muestra:
 
 | Sección | Qué hace la persona |
 |---|---|
+| **Correcciones para tus actividades** | Redacción y responsable: **Aceptar**, **Editar** (escribe su versión) o **Descartar**. Se ve «Ahora» junto a «Propuesta». **«Aceptar las N correcciones de redacción»** las aplica todas de una vez (una sola llamada); las de actividades que cambiaron después del análisis no se aplican y se avisa |
 | **Preguntas** | Responde con texto, «No aplica» o «No lo sé». La del responsable («¿Qué puesto realiza esta actividad?») deja la respuesta como responsable de la actividad, cotejada con el catálogo |
-| **Propuestas por actividad** | Redacción y responsable: **Aceptar**, **Editar** (escribe su versión) o **Descartar**. Se ve «Ahora» junto a «Propuesta» |
 | **Sugerencias de orden** | Solo informan («Entendido» / «Descartar»). La IA nunca reordena; si está de acuerdo, reordena en el paso 3 |
 | **Objetivo, alcance, responsabilidades y definiciones** | Puede usar la propuesta y ajustarla, o escribirlo a mano y «Guardar». Responsabilidades y definiciones van un renglón por elemento («Puesto: …») |
 | **Ya decidiste** | Lista de lo decidido, para consulta |
 
-Después de responder, **«Volver a analizar»** manda las respuestas para que la IA mejore la redacción
+Después de responder, **«Volver a corregir y analizar»** manda las respuestas para que la IA mejore la redacción
 con esa información (sin volver a preguntar). Si hay propuestas sin decidir, avisa que se reemplazarán.
 
 Reglas:

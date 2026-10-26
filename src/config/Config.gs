@@ -57,6 +57,11 @@ const PROP = {
   IA_LLAVE: 'IA_LLAVE'          // Se captura a mano en el editor; nunca en el código ni en la hoja.
 };
 
+// Hojas que no cambian a media llamada (usuarios, catálogos, parámetros): SheetUtils las lee una sola
+// vez por ejecución. Las de operación (Solicitudes, Consecutivos…) se leen siempre de nuevo.
+const TABLAS_ESTABLES = ['Config', 'Usuarios', 'UsuarioPerfiles', 'UsuarioDepartamentos', 'Departamentos', 'Areas',
+  'Subareas', 'Puestos', 'TiposDocumento'];
+
 const ZONA_HORARIA = 'America/Mexico_City';
 
 // IA (ver docs/ia.md). El modelo se toma de Config → IA_MODELO; si está vacío, se intentan en este

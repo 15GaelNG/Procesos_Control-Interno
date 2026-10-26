@@ -4,10 +4,10 @@
       <div>
         <span class="folio" data-campo="folio"></span>
         <h1 data-campo="nombre"></h1>
-        <p class="nota" data-campo="explicacion">La IA revisa la redacción de cada actividad, identifica quién la realiza, propone el objetivo, el alcance y las responsabilidades, y te pregunta lo que falte. <strong>Nunca inventa información ni cambia el orden</strong>: tú decides qué aceptar.</p>
+        <p class="nota" data-campo="explicacion">La IA corrige la ortografía y la redacción de cada actividad, identifica quién la realiza, propone el objetivo, el alcance y las responsabilidades, y te pregunta lo que falte. <strong>Nunca inventa información ni cambia el orden</strong>, y nada cambia hasta que tú lo aceptes.</p>
         <p class="nota" data-campo="ultimo"></p>
       </div>
-      <button type="button" class="boton" data-accion="analizar"><i data-lucide="sparkles" class="ico"></i><span>Analizar con IA</span></button>
+      <button type="button" class="boton" data-accion="analizar"><i data-lucide="sparkles" class="ico"></i><span>Corregir y analizar con IA</span></button>
     </section>
 
     <div class="aviso-consulta" data-campo="ia-apagada" hidden>
@@ -19,19 +19,30 @@
     </div>
     <div class="analizando tarjeta" data-campo="analizando" hidden>
       <span class="vacio-icono"><i data-lucide="sparkles" class="ico girando-lento"></i></span>
-      <div><strong>Analizando tu proceso…</strong><p class="nota">Puede tardar hasta un minuto. No cierres esta pantalla.</p></div>
+      <div><strong>Corrigiendo y analizando tu proceso… <span data-campo="analizando-tiempo"></span></strong><p class="nota">Suele tardar entre 20 segundos y un minuto. No cierres esta pantalla.</p></div>
+    </div>
+    <div class="resultado-ia" data-campo="resultado-ia" hidden>
+      <i data-campo="resultado-icono" class="ico"></i>
+      <div class="resultado-ia-texto">
+        <strong data-campo="resultado-titulo"></strong>
+        <p class="nota" data-campo="resultado-texto"></p>
+      </div>
     </div>
     <div class="avisos-ia" data-campo="avisos" hidden></div>
+
+    <section class="tarjeta seccion-analisis" data-campo="seccion-actividades" hidden>
+      <div class="seccion-cabeza">
+        <h2><i data-lucide="list-checks" class="ico"></i>Correcciones para tus actividades</h2>
+        <button type="button" class="boton" data-accion="aceptar-redaccion" hidden><i data-lucide="check-check" class="ico"></i><span></span></button>
+      </div>
+      <p class="nota">Compara cómo está ahora con lo que propone la IA. Acepta una por una, edítala o descártala; o acepta de una vez todas las correcciones de redacción.</p>
+      <div data-campo="propuestas-actividades"></div>
+    </section>
 
     <section class="tarjeta seccion-analisis" data-campo="seccion-preguntas" hidden>
       <h2><i data-lucide="circle-help" class="ico"></i>Preguntas para completar tu proceso <span class="chip dorado" data-campo="conteo-preguntas"></span></h2>
       <p class="nota">Contéstalas con lo que sepas. Si no aplica a tu proceso o no lo sabes, elígelo: también cuenta como respuesta.</p>
       <div class="lista-preguntas" data-campo="preguntas"></div>
-    </section>
-
-    <section class="tarjeta seccion-analisis" data-campo="seccion-actividades" hidden>
-      <h2><i data-lucide="list-checks" class="ico"></i>Propuestas para tus actividades</h2>
-      <div data-campo="propuestas-actividades"></div>
     </section>
 
     <section class="tarjeta seccion-analisis" data-campo="seccion-orden" hidden>

@@ -4,7 +4,7 @@
     <nav class="pasos-captura" aria-label="Pasos de la solicitud">
       <span class="paso-captura hecho"><span>2</span>Información general</span>
       <button type="button" class="paso-captura" data-paso="desarrollo"><span>3</span>Desarrollo del proceso</button>
-      <button type="button" class="paso-captura" data-paso="analisis"><span>4</span>Análisis con IA</button>
+      <button type="button" class="paso-captura" data-paso="analisis"><span>4</span>Corrección con IA</button>
       <button type="button" class="paso-captura" data-paso="vista"><span>5</span>Vista previa y confirmación</button>
     </nav>
     <div data-campo="contenido">
@@ -44,7 +44,10 @@
         <h2>Desarrollo del proceso</h2>
         <p class="nota">Se guarda solo mientras escribes.</p>
       </div>
-      <span class="estado-guardado" data-campo="guardado"></span>
+      <div class="desarrollo-acciones">
+        <span class="estado-guardado" data-campo="guardado"></span>
+        <button type="button" class="boton secundario" data-accion="corregir-ia"><i data-lucide="sparkles" class="ico"></i><span>Corregir y analizar con IA</span></button>
+      </div>
     </div>
 
     <label class="campo">
@@ -71,10 +74,13 @@
 
   <div class="tarjeta siguiente-paso">
     <div>
-      <strong>Siguiente paso: análisis con IA</strong>
-      <p class="nota">La IA revisará la redacción, los responsables y lo que falte, y te hará preguntas. Tú decides qué aceptar.</p>
+      <strong>Siguiente paso: corregir y analizar con IA</strong>
+      <p class="nota">La IA corrige la ortografía y la redacción, identifica a los responsables y te pregunta lo que falte. Tú decides qué aceptar.</p>
     </div>
-    <button type="button" class="boton" data-accion="ir-analisis"><span>Ir al análisis</span><i data-lucide="arrow-right" class="ico"></i></button>
+    <div class="pregunta-botones">
+      <button type="button" class="boton secundario" data-accion="ir-analisis"><span>Ir sin analizar</span></button>
+      <button type="button" class="boton" data-accion="corregir-ia"><i data-lucide="sparkles" class="ico"></i><span>Corregir y analizar con IA</span></button>
+    </div>
   </div>
 </template>
 

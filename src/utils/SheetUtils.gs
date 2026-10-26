@@ -3,18 +3,44 @@
  *
  * Todo el código lee y escribe por NOMBRE DE COLUMNA, nunca por posición: así agregar columnas al
  * final (ver config/Esquema.gs) no rompe nada.
+ *
+ * Velocidad: abrir la base y cada consulta a una hoja son lo más lento de Apps Script. Dentro de UNA
+ * ejecución (cada llamada del navegador es una ejecución nueva) se recuerdan la base, sus hojas y sus
+ * encabezados, y las hojas de TABLAS_ESTABLES (usuarios, catálogos, Config) ya leídas. Las demás se
+ * leen siempre de nuevo (pueden cambiar a media llamada, p. ej. Consecutivos bajo el candado). Toda
+ * escritura por aquí olvida lo recordado de esa hoja; quien escriba la hoja por otro camino
+ * (SetupInicial) llama a olvidarTablas_().
  */
+
+/** Lo recordado en esta ejecución. Se guarda como propiedad de la función: no sobrevive a la ejecución. */
+function memoriaBD_() {
+  if (!memoriaBD_.datos) memoriaBD_.datos = { bd: null, hojas: {}, encabezados: {}, tablas: {} };
+  return memoriaBD_.datos;
+}
+
+/** Olvida todo lo recordado (después de cambiar hojas o encabezados por fuera de estas funciones). */
+function olvidarTablas_() {
+  memoriaBD_.datos = null;
+}
 
 /** La hoja de la base de datos del ambiente: la guardada en ID_BD o, si no hay, la hoja ligada. */
 function obtenerBD_() {
-  const id = PropertiesService.getScriptProperties().getProperty(PROP.ID_BD);
-  return id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  const m = memoriaBD_();
+  if (!m.bd) {
+    const id = PropertiesService.getScriptProperties().getProperty(PROP.ID_BD);
+    m.bd = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  }
+  return m.bd;
 }
 
 function obtenerHoja_(nombre) {
-  const hoja = obtenerBD_().getSheetByName(nombre);
-  if (!hoja) throw new Error('No existe la hoja "' + nombre + '". Corre verificarBase() desde el editor.');
-  return hoja;
+  const m = memoriaBD_();
+  if (!m.hojas[nombre]) {
+    const hoja = obtenerBD_().getSheetByName(nombre);
+    if (!hoja) throw new Error('No existe la hoja "' + nombre + '". Corre verificarBase() desde el editor.');
+    m.hojas[nombre] = hoja;
+  }
+  return m.hojas[nombre];
 }
 
 function leerEncabezados_(hoja) {
@@ -22,24 +48,45 @@ function leerEncabezados_(hoja) {
   return hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(function (v) { return String(v).trim(); });
 }
 
+/** Encabezados de una hoja por nombre, recordados en la ejecución. */
+function encabezadosDe_(nombre) {
+  const m = memoriaBD_();
+  if (!m.encabezados[nombre]) m.encabezados[nombre] = leerEncabezados_(obtenerHoja_(nombre));
+  return m.encabezados[nombre];
+}
+
 /** Toda la hoja como arreglo de objetos { COLUMNA: valor }, con _fila (número de renglón en la hoja). */
 function leerTabla_(nombre) {
-  const hoja = obtenerHoja_(nombre);
-  const encabezados = leerEncabezados_(hoja);
-  if (hoja.getLastRow() < 2) return [];
-  return hoja.getRange(2, 1, hoja.getLastRow() - 1, encabezados.length).getValues().map(function (fila, i) {
-    const obj = { _fila: i + 2 };
-    encabezados.forEach(function (col, j) { obj[col] = fila[j]; });
-    return obj;
-  });
+  const m = memoriaBD_();
+  const estable = TABLAS_ESTABLES.indexOf(nombre) !== -1;
+  if (!estable || !m.tablas[nombre]) {
+    // Una sola consulta: encabezados y datos juntos.
+    const valores = obtenerHoja_(nombre).getDataRange().getValues();
+    const encabezados = (valores[0] || []).map(function (v) { return String(v).trim(); });
+    m.encabezados[nombre] = encabezados;
+    const filas = valores.slice(1).map(function (fila, i) {
+      const obj = { _fila: i + 2 };
+      encabezados.forEach(function (col, j) { obj[col] = fila[j]; });
+      return obj;
+    });
+    if (!estable) return filas;
+    m.tablas[nombre] = filas;
+  }
+  // Copias: quien modifique un renglón no cambia lo recordado.
+  return m.tablas[nombre].map(function (o) { return Object.assign({}, o); });
+}
+
+/** Después de escribir una hoja: lo recordado de ella ya no sirve. */
+function olvidarTabla_(nombre) {
+  delete memoriaBD_().tablas[nombre];
 }
 
 /** Agrega un renglón a partir de un objeto { COLUMNA: valor }. Las columnas que no vengan quedan vacías. */
 function agregarFila_(nombre, objeto) {
   const hoja = obtenerHoja_(nombre);
-  const encabezados = leerEncabezados_(hoja);
-  const fila = encabezados.map(function (col) { return objeto[col] === undefined ? '' : objeto[col]; });
+  const fila = encabezadosDe_(nombre).map(function (col) { return objeto[col] === undefined ? '' : objeto[col]; });
   hoja.appendRow(fila);
+  olvidarTabla_(nombre);
   return hoja.getLastRow();
 }
 
@@ -47,20 +94,41 @@ function agregarFila_(nombre, objeto) {
 function agregarFilas_(nombre, objetos) {
   if (!objetos.length) return;
   const hoja = obtenerHoja_(nombre);
-  const encabezados = leerEncabezados_(hoja);
+  const encabezados = encabezadosDe_(nombre);
   const filas = objetos.map(function (o) {
     return encabezados.map(function (col) { return o[col] === undefined ? '' : o[col]; });
   });
   hoja.getRange(hoja.getLastRow() + 1, 1, filas.length, encabezados.length).setValues(filas);
+  olvidarTabla_(nombre);
 }
 
-/** Actualiza solo las columnas indicadas de un renglón existente. */
+/**
+ * Actualiza solo las columnas indicadas de un renglón existente. Las columnas vecinas se escriben
+ * juntas (una consulta por grupo); las demás celdas del renglón no se tocan.
+ */
 function actualizarFila_(nombre, numeroFila, cambios) {
   const hoja = obtenerHoja_(nombre);
-  const encabezados = leerEncabezados_(hoja);
-  Object.keys(cambios).forEach(function (col) {
+  gruposDeColumnas_(encabezadosDe_(nombre), cambios, nombre).forEach(function (g) {
+    hoja.getRange(numeroFila, g.columna, 1, g.valores.length).setValues([g.valores]);
+  });
+  olvidarTabla_(nombre);
+}
+
+/**
+ * Agrupa los cambios en columnas vecinas: { A: 1, B: 2, D: 4 } con encabezados A B C D →
+ * [{ columna: 1, valores: [1, 2] }, { columna: 4, valores: [4] }] (sin tocar Google).
+ */
+function gruposDeColumnas_(encabezados, cambios, nombre) {
+  const posiciones = Object.keys(cambios).map(function (col) {
     const i = encabezados.indexOf(col);
     if (i === -1) throw new Error('La hoja "' + nombre + '" no tiene la columna ' + col);
-    hoja.getRange(numeroFila, i + 1).setValue(cambios[col]);
+    return { i: i, valor: cambios[col] };
+  }).sort(function (a, b) { return a.i - b.i; });
+  const grupos = [];
+  posiciones.forEach(function (p) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.columna + ultimo.valores.length - 1 === p.i) ultimo.valores.push(p.valor);
+    else grupos.push({ columna: p.i + 1, valores: [p.valor] });
   });
+  return grupos;
 }

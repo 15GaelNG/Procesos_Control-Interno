@@ -99,6 +99,8 @@ function instalarBase_(claveAmbiente) {
     candado.releaseLock();
   }
 
+  // Las hojas se cambiaron por fuera de SheetUtils: lo recordado en esta ejecución ya no sirve.
+  olvidarTablas_();
   // Fuera del bloqueo: siguienteId_ toma el suyo.
   resumen.administrador = registrarInstalador_();
   Logger.log(JSON.stringify(resumen, null, 2));
