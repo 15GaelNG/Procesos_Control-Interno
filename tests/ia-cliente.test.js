@@ -17,6 +17,7 @@ function crear(porModelo, config) {
   const cache = {};
   const usos = [];
   const llamadas = [];
+  const cuerpos = [];
   const gs = cargarGs(['src/config/Config.gs', 'src/ia/ClienteIA.gs'], {
     PropertiesService: { getScriptProperties: function () { return { getProperty: function () { return 'llave-falsa'; } }; } },
     CacheService: { getScriptCache: function () { return {
@@ -28,7 +29,7 @@ function crear(porModelo, config) {
     Utilities: { sleep: function () {}, formatDate: function () { return '20261013'; } },
     Session: { getActiveUser: function () { return { getEmail: function () { return 'yo@empresa.com'; } }; },
       getEffectiveUser: function () { return { getEmail: function () { return 'yo@empresa.com'; } }; } },
-    UrlFetchApp: { fetch: function (url) {
+    UrlFetchApp: { fetch: function (url, opciones) {
       if (url.indexOf(':generateContent') === -1) {
         return respuesta(200, { models: Object.keys(porModelo).map(function (id) {
           return { name: 'models/' + id, supportedGenerationMethods: ['generateContent'] };
@@ -36,12 +37,15 @@ function crear(porModelo, config) {
       }
       const modelo = decodeURIComponent(url.split('/models/')[1].split(':')[0]);
       llamadas.push(modelo);
-      return porModelo[modelo].shift();
+      cuerpos.push(JSON.parse(opciones.payload));
+      const r = porModelo[modelo].shift();
+      if (r instanceof Error) throw r;
+      return r;
     } },
     obtenerConfig_: function (clave, porDefecto) { return (config || {})[clave] || porDefecto; },
     agregarFila_: function (hoja, fila) { usos.push(fila); }
   });
-  return { gs: gs, usos: usos, llamadas: llamadas, cache: cache };
+  return { gs: gs, usos: usos, llamadas: llamadas, cache: cache, cuerpos: cuerpos };
 }
 
 const P = { operacion: 'PRUEBA', sistema: 'reglas', usuario: 'texto' };
@@ -92,4 +96,41 @@ test('el último modelo que funcionó se intenta primero', function () {
   const c = crear({ 'gemini-3.5-flash': [OK], 'gemini-3.6-flash': [OK] });
   c.cache['ia-modelo-elegido'] = 'gemini-3.6-flash';
   assert.strictEqual(c.gs.llamarIAJson_(P).modelo, 'gemini-3.6-flash');
+});
+
+// ─────────────────────────────── Topes de la respuesta (26/10/2026) ───────────────────────────────
+
+test('cada llamada pide JSON con temperatura baja y topes de respuesta y de razonamiento', function () {
+  const c = crear({ 'gemini-3.5-flash': [OK] });
+  c.gs.llamarIAJson_(P);
+  const g = c.cuerpos[0].generationConfig;
+  assert.deepStrictEqual([g.responseMimeType, g.temperature, g.maxOutputTokens, g.thinkingConfig.thinkingBudget], ['application/json', 0.2, 8192, 1024]);
+});
+
+test('si el modelo no acepta el tope de razonamiento (400), repite sin él y lo recuerda', function () {
+  const c = crear({ 'gemini-3.5-flash': [respuesta(400, { error: { message: 'Thinking budget is not supported by this model' } }), OK, OK] });
+  assert.strictEqual(c.gs.llamarIAJson_(P).modelo, 'gemini-3.5-flash');
+  assert.deepStrictEqual(c.cuerpos.map(function (b) { return !!b.generationConfig.thinkingConfig; }), [true, false]);
+  assert.strictEqual(c.cache['ia-sin-tope-pensamiento-gemini-3.5-flash'], 'SI');
+  c.gs.llamarIAJson_(P);
+  assert.strictEqual(c.cuerpos[2].generationConfig.thinkingConfig, undefined, 'la siguiente ya va sin él');
+});
+
+test('un 400 que no es por el razonamiento no se repite', function () {
+  const c = crear({ 'gemini-3.5-flash': [respuesta(400, { error: { message: 'Invalid JSON payload' } })], 'gemini-3.6-flash': [OK] });
+  assert.throws(function () { c.gs.llamarIAJson_(P); }, /rechazó la solicitud \(400\)/);
+  assert.deepStrictEqual(c.llamadas, ['gemini-3.5-flash']);
+});
+
+test('si Google corta la llamada por tiempo, el mensaje es claro, queda en UsoIA y no se intenta otro modelo', function () {
+  const c = crear({ 'gemini-3.5-flash': [new Error('Tiempo de espera: https://generativelanguage.googleapis.com/x')], 'gemini-3.6-flash': [OK] });
+  assert.throws(function () { c.gs.llamarIAJson_(P); }, /tardó demasiado en responder/);
+  assert.deepStrictEqual([c.llamadas, c.usos[0].RESULTADO], [['gemini-3.5-flash'], 'TIEMPO_AGOTADO']);
+});
+
+test('una respuesta cortada por el tope (MAX_TOKENS) se avisa en lugar de intentar leerla', function () {
+  const cortada = respuesta(200, { candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '{"actividades": [' }] } }] });
+  const c = crear({ 'gemini-3.5-flash': [cortada] });
+  assert.throws(function () { c.gs.llamarIAJson_(P); }, /se cortó/);
+  assert.strictEqual(c.usos[0].RESULTADO, 'MAX_TOKENS');
 });

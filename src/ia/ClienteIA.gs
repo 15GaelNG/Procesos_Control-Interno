@@ -55,12 +55,38 @@ function llamarIAJson_(p) {
   throw ultimoError;
 }
 
-/** Una sola llamada a un modelo. Los errores HTTP llevan `codigoHttp`. */
+/**
+ * Lo que se le pide al modelo además del texto: JSON, temperatura baja y topes de respuesta y de
+ * «razonamiento» (sin tope, una respuesta puede tardar minutos). conPensamiento = false omite el tope de
+ * razonamiento, para los modelos que no lo aceptan.
+ */
+function configuracionGeneracionIA_(conPensamiento) {
+  const c = { responseMimeType: 'application/json', temperature: IA_TEMPERATURA, maxOutputTokens: IA_MAX_TOKENS_SALIDA };
+  if (conPensamiento) c.thinkingConfig = { thinkingBudget: IA_PRESUPUESTO_PENSAMIENTO };
+  return c;
+}
+
+/**
+ * Una sola llamada a un modelo. Los errores HTTP llevan `codigoHttp`. Si el modelo rechaza el tope de
+ * razonamiento (HTTP 400), se repite una vez sin él y se recuerda para ese modelo.
+ */
 function llamarModeloIA_(modelo, p, llave) {
+  const cache = CacheService.getScriptCache();
+  const sinTope = cache.get('ia-sin-tope-pensamiento-' + modelo) === 'SI';
+  try {
+    return llamarModeloUnaVezIA_(modelo, p, llave, !sinTope);
+  } catch (e) {
+    if (sinTope || e.codigoHttp !== 400 || !/think/i.test(e.message)) throw e;
+    cache.put('ia-sin-tope-pensamiento-' + modelo, 'SI', 21600);
+    return llamarModeloUnaVezIA_(modelo, p, llave, false);
+  }
+}
+
+function llamarModeloUnaVezIA_(modelo, p, llave, conPensamiento) {
   const cuerpo = {
     systemInstruction: { parts: [{ text: p.sistema }] },
     contents: [{ role: 'user', parts: [{ text: p.usuario }] }],
-    generationConfig: { responseMimeType: 'application/json' }
+    generationConfig: configuracionGeneracionIA_(conPensamiento)
   };
   const inicio = Date.now();
   let resultado = 'OK';
@@ -99,6 +125,10 @@ function llamarModeloIA_(modelo, p, llave) {
       resultado = 'SIN_RESPUESTA';
       throw new Error('La IA no devolvió respuesta' + (candidato && candidato.finishReason ? ' (' + candidato.finishReason + ')' : '') + '.');
     }
+    if (candidato.finishReason === 'MAX_TOKENS') {
+      resultado = 'MAX_TOKENS';
+      throw new Error('La respuesta de la IA fue más larga de lo permitido y se cortó. Intenta de nuevo; si se repite, divide el proceso en menos actividades.');
+    }
     const datos = extraerJson_(texto);
     if (!datos) {
       resultado = 'JSON_INVALIDO';
@@ -107,6 +137,11 @@ function llamarModeloIA_(modelo, p, llave) {
     return { datos: datos, modelo: modelo, tokensEntrada: tokensEntrada, tokensSalida: tokensSalida,
       duracionMs: Date.now() - inicio };
   } catch (e) {
+    // UrlFetchApp corta una llamada que tarda demasiado («Tiempo de espera» / «Timeout»).
+    if (!e.codigoHttp && /tiempo de espera|timeout|timed out/i.test(e.message)) {
+      resultado = 'TIEMPO_AGOTADO';
+      throw new Error('La IA tardó demasiado en responder y Google cortó la llamada (' + Math.round((Date.now() - inicio) / 1000) + ' s).');
+    }
     if (resultado === 'OK') resultado = 'ERROR';
     throw e;
   } finally {

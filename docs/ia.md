@@ -76,7 +76,7 @@ Ni Claude ni nadie más puede crear la cuenta o la llave por ti: queda a nombre 
 
 | Archivo | Qué hace |
 |---|---|
-| `src/ia/ClienteIA.gs` | Única puerta a Gemini: elige el modelo, aplica el tope diario, manda la llave en un encabezado, lee el JSON y registra `UsoIA`. Si un modelo está saturado (5xx) reintenta una vez; si sigue saturado, no existe (404) o no tiene cuota (429), pasa al siguiente de `IA_MODELOS_PREFERIDOS` (hasta 4) y recuerda el último que funcionó |
+| `src/ia/ClienteIA.gs` | Única puerta a Gemini: elige el modelo, aplica el tope diario, manda la llave en un encabezado, lee el JSON y registra `UsoIA`. Si un modelo está saturado (5xx) reintenta una vez; si sigue saturado, no existe (404) o no tiene cuota (429), pasa al siguiente de `IA_MODELOS_PREFERIDOS` (hasta 4) y recuerda el último que funcionó. Cada llamada lleva **topes**: respuesta de hasta `IA_MAX_TOKENS_SALIDA` (8,192), «razonamiento» del modelo de hasta `IA_PRESUPUESTO_PENSAMIENTO` (1,024) y temperatura 0.2; sin ellos, el 26/10/2026 `gemini-flash-latest` se quedó generando 6 minutos y Google cortó la llamada. Si un modelo no acepta el tope de razonamiento (400), repite sin él. Un corte por tiempo queda en `UsoIA` como `TIEMPO_AGOTADO` y uno por largo como `MAX_TOKENS` |
 | `src/ia/Prompts.gs` | Instrucciones del análisis, con las reglas del requerimiento §3.3 y §3.4 |
 | `src/ia/Analisis.gs` | **El validador:** decide qué de lo que propuso la IA tiene sustento (ver abajo) |
 | `src/ia/PruebasIA.gs` | `listarModelosIA()` y `probarIA()`, para correr desde el editor |

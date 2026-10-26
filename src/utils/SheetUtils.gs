@@ -10,7 +10,15 @@
  * leen siempre de nuevo (pueden cambiar a media llamada, p. ej. Consecutivos bajo el candado). Toda
  * escritura por aquí olvida lo recordado de esa hoja; quien escriba la hoja por otro camino
  * (SetupInicial) llama a olvidarTablas_().
+ *
+ * Cada apertura, lectura y escritura deja su tiempo en el registro de la ejecución (Apps Script →
+ * Ejecuciones → la llamada): así se ve dónde se va el tiempo de una pantalla lenta.
  */
+
+/** Deja en el registro cuánto tardó una operación con la base. */
+function registrarTiempoBD_(que, inicio) {
+  console.log('[BD] ' + que + ': ' + (Date.now() - inicio) + ' ms');
+}
 
 /** Lo recordado en esta ejecución. Se guarda como propiedad de la función: no sobrevive a la ejecución. */
 function memoriaBD_() {
@@ -27,8 +35,10 @@ function olvidarTablas_() {
 function obtenerBD_() {
   const m = memoriaBD_();
   if (!m.bd) {
+    const inicio = Date.now();
     const id = PropertiesService.getScriptProperties().getProperty(PROP.ID_BD);
     m.bd = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+    registrarTiempoBD_('abrir la base', inicio);
   }
   return m.bd;
 }
@@ -61,7 +71,9 @@ function leerTabla_(nombre) {
   const estable = TABLAS_ESTABLES.indexOf(nombre) !== -1;
   if (!estable || !m.tablas[nombre]) {
     // Una sola consulta: encabezados y datos juntos.
+    const inicio = Date.now();
     const valores = obtenerHoja_(nombre).getDataRange().getValues();
+    registrarTiempoBD_('leer ' + nombre + ' (' + Math.max(valores.length - 1, 0) + ' renglones)', inicio);
     const encabezados = (valores[0] || []).map(function (v) { return String(v).trim(); });
     m.encabezados[nombre] = encabezados;
     const filas = valores.slice(1).map(function (fila, i) {
@@ -83,10 +95,12 @@ function olvidarTabla_(nombre) {
 
 /** Agrega un renglón a partir de un objeto { COLUMNA: valor }. Las columnas que no vengan quedan vacías. */
 function agregarFila_(nombre, objeto) {
+  const inicio = Date.now();
   const hoja = obtenerHoja_(nombre);
   const fila = encabezadosDe_(nombre).map(function (col) { return objeto[col] === undefined ? '' : objeto[col]; });
   hoja.appendRow(fila);
   olvidarTabla_(nombre);
+  registrarTiempoBD_('agregar a ' + nombre, inicio);
   return hoja.getLastRow();
 }
 
@@ -98,8 +112,10 @@ function agregarFilas_(nombre, objetos) {
   const filas = objetos.map(function (o) {
     return encabezados.map(function (col) { return o[col] === undefined ? '' : o[col]; });
   });
+  const inicio = Date.now();
   hoja.getRange(hoja.getLastRow() + 1, 1, filas.length, encabezados.length).setValues(filas);
   olvidarTabla_(nombre);
+  registrarTiempoBD_('agregar ' + filas.length + ' a ' + nombre, inicio);
 }
 
 /**
@@ -107,11 +123,13 @@ function agregarFilas_(nombre, objetos) {
  * juntas (una consulta por grupo); las demás celdas del renglón no se tocan.
  */
 function actualizarFila_(nombre, numeroFila, cambios) {
+  const inicio = Date.now();
   const hoja = obtenerHoja_(nombre);
   gruposDeColumnas_(encabezadosDe_(nombre), cambios, nombre).forEach(function (g) {
     hoja.getRange(numeroFila, g.columna, 1, g.valores.length).setValues([g.valores]);
   });
   olvidarTabla_(nombre);
+  registrarTiempoBD_('actualizar ' + nombre + ' renglón ' + numeroFila, inicio);
 }
 
 /**

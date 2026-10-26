@@ -90,6 +90,12 @@ const PATRONES_SENSIBLES = [
   { marca: 'MONTO', patron: /\$\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:MXN|USD|pesos|dólares))?/gi }
 ];
 const IA_MAX_CARACTERES_ENTRADA = 60000;   // Tope de texto que se manda en una sola llamada.
+// Topes de cada respuesta (26/10/2026: sin tope, gemini-flash-latest se quedó generando 6 minutos y Apps
+// Script cortó la ejecución). La respuesta normal de un análisis ocupa ~1,200 tokens; el «razonamiento»
+// interno del modelo se limita porque corregir y estructurar no lo necesita y es lo que más tarda.
+const IA_MAX_TOKENS_SALIDA = 8192;
+const IA_PRESUPUESTO_PENSAMIENTO = 1024;
+const IA_TEMPERATURA = 0.2;
 
 // Plantillas (documentos/Plantillas.gs). Procesos sube un Word por tipo con la marca de agua y el
 // sistema crea «<nombre> - Preliminar» (con marca) y «<nombre> - Final» (sin marca) en Google Docs.

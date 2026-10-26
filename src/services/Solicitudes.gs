@@ -337,11 +337,12 @@ function guardarBorrador_(sesion, idSolicitud, contenido) {
   const ahora = marcaDeTiempo_(new Date());
   const ids = {};
   const nuevosIds = reservarIds_('ACT', plan.actividadesNuevas.length, 6);
-  agregarFilas_('Actividades', plan.actividadesNuevas.map(function (a, i) {
+  const nuevas = plan.actividadesNuevas.map(function (a, i) {
     ids[a.clave] = nuevosIds[i];
     return { ID_ACTIVIDAD: nuevosIds[i], ID_SOLICITUD: idSolicitud, ORDEN: a.ORDEN, TEXTO_ORIGINAL: a.TEXTO_ORIGINAL, TEXTO_FINAL: '',
       ID_PUESTO: '', PUESTO_TEXTO: a.PUESTO_TEXTO, RESPONSABLE_CONFIRMADO: 'NO', ELIMINADA: 'NO', FECHA_ACTUALIZACION: ahora };
-  }));
+  });
+  agregarFilas_('Actividades', nuevas);
   plan.actividadesCambios.forEach(function (c) {
     actualizarFila_('Actividades', c._fila, Object.assign({ FECHA_ACTUALIZACION: ahora }, c.cambios));
   });
@@ -349,20 +350,38 @@ function guardarBorrador_(sesion, idSolicitud, contenido) {
   plan.imagenesCambios.forEach(function (c) { actualizarFila_('Imagenes', c._fila, c.cambios); });
   plan.imagenesEliminar.forEach(function (f) { actualizarFila_('Imagenes', f, { ELIMINADA: 'SI' }); });
 
-  const r = aplicarCambioContenido_(sesion, fila, plan.solicitud, 'Se editó la captura');
+  // La huella se calcula con lo que se acaba de escribir, sin volver a leer la hoja (el guardado
+  // automático corre a cada rato y releer era lo más lento).
+  const r = aplicarCambioContenido_(sesion, fila, plan.solicitud, 'Se editó la captura', {
+    actividades: estadoTrasCambios_(actividades, plan.actividadesCambios, plan.actividadesEliminar, nuevas),
+    imagenes: estadoTrasCambios_(imagenes, plan.imagenesCambios, plan.imagenesEliminar, [])
+  });
   return { marca: r.marca, ids: ids, estado: r.estado };
+}
+
+/**
+ * Cómo quedan los renglones después de escribir (sin tocar Google): cambios por _fila, renglones dados
+ * de baja (ELIMINADA = SI) y renglones nuevos al final.
+ */
+function estadoTrasCambios_(filas, cambios, eliminar, nuevas) {
+  return filas.map(function (f) {
+    const c = cambios.filter(function (x) { return x._fila === f._fila; })[0];
+    return Object.assign({}, f, c ? c.cambios : {}, eliminar.indexOf(f._fila) !== -1 ? { ELIMINADA: 'SI' } : {});
+  }).concat(nuevas);
 }
 
 /**
  * Último paso de TODO cambio al contenido (captura, imágenes, decisiones sobre la IA, textos
  * derivados): nueva marca, nueva huella y, si estaba CONFIRMADA, regresa a BORRADOR (§3.5).
+ * contenido (opcional): { actividades, imagenes } como quedaron, para no volver a leer la hoja.
  */
-function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo) {
+function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo, contenido) {
   const ahora = marcaDeTiempo_(new Date());
   const cambios = Object.assign({ FECHA_ACTUALIZACION: ahora }, cambiosSolicitud || {});
   const invalida = fila.ESTADO === ESTADOS.CONFIRMADO;
   if (invalida) cambios.ESTADO = ESTADOS.BORRADOR;
-  cambios.HUELLA_CONTENIDO = huellaSolicitud_(Object.assign({}, fila, cambios));
+  const filaNueva = Object.assign({}, fila, cambios);
+  cambios.HUELLA_CONTENIDO = contenido ? huellaDeFilas_(filaNueva, contenido.actividades, contenido.imagenes) : huellaSolicitud_(filaNueva);
   actualizarFila_('Solicitudes', fila._fila, cambios);
   if (invalida) {
     registrarBitacora_(sesion, 'EDITAR_CONFIRMADO', motivo + ' después de confirmar: hay que volver a confirmar.',
@@ -374,7 +393,12 @@ function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo) {
 /** Huella del contenido tal como quedó en la hoja (se llama después de escribir). */
 function huellaSolicitud_(filaNueva) {
   SpreadsheetApp.flush();
-  return huellaDeDetalle_(detalleSolicitud_(filaNueva, leerTabla_('Actividades'), leerTabla_('Imagenes'),
+  return huellaDeFilas_(filaNueva, leerTabla_('Actividades'), leerTabla_('Imagenes'));
+}
+
+/** Huella de una solicitud a partir de sus renglones (sin tocar Google). */
+function huellaDeFilas_(fila, actividades, imagenes) {
+  return huellaDeDetalle_(detalleSolicitud_(fila, actividades, imagenes,
     { tipos: [], departamentos: [], areas: [], subareas: [] }, { editar: false }, function () { return ''; }));
 }
 

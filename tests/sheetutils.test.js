@@ -37,6 +37,7 @@ function simulacion() {
   };
   const libro = { getSheetByName: function (n) { cuenta.hojas++; return datos[n] ? hoja(n) : null; } };
   const globales = {
+    console: { log: function () {}, warn: console.warn, error: console.error },
     SpreadsheetApp: { getActiveSpreadsheet: function () { cuenta.abrir++; return libro; }, openById: function () { cuenta.abrir++; return libro; } },
     PropertiesService: { getScriptProperties: function () { return { getProperty: function () { return null; } }; } }
   };

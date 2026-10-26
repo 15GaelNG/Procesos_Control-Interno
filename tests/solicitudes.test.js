@@ -203,6 +203,21 @@ test('guardar: actividad nueva, texto editado, reordenar y fin del proceso', fun
   assert.deepStrictEqual(p.actividadesEliminar, []);
 });
 
+test('guardar: la huella se calcula con cómo quedan los renglones, sin releer la hoja', function () {
+  const c = contenido();
+  c.actividades = [c.actividades[1], { id: '', clave: 'n1', texto: 'Notifica al área', responsable: 'Jefe de compras' }];
+  c.actividades[0] = Object.assign({}, c.actividades[0], { texto: 'Captura los datos en SAP' });
+  const p = planGuardar(c);
+  const nuevas = [{ ID_ACTIVIDAD: 'ACT-000009', ID_SOLICITUD: 'SOL-2026-0001', ORDEN: '2', TEXTO_ORIGINAL: 'Notifica al área', TEXTO_FINAL: '',
+    PUESTO_TEXTO: 'Jefe de compras', ELIMINADA: 'NO' }];
+  const despues = gs.estadoTrasCambios_(ACTIVIDADES, p.actividadesCambios, p.actividadesEliminar, nuevas);
+  const d = plano(gs.detalleSolicitud_(FILA, despues, gs.estadoTrasCambios_(IMAGENES, p.imagenesCambios, p.imagenesEliminar, []),
+    tablas(), { editar: false }, function () { return ''; }));
+  assert.deepStrictEqual(d.actividades.map(function (a) { return a.id + ':' + a.texto; }),
+    ['ACT-000001:Captura los datos en SAP', 'ACT-000009:Notifica al área'], 'ACT-000002 quedó dada de baja');
+  assert.strictEqual(ACTIVIDADES[0].ELIMINADA, 'NO', 'no modifica los renglones originales');
+});
+
 test('detalle: muestra el texto aceptado de la IA (TEXTO_FINAL) y los textos derivados', function () {
   const acts = ACTIVIDADES.map(function (a) { return Object.assign({}, a); });
   acts[1].TEXTO_FINAL = 'El Auxiliar de Compras recibe la solicitud.';
