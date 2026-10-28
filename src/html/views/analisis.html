@@ -4,10 +4,13 @@
       <div>
         <span class="folio" data-campo="folio"></span>
         <h1 data-campo="nombre"></h1>
-        <p class="nota" data-campo="explicacion">La IA corrige la ortografía y la redacción de cada actividad, identifica quién la realiza, propone el objetivo, el alcance y las responsabilidades, y te pregunta lo que falte. <strong>Nunca inventa información ni cambia el orden</strong>, y nada cambia hasta que tú lo aceptes.</p>
+        <p class="nota" data-campo="explicacion"><strong>Corregir redacción</strong> (unos segundos): la IA corrige la ortografía y la redacción de cada actividad. <strong>Analizar con IA</strong>: identifica quién realiza cada actividad, propone el objetivo, el alcance y las responsabilidades, y te pregunta lo que falte. Nunca inventa información ni cambia el orden, y nada cambia hasta que tú lo aceptes.</p>
         <p class="nota" data-campo="ultimo"></p>
       </div>
-      <button type="button" class="boton" data-accion="analizar"><i data-lucide="sparkles" class="ico"></i><span>Corregir y analizar con IA</span></button>
+      <div class="analisis-botones">
+        <button type="button" class="boton" data-accion="redaccion"><i data-lucide="spell-check" class="ico"></i><span>Corregir redacción</span></button>
+        <button type="button" class="boton secundario" data-accion="analizar"><i data-lucide="sparkles" class="ico"></i><span>Analizar con IA</span></button>
+      </div>
     </section>
 
     <div class="aviso-consulta" data-campo="ia-apagada" hidden>
@@ -19,7 +22,7 @@
     </div>
     <div class="analizando tarjeta" data-campo="analizando" hidden>
       <span class="vacio-icono"><i data-lucide="sparkles" class="ico girando-lento"></i></span>
-      <div><strong>Corrigiendo y analizando tu proceso… <span data-campo="analizando-tiempo"></span></strong><p class="nota">Suele tardar entre 20 segundos y un minuto. No cierres esta pantalla.</p></div>
+      <div><strong><span data-campo="analizando-titulo"></span> <span data-campo="analizando-tiempo"></span></strong><p class="nota" data-campo="analizando-nota">No cierres esta pantalla.</p></div>
     </div>
     <div class="resultado-ia" data-campo="resultado-ia" hidden>
       <i data-campo="resultado-icono" class="ico"></i>

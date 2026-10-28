@@ -134,3 +134,28 @@ test('una respuesta cortada por el tope (MAX_TOKENS) se avisa en lugar de intent
   assert.throws(function () { c.gs.llamarIAJson_(P); }, /se cortó/);
   assert.strictEqual(c.usos[0].RESULTADO, 'MAX_TOKENS');
 });
+
+// ─────────────────────────────── Modelos rápidos, en paralelo y lentos (28/10/2026) ───────────────────────────────
+
+test('corregir redacción usa primero los modelos rápidos («lite»)', function () {
+  const c = crear({ 'gemini-flash-latest': [OK], 'gemini-3.5-flash-lite': [OK] });
+  assert.strictEqual(c.gs.llamarIAJson_(Object.assign({ rapido: true }, P)).modelo, 'gemini-3.5-flash-lite');
+  assert.strictEqual(c.cache['ia-modelo-elegido-rapido'], 'gemini-3.5-flash-lite');
+});
+
+test('el intento en paralelo 1 empieza con el segundo modelo', function () {
+  const c = crear({ 'gemini-flash-latest': [OK], 'gemini-3.5-flash': [OK] });
+  assert.strictEqual(c.gs.llamarIAJson_(Object.assign({ desplazamiento: 1 }, P)).modelo, 'gemini-3.5-flash');
+  const otro = crear({ 'gemini-flash-latest': [], 'gemini-3.5-flash': [] });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 1))), ['gemini-3.5-flash', 'gemini-flash-latest']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 2))), ['gemini-flash-latest', 'gemini-3.5-flash'], 'da la vuelta');
+});
+
+test('un modelo que no contestó a tiempo pasa al final de la lista por un rato', function () {
+  const c = crear({ 'gemini-flash-latest': [new Error('Tiempo de espera: https://x')], 'gemini-3.5-flash': [OK] });
+  assert.throws(function () { c.gs.llamarIAJson_(P); }, /La próxima vez se usará primero otro modelo/);
+  assert.strictEqual(c.cache['ia-lento-gemini-flash-latest'], 'SI');
+  assert.strictEqual(c.gs.llamarIAJson_(P).modelo, 'gemini-3.5-flash');
+  assert.deepStrictEqual(c.llamadas, ['gemini-flash-latest', 'gemini-3.5-flash']);
+});
+

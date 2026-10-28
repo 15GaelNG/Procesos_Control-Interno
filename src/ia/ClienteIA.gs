@@ -16,6 +16,8 @@
  * @param {string} p.sistema     Instrucciones del sistema (reglas fijas).
  * @param {string} p.usuario     El contenido a analizar.
  * @param {string} [p.idSolicitud]
+ * @param {boolean} [p.rapido]          Usa la lista de modelos rápidos (corregir redacción).
+ * @param {number} [p.desplazamiento]   Intento en paralelo de la pantalla: 1 empieza con el 2.º modelo…
  * @return {{datos: Object, modelo: string, tokensEntrada: number, tokensSalida: number,
  *           duracionMs: number, intentos: string[]}}
  */
@@ -29,14 +31,16 @@ function llamarIAJson_(p) {
 
   const intentos = [];
   let ultimoError = null;
-  const modelos = modelosCandidatosIA_(llave);
+  const cache = CacheService.getScriptCache();
+  const claveElegido = 'ia-modelo-elegido' + (p.rapido ? '-rapido' : '');
+  const modelos = modelosCandidatosIA_(llave, p.rapido, p.desplazamiento);
   for (let m = 0; m < modelos.length; m++) {
     for (let vuelta = 1; vuelta <= 2; vuelta++) {
       try {
         const r = llamarModeloIA_(modelos[m], p, llave);
         intentos.push(modelos[m] + ': OK');
         r.intentos = intentos;
-        CacheService.getScriptCache().put('ia-modelo-elegido', modelos[m], 21600);
+        cache.put(claveElegido, modelos[m], 21600);
         return r;
       } catch (e) {
         ultimoError = e;
@@ -45,10 +49,16 @@ function llamarIAJson_(p) {
         break;
       }
     }
+    // No contestó a tiempo: se manda al final de la lista por un rato. Ya no hay tiempo para otro aquí.
+    if (ultimoError.tiempoAgotado) {
+      cache.put('ia-lento-' + modelos[m], 'SI', IA_HORAS_MODELO_LENTO * 3600);
+      if (cache.get(claveElegido) === modelos[m]) cache.remove(claveElegido);
+      break;
+    }
     // 404 (no existe), 429 (sin cuota) y 5xx (saturado): se intenta con el siguiente modelo.
     const cambiarModelo = ultimoError.codigoHttp === 404 || ultimoError.codigoHttp === 429 || ultimoError.codigoHttp >= 500;
     if (!cambiarModelo) break;
-    CacheService.getScriptCache().remove('ia-modelo-elegido');
+    if (cache.get(claveElegido) === modelos[m]) cache.remove(claveElegido);
   }
   ultimoError.intentos = intentos;
   ultimoError.message += ' (Intentos: ' + intentos.join(' · ') + ')';
@@ -140,7 +150,10 @@ function llamarModeloUnaVezIA_(modelo, p, llave, conPensamiento) {
     // UrlFetchApp corta una llamada que tarda demasiado («Tiempo de espera» / «Timeout»).
     if (!e.codigoHttp && /tiempo de espera|timeout|timed out/i.test(e.message)) {
       resultado = 'TIEMPO_AGOTADO';
-      throw new Error('La IA tardó demasiado en responder y Google cortó la llamada (' + Math.round((Date.now() - inicio) / 1000) + ' s).');
+      const lento = new Error('La IA (' + modelo + ') tardó demasiado en responder y Google cortó la llamada (' +
+        Math.round((Date.now() - inicio) / 1000) + ' s). La próxima vez se usará primero otro modelo.');
+      lento.tiempoAgotado = true;
+      throw lento;
     }
     if (resultado === 'OK') resultado = 'ERROR';
     throw e;
@@ -171,26 +184,32 @@ function modelosDisponiblesIA_(llave) {
 }
 
 /**
- * Modelos a intentar, en orden: el de Config → IA_MODELO (si está, es el único); si no, el último
- * que funcionó y luego los de IA_MODELOS_PREFERIDOS que la llave tenga (máximo IA_MAX_MODELOS).
+ * Modelos a intentar, en orden: el de Config (IA_MODELO, o IA_MODELO_RAPIDO para la redacción; si está,
+ * es el único); si no, el último que funcionó y luego los de la lista (IA_MODELOS_PREFERIDOS o
+ * IA_MODELOS_RAPIDOS) que la llave tenga, con los que no contestaron a tiempo al final (máximo
+ * IA_MAX_MODELOS). `desplazamiento` rota la lista: el intento en paralelo 1 empieza con el 2.º modelo.
  */
-function modelosCandidatosIA_(llave) {
-  const configurado = obtenerConfig_('IA_MODELO', '');
+function modelosCandidatosIA_(llave, rapido, desplazamiento) {
+  const configurado = obtenerConfig_(rapido ? 'IA_MODELO_RAPIDO' : 'IA_MODELO', '');
   if (configurado) return [configurado];
   const cache = CacheService.getScriptCache();
   let disponibles = cache.get('ia-modelos-disponibles');
   disponibles = disponibles ? JSON.parse(disponibles) : modelosDisponiblesIA_(llave).map(function (m) { return m.id; });
   cache.put('ia-modelos-disponibles', JSON.stringify(disponibles), 21600);
-  const candidatos = IA_MODELOS_PREFERIDOS.filter(function (m) { return disponibles.indexOf(m) !== -1; });
-  const ultimo = cache.get('ia-modelo-elegido');
+  let candidatos = (rapido ? IA_MODELOS_RAPIDOS : IA_MODELOS_PREFERIDOS).filter(function (m) { return disponibles.indexOf(m) !== -1; });
+  const ultimo = cache.get('ia-modelo-elegido' + (rapido ? '-rapido' : ''));
   if (ultimo && candidatos.indexOf(ultimo) !== -1) {
     candidatos.splice(candidatos.indexOf(ultimo), 1);
     candidatos.unshift(ultimo);
   }
+  const lento = function (m) { return cache.get('ia-lento-' + m) === 'SI'; };
+  candidatos = candidatos.filter(function (m) { return !lento(m); }).concat(candidatos.filter(lento));
   if (!candidatos.length) {
     throw new Error('Ninguno de los modelos preferidos está disponible. Corre listarModelosIA() y captura uno en Config → IA_MODELO.');
   }
-  return candidatos.slice(0, IA_MAX_MODELOS);
+  candidatos = candidatos.slice(0, IA_MAX_MODELOS);
+  const n = (Number(desplazamiento) || 0) % candidatos.length;
+  return candidatos.slice(n).concat(candidatos.slice(0, n));
 }
 
 /**

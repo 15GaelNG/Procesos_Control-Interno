@@ -63,20 +63,26 @@ function nombrarActividades_(ids, det) {
  *  - las propuestas y preguntas que seguían pendientes pasan a REEMPLAZADA (lo ya decidido o
  *    respondido se queda como está);
  *  - propuestas nuevas solo donde la IA propone algo distinto a lo que ya hay.
+ * alcance: 'REDACCION' solo toca la redacción (propuestas TEXTO); 'ANALISIS', todo lo demás (y las
+ * preguntas); sin alcance, todo.
  */
-function planPropuestas_(analisis, det, propuestasActuales, aclaracionesActuales, ahora) {
+function planPropuestas_(analisis, det, propuestasActuales, aclaracionesActuales, ahora, alcance) {
+  const tocaTexto = alcance !== 'ANALISIS';
+  const tocaLoDemas = alcance !== 'REDACCION';
+  const suya = function (campo) { return campo === 'TEXTO' ? tocaTexto : tocaLoDemas; };
   // La redacción se compara exacta (corregir ortografía o puntuación ES la mejora); lo demás, sin
   // importar mayúsculas ni puntuación.
   const exacto = function (v) { return String(v || '').replace(/\s+/g, ' ').trim(); };
   const n = function (v) { return normalizar_(v); };
   const plan = { reemplazarPropuestas: [], reemplazarAclaraciones: [], propuestas: [], aclaraciones: [] };
   propuestasActuales.forEach(function (p) {
-    if (p.ID_SOLICITUD === det.id && p.DECISION === 'PENDIENTE') plan.reemplazarPropuestas.push(p._fila);
+    if (p.ID_SOLICITUD === det.id && p.DECISION === 'PENDIENTE' && suya(p.CAMPO)) plan.reemplazarPropuestas.push(p._fila);
   });
   aclaracionesActuales.forEach(function (q) {
-    if (q.ID_SOLICITUD === det.id && q.ESTADO === 'PENDIENTE') plan.reemplazarAclaraciones.push(q._fila);
+    if (tocaLoDemas && q.ID_SOLICITUD === det.id && q.ESTADO === 'PENDIENTE') plan.reemplazarAclaraciones.push(q._fila);
   });
   const propuesta = function (campo, idActividad, anterior, valor, justificacion, evidencia) {
+    if (!suya(campo)) return;
     plan.propuestas.push({ ID_SOLICITUD: det.id, ID_ACTIVIDAD: idActividad || '', CAMPO: campo, VALOR_ANTERIOR: anterior || '',
       PROPUESTA: valor, JUSTIFICACION: justificacion || '', EVIDENCIA: evidencia || '', DECISION: 'PENDIENTE', VALOR_FINAL: '',
       FECHA_PROPUESTA: ahora, FECHA_DECISION: '' });
@@ -115,14 +121,23 @@ function planPropuestas_(analisis, det, propuestasActuales, aclaracionesActuales
   (analisis.sugerenciasOrden || []).forEach(function (s) {
     propuesta('ORDEN', '', '', s.descripcion, s.motivo, nombrarActividades_(s.actividades || [], det));
   });
-  (analisis.preguntas || []).forEach(function (q) {
+  (tocaLoDemas ? analisis.preguntas || [] : []).forEach(function (q) {
     plan.aclaraciones.push({ ID_SOLICITUD: det.id, ID_ACTIVIDAD: q.idActividad || '', TIPO: q.tipo, PREGUNTA: q.pregunta,
       RESPUESTA: '', ESTADO: 'PENDIENTE', ORIGEN: 'IA', FECHA_PREGUNTA: ahora, FECHA_RESPUESTA: '' });
   });
   return plan;
 }
 
-function analizarSolicitud_(sesion, idSolicitud) {
+/**
+ * Manda el proceso a la IA y guarda lo que propone. opciones:
+ *   operacion  'REDACCION' (corregir cómo están escritas las actividades; rápida) o 'ANALISIS'
+ *              (responsables, objetivo, alcance, responsabilidades, definiciones, preguntas y orden).
+ *   intento    0, 1, 2…: la pantalla lanza el mismo trabajo con otro modelo si el anterior tarda.
+ *   corrida    Identifica esos intentos: el primero que termina escribe; los demás ya no.
+ */
+function analizarSolicitud_(sesion, idSolicitud, opciones) {
+  const o = opciones || {};
+  const redaccion = o.operacion === 'REDACCION';
   const inicio = Date.now();
   const fila = filaSolicitud_(idSolicitud);
   if (!permisoSolicitud_(sesion, fila).editar) throw new Error('No puedes editar esta solicitud.');
@@ -130,30 +145,43 @@ function analizarSolicitud_(sesion, idSolicitud) {
     throw new Error('La IA está apagada en este momento. Puedes escribir el objetivo, el alcance y los responsables a mano y continuar.');
   }
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: true }, formatoFecha_);
-  const aclaraciones = leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; });
-  const entrada = entradaAnalisis_(det, aclaraciones, leerTabla_('Puestos'));
-  if (!entrada.actividades.length) throw new Error('Escribe al menos una actividad antes de analizar.');
+  const entrada = entradaAnalisis_(det, leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; }), leerTabla_('Puestos'));
+  if (!entrada.actividades.length) throw new Error('Escribe al menos una actividad antes de usar la IA.');
 
   const mapa = {};
   const enviada = ocultarEntrada_(entrada, mapa);
-  const prompt = construirPromptAnalisis_(enviada);
-  const r = llamarIAJson_({ operacion: 'ANALISIS', sistema: prompt.sistema, usuario: prompt.usuario, idSolicitud: idSolicitud });
-  const v = validarAnalisis_(enviada, r.datos);
+  const prompt = redaccion ? construirPromptRedaccion_(enviada) : construirPromptAnalisis_(enviada);
+  const r = llamarIAJson_({ operacion: redaccion ? 'REDACCION' : 'ANALISIS', sistema: prompt.sistema, usuario: prompt.usuario,
+    idSolicitud: idSolicitud, rapido: redaccion, desplazamiento: Number(o.intento) || 0 });
+  const v = redaccion ? validarRedaccion_(enviada, r.datos) : validarAnalisis_(enviada, r.datos);
   const analisis = restaurarDatosSensibles_(v.analisis, mapa);
   const avisos = restaurarDatosSensibles_(v.avisos, mapa);
 
-  const ahora = new Date();
-  const plan = planPropuestas_(analisis, det, leerTabla_('PropuestasIA'), aclaraciones, ahora);
-  plan.reemplazarPropuestas.forEach(function (f) { actualizarFila_('PropuestasIA', f, { DECISION: 'REEMPLAZADA' }); });
-  plan.reemplazarAclaraciones.forEach(function (f) { actualizarFila_('Aclaraciones', f, { ESTADO: 'REEMPLAZADA' }); });
-  const idsP = reservarIds_('PIA', plan.propuestas.length, 6);
-  agregarFilas_('PropuestasIA', plan.propuestas.map(function (p, i) { return Object.assign({ ID_PROPUESTA: idsP[i] }, p); }));
-  const idsA = reservarIds_('ACL', plan.aclaraciones.length, 6);
-  agregarFilas_('Aclaraciones', plan.aclaraciones.map(function (q, i) { return Object.assign({ ID_ACLARACION: idsA[i] }, q); }));
-  registrarBitacora_(sesion, 'ANALIZAR_IA', plan.propuestas.length + ' propuestas y ' + plan.aclaraciones.length +
-    ' preguntas (' + r.modelo + ').', idSolicitud);
-  return { propuestas: plan.propuestas.length, preguntas: plan.aclaraciones.length, avisos: avisos, modelo: r.modelo,
-    redaccion: plan.propuestas.filter(function (p) { return p.CAMPO === 'TEXTO'; }).length,
+  // Escribe solo el primer intento de la corrida que termine (los demás pudieron seguir colgados).
+  const cache = CacheService.getScriptCache();
+  const claveCorrida = o.corrida ? 'ia-corrida-' + idSolicitud + '-' + String(o.corrida).slice(0, 40) : '';
+  const candado = LockService.getScriptLock();
+  candado.waitLock(20000);
+  let plan;
+  try {
+    if (claveCorrida && cache.get(claveCorrida)) return { descartado: true, modelo: r.modelo };
+    plan = planPropuestas_(analisis, det, leerTabla_('PropuestasIA'),
+      leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; }), new Date(), redaccion ? 'REDACCION' : 'ANALISIS');
+    plan.reemplazarPropuestas.forEach(function (f) { actualizarFila_('PropuestasIA', f, { DECISION: 'REEMPLAZADA' }); });
+    plan.reemplazarAclaraciones.forEach(function (f) { actualizarFila_('Aclaraciones', f, { ESTADO: 'REEMPLAZADA' }); });
+    const idsP = reservarIds_('PIA', plan.propuestas.length, 6);
+    agregarFilas_('PropuestasIA', plan.propuestas.map(function (p, i) { return Object.assign({ ID_PROPUESTA: idsP[i] }, p); }));
+    const idsA = reservarIds_('ACL', plan.aclaraciones.length, 6);
+    agregarFilas_('Aclaraciones', plan.aclaraciones.map(function (q, i) { return Object.assign({ ID_ACLARACION: idsA[i] }, q); }));
+    if (claveCorrida) cache.put(claveCorrida, r.modelo, 1800);
+    SpreadsheetApp.flush();
+  } finally {
+    candado.releaseLock();
+  }
+  registrarBitacora_(sesion, 'ANALIZAR_IA', (redaccion ? 'Redacción: ' : 'Análisis: ') + plan.propuestas.length + ' propuestas y ' +
+    plan.aclaraciones.length + ' preguntas (' + r.modelo + ', ' + Math.round((Date.now() - inicio) / 1000) + ' s).', idSolicitud);
+  return { operacion: redaccion ? 'REDACCION' : 'ANALISIS', propuestas: plan.propuestas.length, preguntas: plan.aclaraciones.length,
+    avisos: avisos, modelo: r.modelo, redaccion: plan.propuestas.filter(function (p) { return p.CAMPO === 'TEXTO'; }).length,
     segundos: Math.round((Date.now() - inicio) / 1000) };
 }
 

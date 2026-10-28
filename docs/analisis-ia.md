@@ -4,10 +4,27 @@ Pasos 4 y 5 de una solicitud. Requerimiento §3.3 (análisis y preguntas), §3.4
 confirmación) y §3.5 (borrador y confirmación del colaborador). Proveedor, límites y validador:
 [ia.md](ia.md).
 
-## Paso 4 · Corregir y analizar con IA
+## Paso 4 · Corrección con IA
 
-El botón **«Corregir y analizar con IA»** está en el paso 4 y también en el paso 3 (arriba del
-desarrollo y al final): desde el paso 3 guarda lo pendiente, pasa al paso 4 y arranca solo. El sistema:
+Son **dos trabajos separados** (28/10/2026: hacerlo todo en una sola llamada llegó a tardar más de 5
+minutos):
+
+| Botón | Qué hace | Modelos |
+|---|---|---|
+| **«Corregir redacción»** | Solo corrige ortografía, puntuación y claridad de cada actividad. Respuesta corta: unos segundos | Primero los «lite» (`IA_MODELOS_RAPIDOS`, o `Config → IA_MODELO_RAPIDO`) |
+| **«Analizar con IA»** | Responsables, objetivo, alcance, responsabilidades, definiciones, preguntas y orden. Ya no reescribe las actividades | `IA_MODELOS_PREFERIDOS` (o `Config → IA_MODELO`) |
+
+Cada uno solo reemplaza lo suyo: corregir la redacción no toca las preguntas ni las demás propuestas,
+y analizar no toca las correcciones de redacción. **«Corregir redacción con IA»** también está en el
+paso 3 (arriba del desarrollo y al final): guarda lo pendiente, pasa al paso 4 y arranca solo.
+
+**Si la IA no contesta:** Apps Script no puede cancelar una llamada que se quedó colgada. Si en
+`IA_ESPERA_OTRO_MODELO_S` (40 s) no hay respuesta, la pantalla lanza el mismo trabajo con el siguiente
+modelo, en paralelo (hasta `IA_INTENTOS_PARALELOS` = 3), y se queda con el primero que conteste; el
+servidor solo deja escribir al primero de esa «corrida». El modelo que no contestó a tiempo se manda al
+final de la lista por `IA_HORAS_MODELO_LENTO` (3 h). Así nadie espera minutos ni hay que mover nada a mano.
+
+El análisis:
 
 1. Arma el proceso: nombre, departamento, inicio, actividades (con el responsable que el colaborador ya
    indicó), fin, el catálogo de puestos y **las respuestas que ya dio** a preguntas anteriores.
@@ -20,7 +37,7 @@ desarrollo y al final): desde el paso 3 guarda lo pendiente, pasa al paso 4 y ar
 5. Restaura los datos ocultos y guarda **propuestas** (`PropuestasIA`) y **preguntas** (`Aclaraciones`).
    Lo pendiente de un análisis anterior queda como `REEMPLAZADA`; lo ya decidido o respondido se respeta.
 
-Mientras trabaja se ve un reloj con los segundos. Al terminar queda en pantalla (no como aviso que se
+Mientras trabaja se ve un reloj con los segundos (y si se pidió a otro modelo, lo dice). Al terminar queda en pantalla (no como aviso que se
 va) **qué encontró**: cuántas actividades propone corregir, cuántas propuestas y preguntas más, en
 cuánto tiempo respondió y con qué modelo; si falló, el motivo. Nada cambia hasta que la persona lo acepta.
 
@@ -34,7 +51,7 @@ La pantalla muestra:
 | **Objetivo, alcance, responsabilidades y definiciones** | Puede usar la propuesta y ajustarla, o escribirlo a mano y «Guardar». Responsabilidades y definiciones van un renglón por elemento («Puesto: …») |
 | **Ya decidiste** | Lista de lo decidido, para consulta |
 
-Después de responder, **«Volver a corregir y analizar»** manda las respuestas para que la IA mejore la redacción
+Después de responder, **«Analizar con IA»** otra vez manda las respuestas para que la IA mejore la redacción
 con esa información (sin volver a preguntar). Si hay propuestas sin decidir, avisa que se reemplazarán.
 
 Reglas:

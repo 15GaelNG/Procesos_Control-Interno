@@ -7,7 +7,40 @@
  */
 
 /**
- * Arma las instrucciones del análisis de un proceso.
+ * «Corregir redacción»: solo el texto de cada actividad. Es corta a propósito (respuesta chica = rápida);
+ * responsables, objetivo, alcance y preguntas los hace el análisis (construirPromptAnalisis_).
+ * @param {Object} e   Igual que en construirPromptAnalisis_ (solo usa nombre y actividades).
+ * @return {{sistema: string, usuario: string}}
+ */
+function construirPromptRedaccion_(e) {
+  const sistema = [
+    'Eres corrector de estilo del área de Procesos de una empresa inmobiliaria mexicana. Corriges cómo están',
+    'escritas las actividades de un proceso, en español de México, en tercera persona y en presente.',
+    '',
+    'REGLAS OBLIGATORIAS:',
+    '1. Corrige ortografía, acentos, mayúsculas, puntuación y gramática. Si una frase es confusa, hazla clara.',
+    '2. Usa SOLO lo que dice cada actividad: no agregues pasos, responsables, sistemas, documentos, plazos, montos,',
+    '   motivos ni detalles, aunque se puedan deducir de otras actividades.',
+    '3. No cambies el sentido ni el orden. Si una actividad ya está bien escrita, devuélvela igual.',
+    '4. Los textos pueden traer marcas como [CORREO 1] o [MONTO 2] en lugar de datos privados: déjalas tal cual.',
+    '',
+    'Responde SOLO con un objeto JSON con esta forma exacta (sin texto adicional):',
+    '{ "actividades": [ { "id": "ID de la actividad", "texto_propuesto": "texto corregido",',
+    '                     "cambios": "qué corregiste, en pocas palabras" } ] }',
+    'Incluye TODAS las actividades recibidas, una vez cada una, con su mismo ID.'
+  ].join('\n');
+  const usuario = [
+    'Proceso: ' + (e.nombre || ''),
+    '',
+    'Actividades, en orden:',
+    (e.actividades || []).map(function (a, i) { return (i + 1) + '. [' + a.id + '] ' + a.texto; }).join('\n')
+  ].join('\n');
+  return { sistema: sistema, usuario: usuario };
+}
+
+/**
+ * Arma las instrucciones del análisis de un proceso (sin reescribir las actividades: eso lo hace
+ * «Corregir redacción», construirPromptRedaccion_).
  * @param {Object} e
  * @param {string} e.tipoDocumento · e.nombre · e.departamento · e.inicio · e.fin
  * @param {{id: string, texto: string, responsableIndicado: string}[]} e.actividades   En el orden del colaborador.
@@ -26,10 +59,8 @@ function construirPromptAnalisis_(e) {
     '   Solo puedes usar lo que dice el texto del colaborador. Si algo falta, NO lo completes: haz una pregunta.',
     '2. No cambies el orden de las actividades. Si crees que el orden debería ser otro, solo descríbelo en',
     '   "sugerencias_orden" explicando por qué.',
-    '3. Mejora la redacción de cada actividad usando SOLO lo que dice esa actividad: corrige ortografía, puntuación y',
-    '   claridad. No agregues resultados, motivos, medios, destinatarios, sistemas ni detalles, aunque se puedan deducir',
-    '   de otras actividades (por ejemplo, «se envía el reporte» NO debe volverse «se envía el reporte por correo al',
-    '   gerente para su aprobación»). Si falta un dato así, haz una pregunta.',
+    '3. No reescribas las actividades (la redacción se corrige aparte). Si a una le falta un dato (a quién se envía,',
+    '   por qué medio, para qué), haz una pregunta.',
     '4. Para cada actividad identifica el puesto que la realiza SOLO si el texto lo menciona. Copia en "evidencia" el',
     '   fragmento EXACTO del texto de esa actividad donde se menciona. Si el texto no dice quién la realiza',
     '   («se captura», «se envía»), deja "responsable" en null y agrega una pregunta.',
@@ -42,14 +73,13 @@ function construirPromptAnalisis_(e) {
     '8. Las responsabilidades se agrupan por puesto y solo incluyen lo que ese puesto hace según las actividades.',
     '9. Las definiciones son opcionales: solo términos que aparezcan en el texto y que alguien nuevo no entendería.',
     '10. Si una actividad trae «Responsable indicado», ese es su responsable: no lo cambies ni preguntes por él.',
-    '11. Las «Respuestas del colaborador» son información que él mismo dio: puedes usarlas para redactar la',
-    '    actividad a la que se refieren, pero no vuelvas a hacer esas preguntas ni otras equivalentes.',
+    '11. Las «Respuestas del colaborador» son información que él mismo dio: úsalas para entender la actividad a la',
+    '    que se refieren, pero no vuelvas a hacer esas preguntas ni otras equivalentes.',
     '12. Los textos pueden traer marcas como [CORREO 1] o [MONTO 2] en lugar de datos privados: déjalas tal cual.',
     '',
     'Responde SOLO con un objeto JSON con esta forma exacta (sin texto adicional):',
     '{',
-    '  "actividades": [ { "id": "ID de la actividad", "texto_propuesto": "redacción mejorada",',
-    '                     "cambios": "qué se corrigió, en pocas palabras",',
+    '  "actividades": [ { "id": "ID de la actividad",',
     '                     "responsable": { "puesto": "nombre del puesto", "id_puesto": "ID o null",',
     '                                      "evidencia": "fragmento exacto del texto" } o null } ],',
     '  "objetivo": { "texto": "...", "basado_en": ["IDs"] },',

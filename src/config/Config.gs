@@ -79,6 +79,23 @@ const IA_MODELOS_PREFERIDOS = [
   'gemini-2.5-flash'
 ];
 const IA_MAX_MODELOS = 4;
+// «Corregir redacción» es corta y no necesita razonar: modelos «lite» (más rápidos) primero. Config →
+// IA_MODELO_RAPIDO fija uno, como IA_MODELO para el análisis. Se usan los que la llave tenga.
+const IA_MODELOS_RAPIDOS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-flash-latest',
+  'gemini-3.5-flash'
+];
+// Un modelo que no contestó a tiempo se manda al final de la lista por estas horas.
+const IA_HORAS_MODELO_LENTO = 3;
+// Apps Script no puede cancelar una llamada que se quedó colgada (el 26/10/2026 tardaron hasta 6 min).
+// Si la IA no ha contestado en estos segundos, la pantalla lanza el mismo trabajo con el siguiente
+// modelo, en paralelo, hasta este número de intentos, y se queda con el primero que conteste.
+const IA_ESPERA_OTRO_MODELO_S = 40;
+const IA_INTENTOS_PARALELOS = 3;
 // Datos que se ocultan antes de mandar un texto a la IA (utils/Privacidad.gs). Lo más específico
 // primero: un RFC o una CURP no deben confundirse con una cuenta.
 const PATRONES_SENSIBLES = [

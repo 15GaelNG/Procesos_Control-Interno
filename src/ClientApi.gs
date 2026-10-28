@@ -119,13 +119,16 @@ function apiAnalisis(comoUsuario, idSolicitud) {
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
   const estado = estadoAnalisis_(det, leerTabla_('PropuestasIA'), leerTabla_('Aclaraciones'), obtenerConfig_('IA_ACTIVA', 'NO') === 'SI', formatoFecha_);
   estado.solicitud = { id: det.id, nombre: det.nombre, estado: det.estado, esSuya: fila.ELABORO_ID === sesion.idUsuario };
+  // Cuándo lanzar el mismo trabajo con otro modelo si la IA no contesta (Config.gs).
+  estado.reintentoIa = { esperaSegundos: IA_ESPERA_OTRO_MODELO_S, intentos: IA_INTENTOS_PARALELOS };
   return estado;
 }
 
 /** Manda el proceso a la IA (puede tardar hasta un minuto). */
-function apiAnalizar(comoUsuario, idSolicitud) {
+function apiAnalizar(comoUsuario, idSolicitud, operacion, intento, corrida) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return analizarSolicitud_(sesion, idSolicitud);
+  return analizarSolicitud_(sesion, idSolicitud, { operacion: operacion === 'REDACCION' ? 'REDACCION' : 'ANALISIS',
+    intento: Math.max(0, Math.min(Number(intento) || 0, IA_INTENTOS_PARALELOS - 1)), corrida: String(corrida || '') });
 }
 
 /** decision: ACEPTADA | EDITADA | RECHAZADA. */

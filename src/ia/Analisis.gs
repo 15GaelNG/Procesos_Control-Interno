@@ -177,6 +177,38 @@ function derivado_(d, ids) {
     basadoEn: (Array.isArray(d.basado_en) ? d.basado_en : []).filter(function (id) { return ids.indexOf(id) !== -1; }) };
 }
 
+/**
+ * Revisa la respuesta de «Corregir redacción» (sin tocar Google): una propuesta por actividad que
+ * exista; si la IA no devolvió alguna, se conserva como estaba; avisa de cifras que no estaban.
+ * Devuelve la misma forma que validarAnalisis_, con todo lo demás vacío.
+ */
+function validarRedaccion_(entrada, salida) {
+  salida = salida && typeof salida === 'object' ? salida : {};
+  const avisos = [];
+  const ids = entrada.actividades.map(function (a) { return a.id; });
+  const recibidas = Array.isArray(salida.actividades) ? salida.actividades : [];
+  const porId = {};
+  recibidas.forEach(function (a) { if (a && ids.indexOf(a.id) !== -1 && !porId[a.id]) porId[a.id] = a; });
+  const sobrantes = recibidas.filter(function (a) { return !a || ids.indexOf(a.id) === -1; }).length;
+  if (sobrantes) avisos.push('La IA propuso ' + sobrantes + ' actividad(es) que no existían; se descartaron.');
+  const actividades = entrada.actividades.map(function (original) {
+    const p = porId[original.id];
+    if (!p) {
+      avisos.push('La IA no devolvió la actividad ' + original.id + '; se conserva tal como la escribiste.');
+      return { id: original.id, textoOriginal: original.texto, textoPropuesto: original.texto, cambios: '', responsable: null, cifrasNuevas: [] };
+    }
+    const textoPropuesto = texto_(p.texto_propuesto) || original.texto;
+    const cifras = cifrasNuevas_(original.texto, textoPropuesto);
+    if (cifras.length) {
+      avisos.push('La redacción propuesta para ' + original.id + ' menciona datos que no estaban en tu texto (' + cifras.join(', ') + '). Revísala antes de aceptarla.');
+    }
+    return { id: original.id, textoOriginal: original.texto, textoPropuesto: textoPropuesto, cambios: texto_(p.cambios),
+      responsable: null, cifrasNuevas: cifras };
+  });
+  return { analisis: { actividades: actividades, objetivo: null, alcance: null, responsabilidades: [], definiciones: [],
+    preguntas: [], sugerenciasOrden: [] }, avisos: avisos };
+}
+
 /** Cifras (números, horas, porcentajes) de la propuesta que no estaban en el original. */
 function cifrasNuevas_(original, propuesto) {
   const enOriginal = (String(original).match(/\d+(?:[.,:]\d+)*/g) || []);

@@ -1,10 +1,13 @@
 <script>
   /*
-   * Paso 4 · Corregir y analizar con IA (apiAnalisis, apiAnalizar, apiDecidirPropuesta,
-   * apiAceptarRedacciones, apiResponderPregunta, apiGuardarDerivados). La IA propone y la persona decide:
-   * cada propuesta se acepta, se edita o se descarta (las correcciones de redacción, también todas de una
-   * vez); las preguntas se responden (o «No aplica» / «No lo sé»). Sin IA, los textos se escriben a mano.
-   * Desde el paso 3, «Corregir y analizar con IA» llega aquí con estado.analizarAlAbrir y arranca solo.
+   * Paso 4 · Corrección con IA (apiAnalisis, apiAnalizar, apiDecidirPropuesta, apiAceptarRedacciones,
+   * apiResponderPregunta, apiGuardarDerivados). Dos trabajos: «Corregir redacción» (REDACCION, corto y
+   * rápido) y «Analizar con IA» (ANALISIS: responsables, objetivo, alcance, preguntas…). La IA propone y la
+   * persona decide: cada propuesta se acepta, se edita o se descarta (las de redacción, también todas de
+   * una vez); las preguntas se responden (o «No aplica» / «No lo sé»). Sin IA, todo se escribe a mano.
+   * Si la IA no contesta en reintentoIa.esperaSegundos, se lanza el mismo trabajo con otro modelo en
+   * paralelo y se usa el primero que conteste (Apps Script no puede cancelar una llamada colgada).
+   * Desde el paso 3, «Corregir redacción con IA» llega con estado.analizarAlAbrir y arranca solo.
    */
   const NOMBRES_CAMPO_PROPUESTA = { TEXTO: 'Redacción', RESPONSABLE: 'Responsable', OBJETIVO: 'Objetivo', ALCANCE: 'Alcance',
     RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones', ORDEN: 'Orden' };
@@ -172,15 +175,18 @@
       q('nombre').textContent = datos.solicitud.nombre;
       q('ultimo').textContent = datos.ultimoAnalisis ? 'Último análisis: ' + datos.ultimoAnalisis : 'Todavía no se ha analizado.';
 
-      const analizar = ui.querySelector('[data-accion="analizar"]');
-      analizar.hidden = !datos.puedeEditar;
-      analizar.disabled = !datos.iaActiva;
-      analizar.querySelector('span').textContent = datos.ultimoAnalisis ? 'Volver a corregir y analizar' : 'Corregir y analizar con IA';
-      analizar.addEventListener('click', function () {
-        if (ocupado) return;
-        const pendientes = datos.propuestas.filter(function (p) { return p.decision === 'PENDIENTE'; }).length;
-        if (pendientes && !confirm('Tienes ' + pendientes + ' propuestas sin decidir. Al volver a analizar se reemplazan por nuevas. ¿Continuar?')) return;
-        analizarAhora();
+      [['redaccion', 'REDACCION'], ['analizar', 'ANALISIS']].forEach(function (x) {
+        const boton = ui.querySelector('[data-accion="' + x[0] + '"]');
+        boton.hidden = !datos.puedeEditar;
+        boton.disabled = !datos.iaActiva;
+        boton.addEventListener('click', function () {
+          if (ocupado) return;
+          const pendientes = datos.propuestas.filter(function (p) {
+            return p.decision === 'PENDIENTE' && (x[1] === 'REDACCION' ? p.campo === 'TEXTO' : p.campo !== 'TEXTO');
+          }).length;
+          if (pendientes && !confirm('Tienes ' + pendientes + ' propuestas sin decidir. Al volver a pedirlo se reemplazan por nuevas. ¿Continuar?')) return;
+          analizarAhora(x[1]);
+        });
       });
       pintarResultado();
       q('ia-apagada').hidden = datos.iaActiva || !datos.puedeEditar;
@@ -273,25 +279,77 @@
       pintarIconos();
     }
 
-    /* Corre el análisis con un reloj a la vista; el resultado (o el error) se queda en pantalla. */
-    function analizarAhora() {
+    /*
+     * Lanza el trabajo y, si no contesta en reintentoIa.esperaSegundos (o falla), el mismo con el
+     * siguiente modelo en paralelo, hasta reintentoIa.intentos. Se queda con el primero que conteste; el
+     * servidor solo deja escribir a uno de la misma corrida.
+     */
+    function correrEnParalelo(operacion, alLanzarOtro) {
+      const cfg = datos.reintentoIa || { esperaSegundos: 40, intentos: 1 };
+      const corrida = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      return new Promise(function (resolver, rechazar) {
+        let lanzados = 0;
+        let enCurso = 0;
+        let terminado = false;
+        let temporizador = null;
+        const errores = [];
+        function siguiente() {
+          clearTimeout(temporizador);
+          if (terminado || lanzados >= cfg.intentos) return;
+          const intento = lanzados++;
+          enCurso++;
+          if (intento > 0) alLanzarOtro(intento + 1);
+          llamar('apiAnalizar', idSolicitud, operacion, intento, corrida).then(function (r) {
+            enCurso--;
+            if (terminado) return;
+            if (r && r.descartado) {
+              /* Otro intento de esta corrida ya escribió; si era el último en curso, se da por terminado. */
+              if (!enCurso && lanzados >= cfg.intentos) { terminado = true; resolver({ operacion: operacion, sinDetalle: true }); }
+              return;
+            }
+            terminado = true;
+            clearTimeout(temporizador);
+            resolver(r);
+          }, function (e) {
+            enCurso--;
+            errores.push(e.message);
+            if (terminado) return;
+            if (lanzados < cfg.intentos) siguiente();
+            else if (!enCurso) { terminado = true; rechazar(new Error(errores[errores.length - 1])); }
+          });
+          temporizador = setTimeout(siguiente, cfg.esperaSegundos * 1000);
+        }
+        siguiente();
+      });
+    }
+
+    /* Corre el trabajo con un reloj a la vista; el resultado (o el error) se queda en pantalla. */
+    function analizarAhora(operacion) {
       const inicio = Date.now();
       resultadoIa = null;
       q('resultado-ia').hidden = true;
       q('analizando').hidden = false;
-      ui.querySelector('[data-accion="analizar"]').disabled = true;
+      q('analizando-titulo').textContent = operacion === 'REDACCION' ? 'Corrigiendo la redacción…' : 'Analizando tu proceso…';
+      q('analizando-nota').textContent = operacion === 'REDACCION' ? 'Suele tardar unos segundos. No cierres esta pantalla.'
+        : 'Suele tardar menos de un minuto. No cierres esta pantalla.';
+      ui.querySelectorAll('[data-accion="redaccion"], [data-accion="analizar"]').forEach(function (b) { b.disabled = true; });
       const reloj = setInterval(function () {
         const t = ui && q('analizando-tiempo');
         if (t) t.textContent = Math.round((Date.now() - inicio) / 1000) + ' s';
       }, 1000);
-      const analisis = guardarDerivados().then(function () { return llamar('apiAnalizar', idSolicitud); }).then(function (r) {
+      const trabajo = guardarDerivados().then(function () {
+        return correrEnParalelo(operacion, function (n) {
+          const nota = ui && q('analizando-nota');
+          if (nota) nota.textContent = 'La IA está tardando: se le pidió también a otro modelo (' + n + ' a la vez) y se usará el primero que conteste.';
+        });
+      }).then(function (r) {
         avisosIa = r.avisos || [];
         resultadoIa = Object.assign({ ok: true }, r);
       }, function (e) {
         resultadoIa = { error: e.message };
         throw e;
       });
-      return trabajar(analisis).then(function () {
+      return trabajar(trabajo).then(function () {
         clearInterval(reloj);
         if (ui && !q('resultado-ia').hidden) q('resultado-ia').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -309,24 +367,31 @@
         q('resultado-texto').textContent = r.error + ' Intenta de nuevo en un momento; mientras, todo se puede escribir a mano.';
         return;
       }
-      const otras = r.propuestas - r.redaccion;
-      q('resultado-titulo').textContent = r.redaccion
-        ? 'La IA propone corregir la redacción de ' + r.redaccion + (r.redaccion === 1 ? ' actividad.' : ' actividades.')
-        : 'La IA no encontró faltas de redacción que corregir.';
-      q('resultado-texto').textContent = [
-        otras ? otras + (otras === 1 ? ' propuesta más' : ' propuestas más') + ' (responsables, objetivo, alcance…)' : '',
-        r.preguntas ? r.preguntas + (r.preguntas === 1 ? ' pregunta' : ' preguntas') + ' para completar tu proceso' : ''
-      ].filter(Boolean).join(' y ') + (otras || r.preguntas ? '. ' : '') + 'Nada cambia hasta que lo aceptes. ' +
-        'Respondió en ' + r.segundos + ' s' + (r.modelo ? ' (' + r.modelo + ')' : '') + '.';
+      const tiempo = r.segundos !== undefined ? ' Respondió en ' + r.segundos + ' s' + (r.modelo ? ' (' + r.modelo + ')' : '') + '.' : '';
+      if (r.sinDetalle) {
+        q('resultado-titulo').textContent = 'La IA terminó.';
+        q('resultado-texto').textContent = 'Revisa abajo lo que propone; nada cambia hasta que lo aceptes.';
+      } else if (r.operacion === 'REDACCION') {
+        q('resultado-titulo').textContent = r.redaccion
+          ? 'La IA propone corregir la redacción de ' + r.redaccion + (r.redaccion === 1 ? ' actividad.' : ' actividades.')
+          : 'La IA no encontró nada que corregir en la redacción.';
+        q('resultado-texto').textContent = (r.redaccion ? 'Revísalas abajo y acéptalas una por una o todas de una vez. ' : '') +
+          'Después puedes usar «Analizar con IA» para los responsables, el objetivo y el alcance.' + tiempo;
+      } else {
+        q('resultado-titulo').textContent = 'La IA terminó el análisis: ' + r.propuestas + (r.propuestas === 1 ? ' propuesta' : ' propuestas') +
+          ' y ' + r.preguntas + (r.preguntas === 1 ? ' pregunta.' : ' preguntas.');
+        q('resultado-texto').textContent = 'Responsables, objetivo, alcance y lo demás están abajo; nada cambia hasta que lo aceptes.' + tiempo;
+      }
     }
 
     estado.alSalir = function () { return derivadosSucio ? guardarDerivados().catch(function () { /* se avisó */ }) : null; };
 
     recargar().then(function () {
-      /* Llegó desde el paso 3 con «Corregir y analizar con IA»: arranca solo. */
-      if (estado.analizarAlAbrir !== idSolicitud || !ui) return;
-      estado.analizarAlAbrir = '';
-      const boton = ui.querySelector('[data-accion="analizar"]');
+      /* Llegó desde el paso 3 con «Corregir redacción con IA»: arranca solo. */
+      if (!estado.analizarAlAbrir || estado.analizarAlAbrir.id !== idSolicitud || !ui) return;
+      const accion = estado.analizarAlAbrir.operacion === 'ANALISIS' ? 'analizar' : 'redaccion';
+      estado.analizarAlAbrir = null;
+      const boton = ui.querySelector('[data-accion="' + accion + '"]');
       if (boton.hidden) return;
       if (boton.disabled) { avisar('La IA está apagada en este momento: puedes escribir todo a mano.', 'error'); return; }
       boton.click();

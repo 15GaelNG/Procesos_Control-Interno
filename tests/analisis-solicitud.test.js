@@ -59,6 +59,29 @@ test('el prompt lleva el responsable indicado y las respuestas anteriores', func
   assert.ok(prompt.usuario.indexOf('¿Qué pasa si falta la constancia? → Se regresa al área solicitante') !== -1);
 });
 
+test('corregir redacción: prompt corto (solo actividades, sin puestos ni datos privados); el análisis ya no reescribe', function () {
+  const mapa = {};
+  const enviada = gs.ocultarEntrada_(gs.entradaAnalisis_(detalle(), ACLARACIONES, PUESTOS), mapa);
+  const r = gs.construirPromptRedaccion_(enviada);
+  assert.ok(r.usuario.indexOf('1. [ACT-1] El auxiliar de compras recibe la solicitud') !== -1);
+  assert.ok(r.usuario.indexOf('Catálogo de puestos') === -1 && r.usuario.indexOf('Respuestas del colaborador') === -1);
+  assert.ok(/texto_propuesto/.test(r.sistema));
+  assert.ok(!/texto_propuesto/.test(gs.construirPromptAnalisis_(enviada).sistema), 'el análisis ya no pide reescribir');
+});
+
+test('validar redacción: una por actividad que exista; la que falte se conserva; avisa cifras nuevas', function () {
+  const entrada = gs.entradaAnalisis_(detalle(), [], PUESTOS);
+  const v = plano(gs.validarRedaccion_(entrada, { actividades: [
+    { id: 'ACT-1', texto_propuesto: 'El auxiliar de compras recibe la solicitud en 3 días.', cambios: 'Puntuación' },
+    { id: 'ACT-9', texto_propuesto: 'Inventada' }
+  ] }));
+  assert.deepStrictEqual(v.analisis.actividades.map(function (a) { return a.id + ':' + a.textoPropuesto; }),
+    ['ACT-1:El auxiliar de compras recibe la solicitud en 3 días.', 'ACT-2:Se capturan los datos en SAP']);
+  assert.deepStrictEqual(v.analisis.actividades[0].cifrasNuevas, ['3']);
+  assert.strictEqual(v.avisos.length, 3, 'una inventada, una que faltó y una con cifras');
+  assert.deepStrictEqual([v.analisis.preguntas, v.analisis.objetivo], [[], null]);
+});
+
 test('validador: el responsable indicado manda y no se vuelven a hacer preguntas ya respondidas', function () {
   const entrada = gs.entradaAnalisis_(detalle(), ACLARACIONES, PUESTOS);
   entrada.puestos = entrada.puestos.map(function (p) { return { id: p.id, nombre: p.nombre, sinonimos: p.sinonimos }; });
@@ -122,6 +145,20 @@ test('propuestas: texto por actividad con aviso de cifras nuevas, responsable so
   assert.deepStrictEqual(JSON.parse(p.propuestas[5].PROPUESTA), ['Auxiliar de Compras: Recibir la solicitud; Capturar en SAP']);
   assert.strictEqual(p.propuestas[7].EVIDENCIA, 'Actividades 2 y 1');
   assert.deepStrictEqual(p.aclaraciones.map(function (q) { return q.PREGUNTA + ':' + q.ESTADO; }), ['¿Quién autoriza el alta?:PENDIENTE']);
+});
+
+test('propuestas: «corregir redacción» solo toca la redacción y el análisis solo lo demás', function () {
+  const previas = [
+    { _fila: 2, ID_SOLICITUD: 'SOL-2026-0001', CAMPO: 'TEXTO', DECISION: 'PENDIENTE' },
+    { _fila: 3, ID_SOLICITUD: 'SOL-2026-0001', CAMPO: 'OBJETIVO', DECISION: 'PENDIENTE' }
+  ];
+  const r = plano(gs.planPropuestas_(analisis(), detalle(), previas, ACLARACIONES, AHORA, 'REDACCION'));
+  assert.deepStrictEqual([r.reemplazarPropuestas, r.reemplazarAclaraciones, r.aclaraciones.length], [[2], [], 0]);
+  assert.deepStrictEqual(r.propuestas.map(function (x) { return x.CAMPO; }), ['TEXTO', 'TEXTO']);
+  const a = plano(gs.planPropuestas_(analisis(), detalle(), previas, ACLARACIONES, AHORA, 'ANALISIS'));
+  assert.deepStrictEqual([a.reemplazarPropuestas, a.reemplazarAclaraciones], [[3], [4]]);
+  assert.ok(a.propuestas.every(function (x) { return x.CAMPO !== 'TEXTO'; }));
+  assert.strictEqual(a.aclaraciones.length, 1);
 });
 
 test('propuestas: si la IA propone lo mismo que ya hay, no se propone nada', function () {
