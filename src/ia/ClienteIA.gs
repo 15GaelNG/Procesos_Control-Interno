@@ -159,6 +159,8 @@ function llamarModeloUnaVezIA_(modelo, p, llave, conPensamiento) {
     if (resultado === 'OK') resultado = 'ERROR';
     throw e;
   } finally {
+    // Junto a los tiempos [BD] en Apps Script → Ejecuciones: cuánto fue de la IA y cuánto de la hoja.
+    console.log('[IA] ' + p.operacion + ' con ' + modelo + ': ' + (Date.now() - inicio) + ' ms (' + resultado + ')');
     registrarUsoIA_(p, modelo, tokensEntrada, tokensSalida, Date.now() - inicio, resultado);
   }
 }

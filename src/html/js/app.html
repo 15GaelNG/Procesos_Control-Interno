@@ -121,12 +121,9 @@
       estado.alSalir = null;
       let pendiente = null;
       try { pendiente = salir(); } catch (e) { /* que no impida cambiar de pantalla */ }
-      /* Si la pantalla tiene algo guardándose, se espera a que termine antes de cambiar. */
-      if (pendiente && typeof pendiente.then === 'function') {
-        const seguir = function () { ir(id, guardarHistorial, parametro); };
-        pendiente.then(seguir, seguir);
-        return;
-      }
+      /* Lo que se esté guardando no detiene el cambio: la pantalla nueva espera a que termine antes de
+         pedir sus datos (api.html). */
+      if (pendiente && typeof pendiente.then === 'function') esperarAntesDeLlamar(pendiente);
     }
     if (id === 'solicitud' && parametro) { abrirSolicitud(parametro, guardarHistorial); return; }
     const m = modulo(id) || modulo('inicio');

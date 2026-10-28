@@ -142,17 +142,12 @@ function planReasignar_(fila, idRevisor, revisores) {
 }
 
 function tomarSolicitud_(sesion, idSolicitud) {
-  const candado = LockService.getScriptLock();
-  candado.waitLock(20000);
-  let fila;
-  try {
-    fila = filaSolicitud_(idSolicitud);
+  conCandado_(20000, function () {
+    const fila = filaSolicitud_(idSolicitud);
     const e = planTomar_(fila, sesion, leerTabla_('Usuarios'));
     if (e.length) throw new Error(e.join(' '));
     actualizarFila_('Solicitudes', fila._fila, { REVISOR_ASIGNADO_ID: sesion.idUsuario });
-  } finally {
-    candado.releaseLock();
-  }
+  });
   registrarBitacora_(sesion, 'TOMAR_SOLICITUD', 'La tomó ' + sesion.nombre + '.', idSolicitud);
   return { revisorId: sesion.idUsuario };
 }
@@ -365,10 +360,8 @@ function propuestaCodigo_(fila, det) {
 function darVoBo_(sesion, idSolicitud, codigo) {
   const t = tablasSolicitud_();
   const puesto = puestoDeUsuario_(sesion.idUsuario, t.usuarios, t.puestos);
-  const candado = LockService.getScriptLock();
-  candado.waitLock(20000);
   let fila, det, huella, plan;
-  try {
+  conCandado_(20000, function () {
     fila = filaSolicitud_(idSolicitud);
     det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), t, { editar: false }, formatoFecha_);
     huella = huellaDeDetalle_(det);
@@ -383,10 +376,7 @@ function darVoBo_(sesion, idSolicitud, codigo) {
     const actual = leerTabla_('Consecutivos').filter(function (c) { return c.SERIE === serie; })[0];
     if (!actual) agregarFila_('Consecutivos', { SERIE: serie, ULTIMO: String(numero), FECHA_ACTUALIZACION: new Date() });
     else if (numero > Number(actual.ULTIMO)) actualizarFila_('Consecutivos', actual._fila, { ULTIMO: String(numero), FECHA_ACTUALIZACION: new Date() });
-    SpreadsheetApp.flush();
-  } finally {
-    candado.releaseLock();
-  }
+  });
   det.codigo = plan.codigo;
   det.version = plan.cambios.VERSION;
   guardarInstantanea_(sesion, fila, det, fila.REVISION, 'VOBO', huella);

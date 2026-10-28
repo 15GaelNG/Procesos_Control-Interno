@@ -390,9 +390,8 @@ function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo, conteni
   return { marca: String(ahora.getTime()), estado: cambios.ESTADO || fila.ESTADO };
 }
 
-/** Huella del contenido tal como quedó en la hoja (se llama después de escribir). */
+/** Huella del contenido tal como quedó (se llama después de escribir; lo escrito ya está en lo recordado). */
 function huellaSolicitud_(filaNueva) {
-  SpreadsheetApp.flush();
   return huellaDeFilas_(filaNueva, leerTabla_('Actividades'), leerTabla_('Imagenes'));
 }
 

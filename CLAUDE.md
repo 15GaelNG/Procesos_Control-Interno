@@ -64,7 +64,10 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   `TABLAS_ESTABLES` (usuarios, catálogos, Config) se recuerdan entre llamadas (caché del script); antes de
   escribir una de ellas por número de renglón se lee con `leerTablaFresca_`. `onEdit` (Disparadores.gs)
   solo borra esa memoria cuando alguien edita la hoja a mano; es la única función pública sin `soloEditor_()`
-  fuera de la app.
+  fuera de la app. Dentro de una llamada cada hoja se lee una vez y lo escrito se aplica a lo recordado.
+- Todo bloqueo va con `conCandado_(ms, fn)` (nunca `LockService` directo): se puede anidar sin soltar el de
+  afuera, bajo él la primera lectura de cada hoja de operación es fresca y al soltarlo se confirman las
+  escrituras. Lo que se decide con datos que otra persona pudo cambiar (consecutivos, tomar, Vo.Bo.) va adentro.
 - Nada se borra físicamente: `ACTIVO = NO` o `ELIMINADA = SI`.
 - Plantillas: el contrato con el generador son los marcadores `{{...}}` de `MARCADORES_PLANTILLA`
   (`src/config/Config.gs`). La plantilla v2 se genera con `tools/plantillas/crear-plantilla-v2.ps1`;

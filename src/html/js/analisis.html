@@ -102,7 +102,7 @@
       const texto = borradores[id];
       if (!texto || !texto.trim()) return;
       indicador.textContent = 'Guardando…';
-      llamar('apiGuardarPendientesAnalisis', idSolicitud, { respuestas: [{ id: id, texto: texto }] }).then(function () {
+      llamar('apiGuardarPendientesAnalisis', idSolicitud, { respuestas: [{ id: id, texto: texto }] }, true).then(function () {
         if (indicador.isConnected) indicador.textContent = borradores[id] === texto ? 'Guardada' : '';
       }).catch(function () {
         if (indicador.isConnected) indicador.textContent = 'No se pudo guardar todavía; se guardará con tu siguiente acción.';

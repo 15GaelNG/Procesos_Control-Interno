@@ -17,9 +17,7 @@ function siguienteId_(serie, ancho) {
  */
 function reservarIds_(serie, cantidad, ancho) {
   if (!cantidad) return [];
-  const candado = LockService.getScriptLock();
-  candado.waitLock(30000);
-  try {
+  return conCandado_(30000, function () {
     const fila = leerTabla_('Consecutivos').filter(function (r) { return r.SERIE === serie; })[0];
     const primero = fila ? Number(fila.ULTIMO) + 1 : 1;
     const ultimo = primero + cantidad - 1;
@@ -28,11 +26,8 @@ function reservarIds_(serie, cantidad, ancho) {
     } else {
       agregarFila_('Consecutivos', { SERIE: serie, ULTIMO: String(ultimo), FECHA_ACTUALIZACION: new Date() });
     }
-    SpreadsheetApp.flush();
     const ids = [];
     for (let n = primero; n <= ultimo; n++) ids.push(serie + '-' + String(n).padStart(ancho || 4, '0'));
     return ids;
-  } finally {
-    candado.releaseLock();
-  }
+  });
 }

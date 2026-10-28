@@ -2,14 +2,29 @@
   /*
    * api — llama al servidor (ClientApi.gs) con promesas, para usar async / await.
    * Siempre manda primero `comoUsuario` (vacío = la persona real), que el servidor vuelve a validar.
+   *
+   * Al cambiar de pantalla no se espera a que termine de guardarse lo anterior: la pantalla nueva se
+   * muestra de inmediato y sus llamadas esperan a ese guardado (esperarAntesDeLlamar, hasta 20 s) para
+   * leer lo ya guardado.
    */
+  let guardadoEnCurso = null;
+
+  function esperarAntesDeLlamar(promesa) {
+    const tope = new Promise(function (resolver) { setTimeout(resolver, 20000); });
+    const espera = Promise.race([promesa.then(null, function () { /* el error ya se mostró */ }), tope]);
+    guardadoEnCurso = espera;
+    espera.then(function () { if (guardadoEnCurso === espera) guardadoEnCurso = null; });
+  }
+
   function llamar(funcion) {
     const argumentos = Array.prototype.slice.call(arguments, 1);
-    return new Promise(function (resolver, rechazar) {
-      const corredor = google.script.run
-        .withSuccessHandler(resolver)
-        .withFailureHandler(function (e) { rechazar(new Error((e && e.message) || String(e))); });
-      corredor[funcion].apply(corredor, [estado.comoUsuario || ''].concat(argumentos));
+    return (guardadoEnCurso || Promise.resolve()).then(function () {
+      return new Promise(function (resolver, rechazar) {
+        const corredor = google.script.run
+          .withSuccessHandler(resolver)
+          .withFailureHandler(function (e) { rechazar(new Error((e && e.message) || String(e))); });
+        corredor[funcion].apply(corredor, [estado.comoUsuario || ''].concat(argumentos));
+      });
     });
   }
 </script>

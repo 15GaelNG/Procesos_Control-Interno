@@ -79,17 +79,13 @@ function planEnvioCH_(fila, sesion, envios, datos, ahora, quien) {
 }
 
 function registrarEnvioCH_(sesion, idSolicitud, datos) {
-  const candado = LockService.getScriptLock();
-  candado.waitLock(20000);
   let plan;
-  try {
+  conCandado_(20000, function () {
     const fila = filaSolicitud_(idSolicitud);
     plan = planEnvioCH_(fila, sesion, leerTabla_('EnviosCH'), datos, new Date(), correoReal_(sesion));
     if (plan.errores.length) throw new Error(plan.errores.join(' '));
     agregarFila_('EnviosCH', Object.assign({ ID_ENVIO: siguienteId_('ENV', 6) }, plan.fila));
-  } finally {
-    candado.releaseLock();
-  }
+  });
   registrarBitacora_(sesion, 'ENVIO_CH', 'Subida a CH' + (plan.fila.FOLIO_CH ? ' con folio ' + plan.fila.FOLIO_CH : '') + '.', idSolicitud);
   return { ok: true };
 }
@@ -158,10 +154,8 @@ function planResultadoCH_(fila, sesion, envio, datos, ahora, quien) {
 }
 
 function registrarResultadoCH_(sesion, idSolicitud, datos) {
-  const candado = LockService.getScriptLock();
-  candado.waitLock(20000);
   let fila, plan;
-  try {
+  conCandado_(20000, function () {
     fila = filaSolicitud_(idSolicitud);
     const envios = leerTabla_('EnviosCH');
     const envio = envioPendiente_(envios, idSolicitud);
@@ -179,10 +173,7 @@ function registrarResultadoCH_(sesion, idSolicitud, datos) {
     }
     actualizarFila_('EnviosCH', envio._fila, plan.envio);
     actualizarFila_('Solicitudes', fila._fila, plan.solicitud);
-    SpreadsheetApp.flush();
-  } finally {
-    candado.releaseLock();
-  }
+  });
   const autorizado = plan.solicitud.ESTADO === ESTADOS.AUTORIZADO;
   registrarBitacora_(sesion, autorizado ? 'AUTORIZADO_CH' : 'RECHAZADO_CH',
     autorizado ? 'Autorizó ' + plan.envio.AUTORIZO_NOMBRE + ' (' + plan.envio.AUTORIZO_PUESTO + '). Versión ' + plan.solicitud.VERSION + '.'

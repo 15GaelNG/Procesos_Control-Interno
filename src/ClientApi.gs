@@ -160,10 +160,14 @@ function apiGuardarDerivados(comoUsuario, idSolicitud, datos) {
   return conPantallaAnalisis_(sesion, idSolicitud, guardarDerivados_(sesion, idSolicitud, datos));
 }
 
-/** Lo escrito sin guardar en el paso 4 (respuestas y textos), de una vez. pendientes: { respuestas, derivados }. */
-function apiGuardarPendientesAnalisis(comoUsuario, idSolicitud, pendientes) {
+/**
+ * Lo escrito sin guardar en el paso 4 (respuestas y textos), de una vez. pendientes: { respuestas, derivados }.
+ * sinPantalla: el guardado automático de una respuesta no necesita la pantalla de regreso.
+ */
+function apiGuardarPendientesAnalisis(comoUsuario, idSolicitud, pendientes, sinPantalla) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return conPantallaAnalisis_(sesion, idSolicitud, guardarPendientesAnalisis_(sesion, idSolicitud, pendientes));
+  const r = guardarPendientesAnalisis_(sesion, idSolicitud, pendientes);
+  return sinPantalla ? r : conPantallaAnalisis_(sesion, idSolicitud, r);
 }
 
 /** Paso 5: el borrador integral, lo que falta y la huella de lo que se está viendo. */

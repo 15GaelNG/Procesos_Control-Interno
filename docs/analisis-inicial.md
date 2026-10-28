@@ -361,8 +361,8 @@ crean las pestañas, encabezados y carpetas de Drive.
   puesto, el documento autorizado no cambia).
 - Cada envío a revisión guarda **un JSON con el contenido completo** en Drive: así se puede ver qué
   se revisó en cada vuelta sin llenar la hoja de copias.
-- El código oficial y los consecutivos se asignan con **bloqueo** (`LockService`) para que dos
-  personas nunca reciban el mismo.
+- El código oficial y los consecutivos se asignan con **bloqueo** (`conCandado_`, sobre `LockService`)
+  para que dos personas nunca reciban el mismo.
 
 ---
 

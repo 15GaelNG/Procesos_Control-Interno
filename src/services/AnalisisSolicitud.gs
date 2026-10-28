@@ -157,27 +157,29 @@ function analizarSolicitud_(sesion, idSolicitud, opciones) {
   const analisis = restaurarDatosSensibles_(v.analisis, mapa);
   const avisos = restaurarDatosSensibles_(v.avisos, mapa);
 
-  // Escribe solo el primer intento de la corrida que termine (los demás pudieron seguir colgados).
+  // Escribe solo el primer intento de la corrida que termine (los demás pudieron seguir colgados). Bajo
+  // el candado, propuestas y preguntas se leen de nuevo: pudo guardarse una respuesta mientras la IA pensaba.
   const cache = CacheService.getScriptCache();
   const claveCorrida = o.corrida ? 'ia-corrida-' + idSolicitud + '-' + String(o.corrida).slice(0, 40) : '';
-  const candado = LockService.getScriptLock();
-  candado.waitLock(20000);
-  let plan;
-  try {
-    if (claveCorrida && cache.get(claveCorrida)) return { descartado: true, modelo: r.modelo };
-    plan = planPropuestas_(analisis, det, leerTabla_('PropuestasIA'),
-      leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; }), new Date(), redaccion ? 'REDACCION' : 'ANALISIS');
-    plan.reemplazarPropuestas.forEach(function (f) { actualizarFila_('PropuestasIA', f, { DECISION: 'REEMPLAZADA' }); });
-    plan.reemplazarAclaraciones.forEach(function (f) { actualizarFila_('Aclaraciones', f, { ESTADO: 'REEMPLAZADA' }); });
-    const idsP = reservarIds_('PIA', plan.propuestas.length, 6);
-    agregarFilas_('PropuestasIA', plan.propuestas.map(function (p, i) { return Object.assign({ ID_PROPUESTA: idsP[i] }, p); }));
-    const idsA = reservarIds_('ACL', plan.aclaraciones.length, 6);
-    agregarFilas_('Aclaraciones', plan.aclaraciones.map(function (q, i) { return Object.assign({ ID_ACLARACION: idsA[i] }, q); }));
+  const plan = conCandado_(20000, function () {
+    if (claveCorrida && cache.get(claveCorrida)) return null;
     if (claveCorrida) cache.put(claveCorrida, r.modelo, 1800);
-    SpreadsheetApp.flush();
-  } finally {
-    candado.releaseLock();
-  }
+    try {
+      const p = planPropuestas_(analisis, det, leerTabla_('PropuestasIA'),
+        leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; }), new Date(), redaccion ? 'REDACCION' : 'ANALISIS');
+      p.reemplazarPropuestas.forEach(function (f) { actualizarFila_('PropuestasIA', f, { DECISION: 'REEMPLAZADA' }); });
+      p.reemplazarAclaraciones.forEach(function (f) { actualizarFila_('Aclaraciones', f, { ESTADO: 'REEMPLAZADA' }); });
+      const idsP = reservarIds_('PIA', p.propuestas.length, 6);
+      agregarFilas_('PropuestasIA', p.propuestas.map(function (x, i) { return Object.assign({ ID_PROPUESTA: idsP[i] }, x); }));
+      const idsA = reservarIds_('ACL', p.aclaraciones.length, 6);
+      agregarFilas_('Aclaraciones', p.aclaraciones.map(function (q, i) { return Object.assign({ ID_ACLARACION: idsA[i] }, q); }));
+      return p;
+    } catch (e) {
+      if (claveCorrida) cache.remove(claveCorrida);   // que otro intento de la corrida pueda escribir
+      throw e;
+    }
+  });
+  if (!plan) return { descartado: true, modelo: r.modelo };
   registrarBitacora_(sesion, 'ANALIZAR_IA', (redaccion ? 'Redacción: ' : 'Análisis: ') + plan.propuestas.length + ' propuestas y ' +
     plan.aclaraciones.length + ' preguntas (' + r.modelo + ', ' + Math.round((Date.now() - inicio) / 1000) + ' s).', idSolicitud);
   return { operacion: redaccion ? 'REDACCION' : 'ANALISIS', propuestas: plan.propuestas.length, preguntas: plan.aclaraciones.length,
