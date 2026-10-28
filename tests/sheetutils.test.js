@@ -1,14 +1,15 @@
 // Acceso a la hoja (src/utils/SheetUtils.gs) con una hoja de cálculo simulada que cuenta las consultas:
-// la base se abre una vez por ejecución, los catálogos se leen una vez, lo demás siempre fresco, y
-// escribir olvida lo recordado.
+// la base se abre una vez por ejecución, los catálogos se leen una vez y se recuerdan entre llamadas
+// (caché del script), lo demás siempre fresco, y escribir o editar a mano olvida lo recordado.
 const test = require('node:test');
 const assert = require('node:assert');
 const { cargarGs } = require('./cargar-gs');
 
-function simulacion() {
+function simulacion(cacheCompartida) {
   const cuenta = { abrir: 0, hojas: 0, lecturas: {}, escrituras: [] };
+  const cache = cacheCompartida || {};
   const datos = {
-    Usuarios: [['ID_USUARIO', 'NOMBRE', 'ACTIVO'], ['USR-1', 'Ana', 'SI'], ['USR-2', 'Paola', 'SI']],
+    Usuarios: [['ID_USUARIO', 'NOMBRE', 'ACTIVO', 'FECHA_ALTA'], ['USR-1', 'Ana', 'SI', new Date(2026, 9, 1)], ['USR-2', 'Paola', 'SI', '']],
     Solicitudes: [['ID_SOLICITUD', 'ESTADO', 'NOMBRE_DOCUMENTO', 'REVISION'], ['SOL-1', 'BORRADOR', 'Alta', '0']]
   };
   const hoja = function (nombre) {
@@ -39,10 +40,16 @@ function simulacion() {
   const globales = {
     console: { log: function () {}, warn: console.warn, error: console.error },
     SpreadsheetApp: { getActiveSpreadsheet: function () { cuenta.abrir++; return libro; }, openById: function () { cuenta.abrir++; return libro; } },
-    PropertiesService: { getScriptProperties: function () { return { getProperty: function () { return null; } }; } }
+    PropertiesService: { getScriptProperties: function () { return { getProperty: function () { return null; } }; } },
+    CacheService: { getScriptCache: function () { return {
+      get: function (k) { return cache[k] || null; },
+      put: function (k, v) { cache[k] = v; },
+      remove: function (k) { delete cache[k]; },
+      removeAll: function (ks) { ks.forEach(function (k) { delete cache[k]; }); }
+    }; } }
   };
-  const gs = cargarGs(['src/config/Config.gs', 'src/utils/SheetUtils.gs'], globales);
-  return { gs: gs, cuenta: cuenta, datos: datos };
+  const gs = cargarGs(['src/config/Config.gs', 'src/utils/SheetUtils.gs', 'src/Disparadores.gs'], globales);
+  return { gs: gs, cuenta: cuenta, datos: datos, cache: cache };
 }
 
 test('la base se abre una vez y un catálogo se lee una sola vez por ejecución', function () {
@@ -72,7 +79,7 @@ test('escribir olvida lo recordado de esa hoja: la siguiente lectura trae el cam
   const ana = s.gs.leerTabla_('Usuarios')[0];
   s.gs.actualizarFila_('Usuarios', ana._fila, { ACTIVO: 'NO' });
   assert.strictEqual(s.gs.leerTabla_('Usuarios')[0].ACTIVO, 'NO');
-  s.gs.agregarFila_('Usuarios', { ID_USUARIO: 'USR-3', NOMBRE: 'Luis' });
+  s.gs.agregarFila_('Usuarios', { ID_USUARIO: 'USR-3', NOMBRE: 'Luis', FECHA_ALTA: '' });
   assert.deepStrictEqual(s.gs.leerTabla_('Usuarios').map(function (u) { return u.ID_USUARIO + ':' + u._fila; }), ['USR-1:2', 'USR-2:3', 'USR-3:4']);
   s.gs.olvidarTablas_();
   s.gs.leerTabla_('Usuarios');
@@ -86,3 +93,35 @@ test('actualizar escribe las columnas vecinas juntas y no toca las demás', func
   assert.deepStrictEqual(s.datos.Solicitudes[1], ['SOL-1', 'EN_REVISION', 'Alta', '1']);
   assert.throws(function () { s.gs.actualizarFila_('Solicitudes', 2, { NO_EXISTE: 1 }); }, /no tiene la columna NO_EXISTE/);
 });
+
+// ─────────────────────────────── Entre llamadas (caché del script) ───────────────────────────────
+
+test('la siguiente llamada toma los catálogos de la caché, sin abrir la base, y las fechas siguen siendo fechas', function () {
+  const cache = {};
+  simulacion(cache).gs.leerTabla_('Usuarios');
+  const otra = simulacion(cache);
+  const u = otra.gs.leerTabla_('Usuarios');
+  assert.deepStrictEqual([otra.cuenta.abrir, otra.cuenta.lecturas.Usuarios], [0, undefined]);
+  assert.strictEqual(Object.prototype.toString.call(u[0].FECHA_ALTA), '[object Date]');
+  assert.strictEqual(u[0].FECHA_ALTA.getDate(), 1);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(u.map(function (x) { return x.NOMBRE + ':' + x._fila; }))), ['Ana:2', 'Paola:3']);
+  assert.ok(!cache['tabla-Solicitudes'], 'las hojas de operación no se guardan en la caché');
+});
+
+test('escribir, editar a mano o leer fresco olvidan la caché de esa hoja', function () {
+  const cache = {};
+  const s = simulacion(cache);
+  s.gs.leerTabla_('Usuarios');
+  s.gs.actualizarFila_('Usuarios', 2, { ACTIVO: 'NO' });
+  assert.ok(!cache['tabla-Usuarios'], 'escribir');
+  s.gs.leerTabla_('Usuarios');
+  s.gs.onEdit({ range: { getSheet: function () { return { getName: function () { return 'Usuarios'; } }; } } });
+  assert.ok(!cache['tabla-Usuarios'], 'editar a mano');
+  s.gs.onEdit({});
+  s.gs.onEdit(undefined);
+  s.gs.leerTabla_('Usuarios');
+  const antes = s.cuenta.lecturas.Usuarios;
+  assert.strictEqual(s.gs.leerTablaFresca_('Usuarios')[0].ACTIVO, 'NO');
+  assert.strictEqual(s.cuenta.lecturas.Usuarios, antes + 1, 'leer fresco va a la hoja');
+});
+

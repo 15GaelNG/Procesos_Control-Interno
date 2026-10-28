@@ -467,15 +467,28 @@ function imagenDataUrl_(img, cual) {
   return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
 }
 
-/** Miniaturas de todas las imágenes vivas de una solicitud: { ID_IMAGEN: dataUrl }. */
+/**
+ * Miniaturas de todas las imágenes vivas de una solicitud: { ID_IMAGEN: dataUrl }. Una imagen nunca
+ * cambia (una nueva lleva otro ID), así que sus miniaturas se recuerdan en la caché del script y solo
+ * se bajan de Drive las que falten.
+ */
 function miniaturasSolicitud_(sesion, idSolicitud) {
   const fila = filaSolicitud_(idSolicitud);
   if (!permisoSolicitud_(sesion, fila).ver) throw new Error('No puedes ver esta solicitud.');
+  const imagenes = leerTabla_('Imagenes').filter(function (i) { return i.ID_SOLICITUD === idSolicitud && !esActivo_(i.ELIMINADA); });
+  const clave = function (i) { return 'mini-' + i.ID_IMAGEN; };
+  const cache = CacheService.getScriptCache();
+  const enCache = imagenes.length ? cache.getAll(imagenes.map(clave)) : {};
+  const nuevas = {};
   const resultado = {};
-  leerTabla_('Imagenes').filter(function (i) { return i.ID_SOLICITUD === idSolicitud && !esActivo_(i.ELIMINADA); })
-    .forEach(function (i) {
-      try { resultado[i.ID_IMAGEN] = imagenDataUrl_(i, 'miniatura'); } catch (e) { resultado[i.ID_IMAGEN] = ''; }
-    });
+  imagenes.forEach(function (i) {
+    if (enCache[clave(i)]) { resultado[i.ID_IMAGEN] = enCache[clave(i)]; return; }
+    try {
+      resultado[i.ID_IMAGEN] = imagenDataUrl_(i, 'miniatura');
+      if (resultado[i.ID_IMAGEN].length <= MINIATURA_CACHE_MAX_CARACTERES) nuevas[clave(i)] = resultado[i.ID_IMAGEN];
+    } catch (e) { resultado[i.ID_IMAGEN] = ''; }
+  });
+  if (Object.keys(nuevas).length) { try { cache.putAll(nuevas, MINIATURA_CACHE_SEGUNDOS); } catch (e) { /* sin caché */ } }
   return resultado;
 }
 

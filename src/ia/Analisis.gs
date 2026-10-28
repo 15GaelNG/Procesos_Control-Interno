@@ -198,7 +198,9 @@ function validarRedaccion_(entrada, salida) {
       return { id: original.id, textoOriginal: original.texto, textoPropuesto: original.texto, cambios: '', responsable: null, cifrasNuevas: [] };
     }
     const textoPropuesto = texto_(p.texto_propuesto) || original.texto;
-    const cifras = cifrasNuevas_(original.texto, textoPropuesto);
+    // Las cifras de sus respuestas sobre esa actividad también valen.
+    const contexto = [original.texto].concat(respuestasDeActividad_(entrada.respuestas, original.id).map(function (q) { return q.respuesta; })).join(' ');
+    const cifras = cifrasNuevas_(contexto, textoPropuesto);
     if (cifras.length) {
       avisos.push('La redacción propuesta para ' + original.id + ' menciona datos que no estaban en tu texto (' + cifras.join(', ') + '). Revísala antes de aceptarla.');
     }

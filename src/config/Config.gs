@@ -61,22 +61,29 @@ const PROP = {
 // vez por ejecución. Las de operación (Solicitudes, Consecutivos…) se leen siempre de nuevo.
 const TABLAS_ESTABLES = ['Config', 'Usuarios', 'UsuarioPerfiles', 'UsuarioDepartamentos', 'Departamentos', 'Areas',
   'Subareas', 'Puestos', 'TiposDocumento'];
+// …y se recuerdan entre llamadas en la caché del script por este tiempo (una edición a mano en la hoja
+// las olvida al momento: Disparadores.gs → onEdit). La caché acepta hasta 100 KB por hoja.
+const TABLA_CACHE_SEGUNDOS = 1800;
+const TABLA_CACHE_MAX_CARACTERES = 95000;
+// Miniaturas de imágenes recordadas entre llamadas (Solicitudes.gs → miniaturasSolicitud_).
+const MINIATURA_CACHE_SEGUNDOS = 21600;
+const MINIATURA_CACHE_MAX_CARACTERES = 95000;
 
 const ZONA_HORARIA = 'America/Mexico_City';
 
 // IA (ver docs/ia.md). El modelo se toma de Config → IA_MODELO; si está vacío, se intentan en este
 // orden los que la llave tenga disponibles (hasta IA_MAX_MODELOS), pasando al siguiente si uno está
-// saturado o sin cuota. En la prueba del 13/10/2026 gemini-3.6-flash y gemini-3.5-flash dieron 503
-// (saturados en el nivel gratuito) y gemini-flash-latest respondió bien; gemini-2.5-flash va al final
-// porque Google anunció su retiro. listarModelosIA() muestra cuáles hay.
+// saturado o sin cuota. Uso real en pruebas (26–28/10/2026, hoja UsoIA): gemini-3.5-flash respondió los
+// análisis en 3–10 s (a veces 503, saturado); gemini-flash-latest se quedó sin contestar hasta 6 min
+// varias veces, por eso va al final. listarModelosIA() muestra cuáles hay.
 const IA_URL_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const IA_MODELOS_PREFERIDOS = [
-  'gemini-flash-latest',
   'gemini-3.5-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
-  'gemini-2.5-flash'
+  'gemini-2.5-flash',
+  'gemini-flash-latest'
 ];
 const IA_MAX_MODELOS = 4;
 // «Corregir redacción» es corta y no necesita razonar: modelos «lite» (más rápidos) primero. Config →
@@ -86,16 +93,23 @@ const IA_MODELOS_RAPIDOS = [
   'gemini-3.1-flash-lite',
   'gemini-flash-lite-latest',
   'gemini-2.5-flash-lite',
-  'gemini-flash-latest',
-  'gemini-3.5-flash'
+  'gemini-3.5-flash',
+  'gemini-flash-latest'
 ];
 // Un modelo que no contestó a tiempo se manda al final de la lista por estas horas.
 const IA_HORAS_MODELO_LENTO = 3;
 // Apps Script no puede cancelar una llamada que se quedó colgada (el 26/10/2026 tardaron hasta 6 min).
 // Si la IA no ha contestado en estos segundos, la pantalla lanza el mismo trabajo con el siguiente
 // modelo, en paralelo, hasta este número de intentos, y se queda con el primero que conteste.
-const IA_ESPERA_OTRO_MODELO_S = 40;
+const IA_ESPERA_OTRO_MODELO_S = 20;
 const IA_INTENTOS_PARALELOS = 3;
+// Sugerencia de redacción mientras se escribe (paso 3): se pide cuando la persona deja de escribir
+// una actividad (o sale de ella) y el texto tiene al menos estos caracteres. Tiene su propio tope diario
+// (Config → IA_MAX_SUGERENCIAS_DIA) para no gastar el de los análisis; Config → IA_SUGERIR_AL_ESCRIBIR = NO
+// la apaga.
+const IA_SUGERENCIA_MIN_CARACTERES = 20;
+const IA_SUGERENCIA_ESPERA_MS = 2500;
+const IA_MAX_SUGERENCIAS_DIA = 800;
 // Datos que se ocultan antes de mandar un texto a la IA (utils/Privacidad.gs). Lo más específico
 // primero: un RFC o una CURP no deben confundirse con una cuenta.
 const PATRONES_SENSIBLES = [

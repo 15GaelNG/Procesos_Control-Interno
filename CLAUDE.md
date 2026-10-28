@@ -60,7 +60,11 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   huella y, si estaba CONFIRMADA, regresa a BORRADOR). No escribir el contenido por otro camino.
 - Lo que va a la IA pasa antes por `ocultarDatosSensibles_`; lo que regresa, por `validarAnalisis_` y
   `restaurarDatosSensibles_`. Nunca se usa directo.
-- Se lee y escribe por **nombre de columna** (`leerTabla_`, `agregarFila_`, `actualizarFila_`).
+- Se lee y escribe por **nombre de columna** (`leerTabla_`, `agregarFila_`, `actualizarFila_`). Las hojas de
+  `TABLAS_ESTABLES` (usuarios, catálogos, Config) se recuerdan entre llamadas (caché del script); antes de
+  escribir una de ellas por número de renglón se lee con `leerTablaFresca_`. `onEdit` (Disparadores.gs)
+  solo borra esa memoria cuando alguien edita la hoja a mano; es la única función pública sin `soloEditor_()`
+  fuera de la app.
 - Nada se borra físicamente: `ACTIVO = NO` o `ELIMINADA = SI`.
 - Plantillas: el contrato con el generador son los marcadores `{{...}}` de `MARCADORES_PLANTILLA`
   (`src/config/Config.gs`). La plantilla v2 se genera con `tools/plantillas/crear-plantilla-v2.ps1`;

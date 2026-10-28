@@ -50,22 +50,23 @@ function crear(porModelo, config) {
 
 const P = { operacion: 'PRUEBA', sistema: 'reglas', usuario: 'texto' };
 
-test('si un modelo está saturado reintenta una vez y luego pasa al siguiente', function () {
+test('si un modelo está saturado pasa de inmediato al siguiente', function () {
   const c = crear({
-    'gemini-3.5-flash': [respuesta(503, {}), respuesta(503, {})],
+    'gemini-3.5-flash': [respuesta(503, {})],
     'gemini-3.6-flash': [OK]
   });
   const r = c.gs.llamarIAJson_(P);
   assert.strictEqual(r.modelo, 'gemini-3.6-flash');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(r.datos)), { listo: true });
-  assert.deepStrictEqual(c.llamadas, ['gemini-3.5-flash', 'gemini-3.5-flash', 'gemini-3.6-flash']);
-  assert.strictEqual(c.usos.length, 3);   // cada intento queda en UsoIA
+  assert.deepStrictEqual(c.llamadas, ['gemini-3.5-flash', 'gemini-3.6-flash']);
+  assert.strictEqual(c.usos.length, 2);   // cada intento queda en UsoIA
   assert.strictEqual(c.cache['ia-modelo-elegido'], 'gemini-3.6-flash');
 });
 
-test('un 503 que se recupera al reintentar se queda con el mismo modelo', function () {
-  const c = crear({ 'gemini-3.5-flash': [respuesta(503, {}), OK], 'gemini-3.6-flash': [] });
+test('si el saturado es el último modelo, lo reintenta una vez', function () {
+  const c = crear({ 'gemini-3.5-flash': [respuesta(503, {}), OK] });
   assert.strictEqual(c.gs.llamarIAJson_(P).modelo, 'gemini-3.5-flash');
+  assert.deepStrictEqual(c.llamadas, ['gemini-3.5-flash', 'gemini-3.5-flash']);
 });
 
 test('sin cuota (429) pasa al siguiente modelo sin reintentar', function () {
@@ -82,8 +83,8 @@ test('una llave inválida (403) no prueba otros modelos', function () {
 });
 
 test('si todos fallan, el error dice qué se intentó', function () {
-  const c = crear({ 'gemini-3.5-flash': [respuesta(503, {}), respuesta(503, {})], 'gemini-3.6-flash': [respuesta(429, {})] });
-  assert.throws(function () { c.gs.llamarIAJson_(P); }, /Intentos: gemini-3\.5-flash: HTTP 503 · gemini-3\.5-flash: HTTP 503 · gemini-3\.6-flash: HTTP 429/);
+  const c = crear({ 'gemini-3.5-flash': [respuesta(503, {})], 'gemini-3.6-flash': [respuesta(429, {})] });
+  assert.throws(function () { c.gs.llamarIAJson_(P); }, /Intentos: gemini-3\.5-flash: HTTP 503 · gemini-3\.6-flash: HTTP 429/);
 });
 
 test('con IA_MODELO fijo en Config solo se usa ese modelo', function () {
@@ -143,19 +144,26 @@ test('corregir redacción usa primero los modelos rápidos («lite»)', function
   assert.strictEqual(c.cache['ia-modelo-elegido-rapido'], 'gemini-3.5-flash-lite');
 });
 
-test('el intento en paralelo 1 empieza con el segundo modelo', function () {
+test('el intento en paralelo 1 empieza con el segundo modelo; gemini-flash-latest va al final', function () {
   const c = crear({ 'gemini-flash-latest': [OK], 'gemini-3.5-flash': [OK] });
-  assert.strictEqual(c.gs.llamarIAJson_(Object.assign({ desplazamiento: 1 }, P)).modelo, 'gemini-3.5-flash');
+  assert.strictEqual(c.gs.llamarIAJson_(Object.assign({ desplazamiento: 1 }, P)).modelo, 'gemini-flash-latest');
   const otro = crear({ 'gemini-flash-latest': [], 'gemini-3.5-flash': [] });
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 1))), ['gemini-3.5-flash', 'gemini-flash-latest']);
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 2))), ['gemini-flash-latest', 'gemini-3.5-flash'], 'da la vuelta');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 0))), ['gemini-3.5-flash', 'gemini-flash-latest']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 1))), ['gemini-flash-latest', 'gemini-3.5-flash']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(otro.gs.modelosCandidatosIA_('llave', false, 2))), ['gemini-3.5-flash', 'gemini-flash-latest'], 'da la vuelta');
 });
 
 test('un modelo que no contestó a tiempo pasa al final de la lista por un rato', function () {
-  const c = crear({ 'gemini-flash-latest': [new Error('Tiempo de espera: https://x')], 'gemini-3.5-flash': [OK] });
+  const c = crear({ 'gemini-3.5-flash': [new Error('Tiempo de espera: https://x')], 'gemini-3.6-flash': [OK] });
   assert.throws(function () { c.gs.llamarIAJson_(P); }, /La próxima vez se usará primero otro modelo/);
-  assert.strictEqual(c.cache['ia-lento-gemini-flash-latest'], 'SI');
-  assert.strictEqual(c.gs.llamarIAJson_(P).modelo, 'gemini-3.5-flash');
-  assert.deepStrictEqual(c.llamadas, ['gemini-flash-latest', 'gemini-3.5-flash']);
+  assert.strictEqual(c.cache['ia-lento-gemini-3.5-flash'], 'SI');
+  assert.strictEqual(c.gs.llamarIAJson_(P).modelo, 'gemini-3.6-flash');
+  assert.deepStrictEqual(c.llamadas, ['gemini-3.5-flash', 'gemini-3.6-flash']);
 });
 
+test('las sugerencias al escribir llevan su propio tope diario', function () {
+  const c = crear({ 'gemini-3.5-flash-lite': [OK, OK] }, { IA_MAX_SUGERENCIAS_DIA: '1' });
+  c.gs.llamarIAJson_(Object.assign({ rapido: true }, P, { operacion: 'SUGERENCIA' }));
+  assert.throws(function () { c.gs.llamarIAJson_(Object.assign({ rapido: true }, P, { operacion: 'SUGERENCIA' })); }, /tope de sugerencias/);
+  assert.strictEqual(c.cache['ia-llamadas-20261013'], undefined, 'no gasta el tope de los análisis');
+});

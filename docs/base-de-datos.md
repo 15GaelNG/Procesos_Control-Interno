@@ -85,6 +85,8 @@ Parámetros que se pueden ajustar sin tocar código: `CLAVE` · `VALOR` · `DESC
 | `IA_ACTIVA` | NO | Interruptor de la IA; con NO el sistema funciona sin sugerencias |
 | `IA_PROVEEDOR` · `IA_MODELO` | GEMINI · (por definir) | Ver [ia.md](ia.md) |
 | `IA_MAX_LLAMADAS_DIA` | 200 | Tope diario para no rebasar la cuota gratuita |
+| `IA_SUGERIR_AL_ESCRIBIR` | SI | La IA sugiere la redacción de cada actividad mientras se escribe (paso 3) |
+| `IA_MAX_SUGERENCIAS_DIA` | 800 | Tope diario de esas sugerencias (aparte del de análisis) |
 | `PREFIJO_SOLICITUD` | SOL | Prefijo del folio interno |
 | `CORREO_PROCESOS` | (vacío) | Buzón del área para avisos |
 

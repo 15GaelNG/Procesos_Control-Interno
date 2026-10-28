@@ -27,6 +27,8 @@
     let resultadoIa = null;     /* Lo que pasó en el último análisis de esta pantalla: { ok… } o { error }. */
     let derivadosSucio = false;
     let ocupado = false;
+    let borradores = {};        /* Respuestas escritas aún no vistas guardadas: { idPregunta: texto }. Sobreviven al repintar. */
+    const temporizadores = {};  /* Guardado automático de cada respuesta. */
 
     const q = function (campo, base) { return (base || ui).querySelector('[data-campo="' + campo + '"]'); };
     const lista = function (valores) {
@@ -40,49 +42,85 @@
       else caja.appendChild(elemento('span', valor ? '' : 'nota', valor || '(vacío)'));
     };
 
-    function recargar() {
+    /* Pinta datos nuevos sin que la pantalla brinque. */
+    function mostrar(d) {
       const vista = $('#vista');
       const arriba = vista.scrollTop;
-      return llamar('apiAnalisis', idSolicitud).then(function (d) {
-        if (!contenido.isConnected) return;
-        datos = d;
-        pintar();
-        vista.scrollTop = arriba;
-      });
+      datos = d;
+      pintar();
+      vista.scrollTop = arriba;
     }
 
+    function recargar() {
+      return llamar('apiAnalisis', idSolicitud).then(function (d) { if (contenido.isConnected) mostrar(d); });
+    }
+
+    /*
+     * Una acción. La pantalla nueva viene en la misma respuesta (paso4): un solo viaje al servidor.
+     * Antes de cada acción se guarda lo escrito sin guardar (guardarPendientes).
+     */
     function trabajar(promesa) {
       ocupado = true;
       ui.classList.add('ocupado');
-      return promesa.then(function () { return recargar(); }).catch(function (e) {
+      return promesa.then(function (r) {
+        if (!contenido.isConnected) return;
+        if (r && r.paso4) mostrar(r.paso4);
+        else return recargar();
+      }).catch(function (e) {
         avisar(e.message, 'error');
         return recargar().catch(function () { /* se queda como estaba */ });
       }).then(function () { ocupado = false; if (ui) ui.classList.remove('ocupado'); });
     }
 
-    function guardarDerivados() {
-      if (!derivadosSucio) return Promise.resolve();
-      const enviar = {};
-      CAMPOS_DERIVADOS.forEach(function (c) { enviar[c.clave] = ui.querySelector('textarea[name="' + c.clave + '"]').value; });
-      const estadoG = q('guardado-derivados');
-      estadoG.textContent = 'Guardando…';
-      return llamar('apiGuardarDerivados', idSolicitud, enviar).then(function () {
-        derivadosSucio = false;
-        estadoG.textContent = 'Guardado';
-      }).catch(function (e) { estadoG.textContent = 'No se pudo guardar'; throw e; });
+    /* Lo escrito sin guardar: respuestas y objetivo, alcance, responsabilidades y definiciones. */
+    function pendientes() {
+      const p = {};
+      const respuestas = Object.keys(borradores).filter(function (id) { return borradores[id].trim(); })
+        .map(function (id) { return { id: id, texto: borradores[id] }; });
+      if (respuestas.length) p.respuestas = respuestas;
+      if (derivadosSucio && ui) {
+        p.derivados = {};
+        CAMPOS_DERIVADOS.forEach(function (c) { p.derivados[c.clave] = ui.querySelector('textarea[name="' + c.clave + '"]').value; });
+      }
+      return p.respuestas || p.derivados ? p : null;
+    }
+
+    /* Guarda lo pendiente en una sola llamada (o nada, si no hay). */
+    function guardarPendientes() {
+      const p = pendientes();
+      if (!p) return Promise.resolve(null);
+      const estadoG = ui && q('guardado-derivados');
+      if (estadoG && p.derivados) estadoG.textContent = 'Guardando…';
+      return llamar('apiGuardarPendientesAnalisis', idSolicitud, p).then(function (r) {
+        if (p.derivados) derivadosSucio = false;
+        return r;
+      }).catch(function (e) { if (estadoG && p.derivados) estadoG.textContent = 'No se pudo guardar'; throw e; });
+    }
+
+    /* Guarda sola una respuesta cuando se deja de escribir (sin volver a pintar la pantalla). */
+    function guardarRespuestaSola(id, indicador) {
+      const texto = borradores[id];
+      if (!texto || !texto.trim()) return;
+      indicador.textContent = 'Guardando…';
+      llamar('apiGuardarPendientesAnalisis', idSolicitud, { respuestas: [{ id: id, texto: texto }] }).then(function () {
+        if (indicador.isConnected) indicador.textContent = borradores[id] === texto ? 'Guardada' : '';
+      }).catch(function () {
+        if (indicador.isConnected) indicador.textContent = 'No se pudo guardar todavía; se guardará con tu siguiente acción.';
+      });
     }
 
     function decidir(p, decision, valor) {
       if (ocupado) return;
-      const antes = ['OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES'].indexOf(p.campo) !== -1 ? guardarDerivados() : Promise.resolve();
-      trabajar(antes.then(function () { return llamar('apiDecidirPropuesta', idSolicitud, p.id, decision, valor); }).then(function (r) {
+      trabajar(guardarPendientes().then(function () { return llamar('apiDecidirPropuesta', idSolicitud, p.id, decision, valor); }).then(function (r) {
         if (r && r.estado === 'BORRADOR' && datos.solicitud.estado === 'CONFIRMADO') avisar('Cambiaste la solicitud después de confirmarla: tendrás que volver a confirmarla.', '');
+        return r;
       }));
     }
 
     function responder(pregunta, estadoR, texto) {
       if (ocupado) return;
-      trabajar(llamar('apiResponderPregunta', idSolicitud, pregunta.id, estadoR, texto));
+      delete borradores[pregunta.id];
+      trabajar(guardarPendientes().then(function () { return llamar('apiResponderPregunta', idSolicitud, pregunta.id, estadoR, texto); }));
     }
 
     /* ─────────── Tarjetas ─────────── */
@@ -143,7 +181,16 @@
       q('texto', card).textContent = pregunta.pregunta;
       const form = q('formulario', card);
       const area = form.querySelector('textarea');
-      area.value = pregunta.respuesta;
+      const indicador = q('estado-borrador', card);
+      /* Lo escrito y aún no visto guardado manda sobre lo que trae el servidor; si ya coincide, se olvida. */
+      if (borradores[pregunta.id] !== undefined && borradores[pregunta.id] === pregunta.respuesta) delete borradores[pregunta.id];
+      area.value = borradores[pregunta.id] !== undefined ? borradores[pregunta.id] : pregunta.respuesta;
+      area.addEventListener('input', function () {
+        borradores[pregunta.id] = area.value;
+        indicador.textContent = 'Sin guardar…';
+        clearTimeout(temporizadores[pregunta.id]);
+        temporizadores[pregunta.id] = setTimeout(function () { guardarRespuestaSola(pregunta.id, indicador); }, 2000);
+      });
       if (pregunta.estado !== 'PENDIENTE') {
         card.classList.add('respondida');
         const r = q('respondida', card);
@@ -220,10 +267,11 @@
         todas.querySelector('span').textContent = redaccion === 1 ? 'Aceptar la corrección de redacción' : 'Aceptar las ' + redaccion + ' correcciones de redacción';
         todas.addEventListener('click', function () {
           if (ocupado) return;
-          trabajar(llamar('apiAceptarRedacciones', idSolicitud).then(function (r) {
+          trabajar(guardarPendientes().then(function () { return llamar('apiAceptarRedacciones', idSolicitud); }).then(function (r) {
             avisar(r.aceptadas === 1 ? 'Se aplicó 1 corrección.' : 'Se aplicaron ' + r.aceptadas + ' correcciones.', 'exito');
             if (r.sinAplicar) avisar(r.sinAplicar + ' no se aplicaron porque cambiaste esas actividades después del análisis.', '');
             if (r.estado === 'BORRADOR' && datos.solicitud.estado === 'CONFIRMADO') avisar('Cambiaste la solicitud después de confirmarla: tendrás que volver a confirmarla.', '');
+            return r;
           }));
         });
         datos.actividades.forEach(function (a) {
@@ -260,7 +308,11 @@
       });
       const guardarB = ui.querySelector('[data-accion="guardar-derivados"]');
       guardarB.hidden = !datos.puedeEditar;
-      guardarB.addEventListener('click', function () { guardarDerivados().then(function () { avisar('Guardado.', 'exito'); }).catch(function (e) { avisar(e.message, 'error'); }); });
+      guardarB.addEventListener('click', function () {
+        if (ocupado) return;
+        if (!pendientes()) { avisar('No hay cambios por guardar.', ''); return; }
+        trabajar(guardarPendientes().then(function (r) { avisar('Guardado.', 'exito'); return r; }));
+      });
 
       /* Lo ya decidido, para consulta. */
       const decididas = datos.propuestas.filter(function (p) { return p.decision !== 'PENDIENTE'; });
@@ -337,7 +389,7 @@
         const t = ui && q('analizando-tiempo');
         if (t) t.textContent = Math.round((Date.now() - inicio) / 1000) + ' s';
       }, 1000);
-      const trabajo = guardarDerivados().then(function () {
+      const trabajo = guardarPendientes().then(function () {
         return correrEnParalelo(operacion, function (n) {
           const nota = ui && q('analizando-nota');
           if (nota) nota.textContent = 'La IA está tardando: se le pidió también a otro modelo (' + n + ' a la vez) y se usará el primero que conteste.';
@@ -345,6 +397,8 @@
       }).then(function (r) {
         avisosIa = r.avisos || [];
         resultadoIa = Object.assign({ ok: true }, r);
+        delete resultadoIa.paso4;
+        return r;
       }, function (e) {
         resultadoIa = { error: e.message };
         throw e;
@@ -384,18 +438,21 @@
       }
     }
 
-    estado.alSalir = function () { return derivadosSucio ? guardarDerivados().catch(function () { /* se avisó */ }) : null; };
+    estado.alSalir = function () { return pendientes() ? guardarPendientes().catch(function () { /* se avisó */ }) : null; };
 
-    recargar().then(function () {
-      /* Llegó desde el paso 3 con «Corregir redacción con IA»: arranca solo. */
-      if (!estado.analizarAlAbrir || estado.analizarAlAbrir.id !== idSolicitud || !ui) return;
-      const accion = estado.analizarAlAbrir.operacion === 'ANALISIS' ? 'analizar' : 'redaccion';
+    /* Arranca solo: lo que pidió el paso 3 y, si nunca se ha hecho, el análisis completo. */
+    function arrancarSolo() {
+      if (!ui || !datos.puedeEditar || !datos.iaActiva) return;
+      const pedido = estado.analizarAlAbrir && estado.analizarAlAbrir.id === idSolicitud ? estado.analizarAlAbrir.operacion : '';
       estado.analizarAlAbrir = null;
-      const boton = ui.querySelector('[data-accion="' + accion + '"]');
-      if (boton.hidden) return;
-      if (boton.disabled) { avisar('La IA está apagada en este momento: puedes escribir todo a mano.', 'error'); return; }
-      boton.click();
-    }).catch(function (e) {
+      const correr = function (operacion) { return analizarAhora(operacion); };
+      let cadena = pedido ? correr(pedido) : Promise.resolve();
+      if (pedido !== 'ANALISIS') {
+        cadena = cadena.then(function () { if (contenido.isConnected && datos && !datos.analizado && !ocupado) return correr('ANALISIS'); });
+      }
+    }
+
+    recargar().then(arrancarSolo).catch(function (e) {
       if (!contenido.isConnected) return;
       contenido.textContent = '';
       const t = elemento('div', 'tarjeta');

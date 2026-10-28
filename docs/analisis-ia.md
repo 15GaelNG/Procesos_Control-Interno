@@ -15,7 +15,17 @@ minutos):
 | **«Analizar con IA»** | Responsables, objetivo, alcance, responsabilidades, definiciones, preguntas y orden. Ya no reescribe las actividades | `IA_MODELOS_PREFERIDOS` (o `Config → IA_MODELO`) |
 
 Cada uno solo reemplaza lo suyo: corregir la redacción no toca las preguntas ni las demás propuestas,
-y analizar no toca las correcciones de redacción. **«Corregir redacción con IA»** también está en el
+y analizar no toca las correcciones de redacción. **«Corregir redacción» incorpora las respuestas** que
+el colaborador dio sobre cada actividad («Información del colaborador»; no las «No aplica» / «No lo sé»).
+
+**Arranca solo:** la primera vez que se entra al paso 4 (nunca se ha analizado), el análisis completo
+corre sin pulsar nada; si se llegó con «Corregir redacción con IA» del paso 3, primero la corrección y
+luego el análisis.
+
+**Las respuestas se guardan solas:** a los 2 s de dejar de escribir (sin volver a pintar la pantalla) y,
+antes de cualquier otra acción o al salir, todo lo escrito sin guardar (respuestas y objetivo, alcance…)
+en una sola llamada (`apiGuardarPendientesAnalisis`). Cada acción del paso 4 devuelve la pantalla ya al
+día: un solo viaje al servidor por clic. **«Corregir redacción con IA»** también está en el
 paso 3 (arriba del desarrollo y al final): guarda lo pendiente, pasa al paso 4 y arranca solo.
 
 **Si la IA no contesta:** Apps Script no puede cancelar una llamada que se quedó colgada. Si en

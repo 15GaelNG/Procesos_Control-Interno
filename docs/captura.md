@@ -45,6 +45,17 @@ finaliza?». Cada actividad tiene:
   grande, mover y quitar.
 - Botones para subir, bajar y eliminar la actividad.
 
+### La IA sugiere la redacción mientras se escribe
+
+Cuando la persona deja de escribir una actividad unos segundos (`IA_SUGERENCIA_ESPERA_MS`) o sale de
+ella, y el texto tiene al menos `IA_SUGERENCIA_MIN_CARACTERES` caracteres, la IA corrige su ortografía y
+redacción (`apiSugerirRedaccion`, modelos rápidos, unos segundos) y aparece debajo **«Sugerencia de la
+IA»** con **«Usar esta redacción»** o **«Ignorar»**. No cambia nada sola ni guarda nada: si la usa, es
+como si la hubiera escrito (se guarda con el guardado automático). Sin datos sensibles hacia la IA. Si la
+persona sigue escribiendo, la sugerencia vieja desaparece. Se apaga con `Config → IA_SUGERIR_AL_ESCRIBIR
+= NO` y tiene su propio tope diario (`IA_MAX_SUGERENCIAS_DIA`). Arriba del desarrollo y al final está
+**«Corregir redacción con IA»**, que lleva al paso 4 y corrige todas de una vez.
+
 ### Se guarda solo
 
 - Cada cambio programa un guardado (1.2 s después de dejar de escribir). Arriba dice «Guardado»,

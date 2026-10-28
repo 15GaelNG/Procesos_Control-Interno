@@ -6,10 +6,13 @@
  *
  * Velocidad: abrir la base y cada consulta a una hoja son lo más lento de Apps Script. Dentro de UNA
  * ejecución (cada llamada del navegador es una ejecución nueva) se recuerdan la base, sus hojas y sus
- * encabezados, y las hojas de TABLAS_ESTABLES (usuarios, catálogos, Config) ya leídas. Las demás se
- * leen siempre de nuevo (pueden cambiar a media llamada, p. ej. Consecutivos bajo el candado). Toda
- * escritura por aquí olvida lo recordado de esa hoja; quien escriba la hoja por otro camino
- * (SetupInicial) llama a olvidarTablas_().
+ * encabezados. Las hojas de TABLAS_ESTABLES (usuarios, catálogos, Config) se recuerdan además ENTRE
+ * llamadas, en la caché del script (TABLA_CACHE_SEGUNDOS): así casi ninguna pantalla abre la base para
+ * saber quién es el usuario o leer catálogos. Las demás se leen siempre de nuevo (pueden cambiar a
+ * media llamada, p. ej. Consecutivos bajo el candado). Toda escritura por aquí olvida lo recordado de
+ * esa hoja; quien escriba la hoja por otro camino (SetupInicial) llama a olvidarTablas_(), y una
+ * edición a mano en la hoja la olvida con el disparador onEdit (Disparadores.gs). Antes de ESCRIBIR una
+ * hoja estable por número de renglón, se lee fresca (leerTablaFresca_).
  *
  * Cada apertura, lectura y escritura deja su tiempo en el registro de la ejecución (Apps Script →
  * Ejecuciones → la llamada): así se ve dónde se va el tiempo de una pantalla lenta.
@@ -29,6 +32,36 @@ function memoriaBD_() {
 /** Olvida todo lo recordado (después de cambiar hojas o encabezados por fuera de estas funciones). */
 function olvidarTablas_() {
   memoriaBD_.datos = null;
+  try { CacheService.getScriptCache().removeAll(TABLAS_ESTABLES.map(claveCacheTabla_)); } catch (e) { /* sin caché */ }
+}
+
+function claveCacheTabla_(nombre) {
+  return 'tabla-' + nombre;
+}
+
+function esFechaBD_(v) {
+  return Object.prototype.toString.call(v) === '[object Date]';
+}
+
+/** Guarda los valores de una hoja estable en la caché del script (las fechas como { $f: ms }). */
+function guardarTablaEnCache_(nombre, valores) {
+  try {
+    const texto = JSON.stringify(valores.map(function (r) {
+      return r.map(function (v) { return esFechaBD_(v) ? { $f: v.getTime() } : v; });
+    }));
+    if (texto.length <= TABLA_CACHE_MAX_CARACTERES) CacheService.getScriptCache().put(claveCacheTabla_(nombre), texto, TABLA_CACHE_SEGUNDOS);
+  } catch (e) { /* sin caché: la próxima vez se lee la hoja */ }
+}
+
+/** Los valores de una hoja estable desde la caché, o null si no están. */
+function leerTablaDeCache_(nombre) {
+  try {
+    const texto = CacheService.getScriptCache().get(claveCacheTabla_(nombre));
+    if (!texto) return null;
+    return JSON.parse(texto).map(function (r) {
+      return r.map(function (v) { return v && typeof v === 'object' && v.$f !== undefined ? new Date(v.$f) : v; });
+    });
+  } catch (e) { return null; }
 }
 
 /** La hoja de la base de datos del ambiente: la guardada en ID_BD o, si no hay, la hoja ligada. */
@@ -70,10 +103,14 @@ function leerTabla_(nombre) {
   const m = memoriaBD_();
   const estable = TABLAS_ESTABLES.indexOf(nombre) !== -1;
   if (!estable || !m.tablas[nombre]) {
-    // Una sola consulta: encabezados y datos juntos.
-    const inicio = Date.now();
-    const valores = obtenerHoja_(nombre).getDataRange().getValues();
-    registrarTiempoBD_('leer ' + nombre + ' (' + Math.max(valores.length - 1, 0) + ' renglones)', inicio);
+    let valores = estable ? leerTablaDeCache_(nombre) : null;
+    if (!valores) {
+      // Una sola consulta: encabezados y datos juntos.
+      const inicio = Date.now();
+      valores = obtenerHoja_(nombre).getDataRange().getValues();
+      registrarTiempoBD_('leer ' + nombre + ' (' + Math.max(valores.length - 1, 0) + ' renglones)', inicio);
+      if (estable) guardarTablaEnCache_(nombre, valores);
+    }
     const encabezados = (valores[0] || []).map(function (v) { return String(v).trim(); });
     m.encabezados[nombre] = encabezados;
     const filas = valores.slice(1).map(function (fila, i) {
@@ -91,6 +128,15 @@ function leerTabla_(nombre) {
 /** Después de escribir una hoja: lo recordado de ella ya no sirve. */
 function olvidarTabla_(nombre) {
   delete memoriaBD_().tablas[nombre];
+  if (TABLAS_ESTABLES.indexOf(nombre) !== -1) {
+    try { CacheService.getScriptCache().remove(claveCacheTabla_(nombre)); } catch (e) { /* sin caché */ }
+  }
+}
+
+/** La hoja leída de la base (no de lo recordado): para escribir después por número de renglón. */
+function leerTablaFresca_(nombre) {
+  olvidarTabla_(nombre);
+  return leerTabla_(nombre);
 }
 
 /** Agrega un renglón a partir de un objeto { COLUMNA: valor }. Las columnas que no vengan quedan vacías. */

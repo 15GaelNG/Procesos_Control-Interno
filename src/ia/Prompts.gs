@@ -19,9 +19,11 @@ function construirPromptRedaccion_(e) {
     '',
     'REGLAS OBLIGATORIAS:',
     '1. Corrige ortografía, acentos, mayúsculas, puntuación y gramática. Si una frase es confusa, hazla clara.',
-    '2. Usa SOLO lo que dice cada actividad: no agregues pasos, responsables, sistemas, documentos, plazos, montos,',
-    '   motivos ni detalles, aunque se puedan deducir de otras actividades.',
-    '3. No cambies el sentido ni el orden. Si una actividad ya está bien escrita, devuélvela igual.',
+    '2. Usa SOLO lo que dice cada actividad y, si la trae, la «Información del colaborador» de esa misma actividad',
+    '   (sus respuestas a preguntas): incorpórala a la redacción con tus palabras. No agregues nada más: ni pasos,',
+    '   responsables, sistemas, documentos, plazos, montos, motivos ni detalles que no estén ahí.',
+    '3. No cambies el sentido ni el orden. Si una actividad ya está bien escrita y no trae información nueva,',
+    '   devuélvela igual.',
     '4. Los textos pueden traer marcas como [CORREO 1] o [MONTO 2] en lugar de datos privados: déjalas tal cual.',
     '',
     'Responde SOLO con un objeto JSON con esta forma exacta (sin texto adicional):',
@@ -33,9 +35,19 @@ function construirPromptRedaccion_(e) {
     'Proceso: ' + (e.nombre || ''),
     '',
     'Actividades, en orden:',
-    (e.actividades || []).map(function (a, i) { return (i + 1) + '. [' + a.id + '] ' + a.texto; }).join('\n')
+    (e.actividades || []).map(function (a, i) {
+      const info = respuestasDeActividad_(e.respuestas, a.id).map(function (q) { return '   - ' + q.pregunta + ' → ' + q.respuesta; });
+      return (i + 1) + '. [' + a.id + '] ' + a.texto + (info.length ? '\n   Información del colaborador:\n' + info.join('\n') : '');
+    }).join('\n')
   ].join('\n');
   return { sistema: sistema, usuario: usuario };
+}
+
+/** Respuestas con contenido sobre una actividad (sin «No aplica» ni «No lo sé»). */
+function respuestasDeActividad_(respuestas, idActividad) {
+  return (respuestas || []).filter(function (q) {
+    return q.idActividad === idActividad && q.respuesta && q.respuesta !== RESPUESTA_POR_ESTADO.NO_APLICA && q.respuesta !== RESPUESTA_POR_ESTADO.NO_LO_SE;
+  });
 }
 
 /**

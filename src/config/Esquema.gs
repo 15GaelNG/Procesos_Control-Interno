@@ -42,6 +42,8 @@ const ESQUEMA_BD = [
       ['IA_PROVEEDOR', 'GEMINI', 'Proveedor de IA (ver docs/ia.md). La llave va en las Propiedades del script, no aquí.'],
       ['IA_MODELO', '', 'Modelo a usar; se define en la prueba de concepto.'],
       ['IA_MAX_LLAMADAS_DIA', '200', 'Tope diario de llamadas a la IA, para no rebasar la cuota gratuita.'],
+      ['IA_SUGERIR_AL_ESCRIBIR', 'SI', 'SI / NO. La IA sugiere la redacción de cada actividad mientras se escribe (paso 3).'],
+      ['IA_MAX_SUGERENCIAS_DIA', '800', 'Tope diario de sugerencias de redacción mientras se escribe (aparte del de análisis).'],
       ['PREFIJO_SOLICITUD', 'SOL', 'Prefijo del identificador interno de solicitudes (SOL-2026-0001).'],
       ['CORREO_PROCESOS', '', 'Buzón del área de Procesos para avisos.']
     ]

@@ -9,8 +9,9 @@
 /**
  * Manda instrucciones + texto y devuelve la respuesta ya convertida de JSON.
  *
- * Si Google está saturado (5xx) reintenta una vez; si el modelo no existe (404), no tiene cuota
- * (429) o sigue saturado, prueba con el siguiente modelo disponible. Cada intento queda en UsoIA.
+ * Si el modelo está saturado (5xx), no existe (404) o no tiene cuota (429), prueba de inmediato con el
+ * siguiente modelo disponible (reintentar el mismo llegó a dejar la llamada colgada minutos); solo si
+ * es el último reintenta una vez. Cada intento queda en UsoIA.
  * @param {Object} p
  * @param {string} p.operacion   Nombre corto para UsoIA (ANALISIS, REDACCION, PRUEBA…).
  * @param {string} p.sistema     Instrucciones del sistema (reglas fijas).
@@ -27,7 +28,7 @@ function llamarIAJson_(p) {
   if ((p.sistema + p.usuario).length > IA_MAX_CARACTERES_ENTRADA) {
     throw new Error('El texto es demasiado largo para analizarlo en una sola llamada.');
   }
-  reservarLlamadaIA_();
+  reservarLlamadaIA_(p.operacion);
 
   const intentos = [];
   let ultimoError = null;
@@ -45,7 +46,7 @@ function llamarIAJson_(p) {
       } catch (e) {
         ultimoError = e;
         intentos.push(modelos[m] + ': ' + (e.codigoHttp ? 'HTTP ' + e.codigoHttp : e.message));
-        if (e.codigoHttp >= 500 && vuelta === 1) { Utilities.sleep(2500); continue; }
+        if (e.codigoHttp >= 500 && vuelta === 1 && m === modelos.length - 1) { Utilities.sleep(1500); continue; }
         break;
       }
     }
@@ -216,15 +217,20 @@ function modelosCandidatosIA_(llave, rapido, desplazamiento) {
  * Tope diario propio (Config → IA_MAX_LLAMADAS_DIA) para no llegar al límite de Google a media
  * captura. Es un tope suave: vive en la caché del script.
  */
-function reservarLlamadaIA_() {
-  const tope = Number(obtenerConfig_('IA_MAX_LLAMADAS_DIA', '200'));
-  const clave = 'ia-llamadas-' + Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyyMMdd');
+function reservarLlamadaIA_(operacion) {
+  // Las sugerencias mientras se escribe llevan su propio tope (son muchas y cortas).
+  const sugerencia = operacion === 'SUGERENCIA';
+  const tope = Number(sugerencia ? obtenerConfig_('IA_MAX_SUGERENCIAS_DIA', String(IA_MAX_SUGERENCIAS_DIA)) : obtenerConfig_('IA_MAX_LLAMADAS_DIA', '200'));
+  const clave = 'ia-' + (sugerencia ? 'sugerencias' : 'llamadas') + '-' + Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyyMMdd');
   const candado = LockService.getScriptLock();
   candado.waitLock(10000);
   try {
     const cache = CacheService.getScriptCache();
     const usadas = Number(cache.get(clave) || 0);
-    if (usadas >= tope) throw new Error('Se llegó al tope de ' + tope + ' análisis con IA por hoy. Puedes seguir sin sugerencias.');
+    if (usadas >= tope) {
+      throw new Error(sugerencia ? 'Se llegó al tope de sugerencias al escribir por hoy; puedes usar «Corregir redacción» en el paso 4.'
+        : 'Se llegó al tope de ' + tope + ' análisis con IA por hoy. Puedes seguir sin sugerencias.');
+    }
     cache.put(clave, String(usadas + 1), 90000);
   } finally {
     candado.releaseLock();

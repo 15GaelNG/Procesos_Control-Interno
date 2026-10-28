@@ -197,8 +197,11 @@ function estadoAnalisis_(det, propuestas, aclaraciones, iaActiva, formatear) {
   const ultima = fechas.length ? Math.max.apply(null, fechas) : 0;
   const lista = function (campo, v) { return campo === 'RESPONSABILIDADES' || campo === 'DEFINICIONES' ? listaJson_(v) : String(v || ''); };
   const vivaActividad = function (id) { return !id || numero(id) > 0; };
+  // ¿Ya hubo un análisis completo? (cualquier propuesta que no sea de redacción, o una pregunta de la IA)
+  const analizado = propuestas.some(function (p) { return p.ID_SOLICITUD === det.id && p.CAMPO !== 'TEXTO'; }) ||
+    aclaraciones.some(function (q) { return q.ID_SOLICITUD === det.id && q.ORIGEN === 'IA'; });
   return {
-    iaActiva: iaActiva, ultimoAnalisis: ultima ? formatear(new Date(ultima)) : '',
+    iaActiva: iaActiva, ultimoAnalisis: ultima ? formatear(new Date(ultima)) : '', analizado: analizado,
     puedeEditar: det.puedeEditar,
     actividades: det.actividades.map(function (a, i) {
       return { id: a.id, numero: i + 1, texto: a.texto, responsable: a.responsable, responsableConfirmado: a.responsableConfirmado };
@@ -349,6 +352,102 @@ function aceptarRedacciones_(sesion, idSolicitud) {
     ? aplicarCambioContenido_(sesion, fila, {}, 'Se aceptaron ' + plan.aplicar.length + ' correcciones de la IA')
     : { marca: String(marcaDe_(fila.FECHA_ACTUALIZACION)), estado: fila.ESTADO };
   return Object.assign({ aceptadas: plan.aplicar.length, sinAplicar: plan.vencidas.length }, r);
+}
+
+// ─────────────────────────────── Sugerencia mientras se escribe (paso 3) ───────────────────────────────
+
+/** ¿Están prendidas las sugerencias al escribir? (Config → IA_ACTIVA e IA_SUGERIR_AL_ESCRIBIR) */
+function sugerenciasActivas_() {
+  return obtenerConfig_('IA_ACTIVA', 'NO') === 'SI' && obtenerConfig_('IA_SUGERIR_AL_ESCRIBIR', 'SI') === 'SI';
+}
+
+/**
+ * La redacción sugerida para UNA actividad mientras se escribe. No escribe nada en la base: la persona
+ * decide si la usa (en el editor). Sin datos sensibles hacia la IA; mismas reglas que «Corregir redacción».
+ */
+function sugerirRedaccion_(sesion, idSolicitud, texto) {
+  const fila = filaSolicitud_(idSolicitud);
+  if (!permisoSolicitud_(sesion, fila).editar) throw new Error('No puedes editar esta solicitud.');
+  if (!sugerenciasActivas_()) return { apagada: true };
+  const original = String(texto || '').replace(/\r\n/g, '\n').trim();
+  if (original.length < IA_SUGERENCIA_MIN_CARACTERES || original.length > LIMITES_CAPTURA.ACTIVIDAD_MAX) return { texto: original, igual: true };
+  const mapa = {};
+  const entrada = { nombre: ocultarDatosSensibles_(String(fila.NOMBRE_DOCUMENTO || ''), mapa),
+    actividades: [{ id: 'A1', texto: ocultarDatosSensibles_(original, mapa) }], respuestas: [] };
+  const prompt = construirPromptRedaccion_(entrada);
+  const r = llamarIAJson_({ operacion: 'SUGERENCIA', sistema: prompt.sistema, usuario: prompt.usuario, idSolicitud: idSolicitud, rapido: true });
+  const a = validarRedaccion_(entrada, r.datos).analisis.actividades[0];
+  return respuestaSugerencia_(original, restaurarDatosSensibles_(a.textoPropuesto, mapa), a.cambios, a.cifrasNuevas);
+}
+
+/** Qué ve el editor (sin tocar Google): la sugerencia, si es distinta, y el aviso de cifras nuevas. */
+function respuestaSugerencia_(original, propuesta, cambios, cifrasNuevas) {
+  const exacto = function (s) { return String(s || '').replace(/\s+/g, ' ').trim(); };
+  return { texto: propuesta, igual: exacto(propuesta) === exacto(original), cambios: cambios || '',
+    aviso: cifrasNuevas && cifrasNuevas.length ? 'Menciona datos que no estaban en tu texto (' + cifrasNuevas.join(', ') + '): revísala.' : '' };
+}
+
+/** Todo lo del paso 4 para la pantalla (lo mismo que devuelve apiAnalisis). */
+function pantallaAnalisis_(sesion, idSolicitud) {
+  const fila = filaSolicitud_(idSolicitud);
+  const permiso = permisoSolicitud_(sesion, fila);
+  if (!permiso.ver) throw new Error('No puedes ver esta solicitud.');
+  const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
+  const estado = estadoAnalisis_(det, leerTabla_('PropuestasIA'), leerTabla_('Aclaraciones'), obtenerConfig_('IA_ACTIVA', 'NO') === 'SI', formatoFecha_);
+  estado.solicitud = { id: det.id, nombre: det.nombre, estado: det.estado, esSuya: fila.ELABORO_ID === sesion.idUsuario };
+  // Cuándo lanzar el mismo trabajo con otro modelo si la IA no contesta (Config.gs).
+  estado.reintentoIa = { esperaSegundos: IA_ESPERA_OTRO_MODELO_S, intentos: IA_INTENTOS_PARALELOS };
+  return estado;
+}
+
+/** El resultado de una acción con la pantalla ya al día: el navegador no tiene que volver a pedirla. */
+function conPantallaAnalisis_(sesion, idSolicitud, resultado) {
+  return Object.assign({}, resultado, { paso4: pantallaAnalisis_(sesion, idSolicitud) });
+}
+
+/**
+ * Lo que la persona dejó escrito en el paso 4 sin guardar (respuestas a preguntas; objetivo, alcance,
+ * responsabilidades y definiciones), de una vez antes de otra acción. Se valida todo antes de
+ * escribir; al final, un solo cambio de contenido. pendientes: { respuestas: [{ id, texto }], derivados }.
+ */
+function guardarPendientesAnalisis_(sesion, idSolicitud, pendientes) {
+  const p = pendientes || {};
+  const fila = filaSolicitud_(idSolicitud);
+  if (!permisoSolicitud_(sesion, fila).editar) throw new Error('No puedes editar esta solicitud.');
+  const errores = [];
+  const respuestas = [];
+  const aclaraciones = leerTabla_('Aclaraciones');
+  (Array.isArray(p.respuestas) ? p.respuestas : []).forEach(function (r) {
+    const q = aclaraciones.filter(function (x) { return x.ID_ACLARACION === r.id && x.ID_SOLICITUD === idSolicitud; })[0];
+    if (!q || q.ESTADO === 'REEMPLAZADA' || !String(r.texto || '').trim()) return;
+    const plan = planRespuesta_(q, 'RESPONDIDA', r.texto);
+    if (plan.errores.length) errores.push(plan.errores.join(' '));
+    else respuestas.push({ q: q, plan: plan });
+  });
+  let cambiosSolicitud = {};
+  if (p.derivados) {
+    const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: true }, formatoFecha_);
+    const plan = planDerivados_(p.derivados, det);
+    if (plan.errores.length) errores.push(plan.errores.join(' '));
+    else cambiosSolicitud = plan.solicitud;
+  }
+  if (errores.length) throw new Error(errores.join(' '));
+
+  const ahora = new Date();
+  let cambiaResponsable = false;
+  const actividades = respuestas.some(function (r) { return r.plan.responsable; }) ? leerTabla_('Actividades') : [];
+  respuestas.forEach(function (r) {
+    actualizarFila_('Aclaraciones', r.q._fila, Object.assign({ FECHA_RESPUESTA: ahora }, r.plan.aclaracion));
+    if (!r.plan.responsable) return;
+    const act = actividades.filter(function (a) { return a.ID_ACTIVIDAD === r.q.ID_ACTIVIDAD && !esActivo_(a.ELIMINADA); })[0];
+    if (!act) return;
+    actualizarFila_('Actividades', act._fila, Object.assign({ FECHA_ACTUALIZACION: ahora }, cambiosResponsable_(r.plan.responsable, leerTabla_('Puestos'))));
+    cambiaResponsable = true;
+  });
+  if (cambiaResponsable || Object.keys(cambiosSolicitud).length) {
+    return aplicarCambioContenido_(sesion, fila, cambiosSolicitud, 'Se guardaron respuestas o textos del análisis');
+  }
+  return { marca: String(marcaDe_(fila.FECHA_ACTUALIZACION)), estado: fila.ESTADO };
 }
 
 /** Responde una pregunta. Si es la del responsable, la respuesta queda como responsable de la actividad. */

@@ -7,6 +7,10 @@
    * una subida espera a que su actividad tenga ID, y un guardado siempre lleva las imágenes ya subidas.
    * El servidor rechaza un guardado si la solicitud cambió en otra pestaña (marca); entonces se detiene
    * el guardado y se pide recargar.
+   *
+   * Mientras se escribe, la IA sugiere la redacción de cada actividad (apiSugerirRedaccion) cuando la
+   * persona deja de escribir unos segundos o sale de ella. No cambia nada sola: «Usar esta redacción»
+   * pone el texto sugerido (y se guarda como cualquier cambio) o «Ignorar» la descarta.
    */
   function iniciarEditor(raiz, idSolicitud) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
@@ -20,6 +24,49 @@
     let detenido = false;
     const miniaturas = {};
     const completas = {};
+
+    /* ─────────── Sugerencia de la IA mientras se escribe ─────────── */
+    let sugerenciasEnCurso = 0;
+    function programarSugerencia(actividad, ahora) {
+      clearTimeout(actividad.temporizadorIa);
+      if (!sol.sugerirRedaccion || !sol.puedeEditar || detenido) return;
+      actividad.temporizadorIa = setTimeout(function () { pedirSugerencia(actividad); }, ahora ? 0 : sol.sugerencia.esperaMs);
+    }
+    function pedirSugerencia(actividad) {
+      const texto = actividad.texto.trim();
+      if (texto.length < sol.sugerencia.minCaracteres || texto === actividad.revisado) return;
+      if ((actividad.ignoradas || []).indexOf(texto) !== -1) return;
+      /* Pocas a la vez: si ya hay dos en camino, esta espera un poco. */
+      if (sugerenciasEnCurso >= 2) { actividad.temporizadorIa = setTimeout(function () { pedirSugerencia(actividad); }, 1500); return; }
+      actividad.revisado = texto;
+      sugerenciasEnCurso++;
+      mostrarRevisando(actividad, true);
+      llamar('apiSugerirRedaccion', idSolicitud, texto).then(function (r) {
+        if (r.apagada) { sol.sugerirRedaccion = false; return; }
+        if (actividad.texto.trim() !== texto) return;   /* siguió escribiendo: esta ya no sirve */
+        actividad.sugerencia = r.igual ? null : { para: texto, texto: r.texto, cambios: r.cambios, aviso: r.aviso };
+        pintarSugerencia(actividad);
+      }).catch(function () {
+        actividad.revisado = '';   /* sin sugerencia: se vuelve a intentar al seguir escribiendo */
+      }).then(function () {
+        sugerenciasEnCurso--;
+        mostrarRevisando(actividad, false);
+      });
+    }
+    function mostrarRevisando(actividad, si) {
+      const n = actividad.nodo && actividad.nodo.querySelector('[data-campo="revisando"]');
+      if (n) n.hidden = !si;
+    }
+    function pintarSugerencia(actividad) {
+      const caja = actividad.nodo && actividad.nodo.querySelector('[data-campo="sugerencia"]');
+      if (!caja) return;
+      const s = actividad.sugerencia;
+      const vigente = !!s && s.para === actividad.texto.trim();
+      caja.hidden = !vigente;
+      if (!vigente) return;
+      caja.querySelector('[data-campo="sugerencia-texto"]').textContent = s.texto;
+      caja.querySelector('[data-campo="sugerencia-nota"]').textContent = [s.cambios, s.aviso].filter(Boolean).join(' · ');
+    }
 
     function encolar(tarea) {
       const p = cola.then(tarea);
@@ -234,7 +281,32 @@
         texto.value = actividad.texto;
         responsable.value = actividad.responsable;
         texto.readOnly = responsable.readOnly = !sol.puedeEditar;
-        texto.addEventListener('input', function () { actividad.texto = texto.value; marcarCambio(); });
+        texto.addEventListener('input', function () {
+          actividad.texto = texto.value;
+          marcarCambio();
+          pintarSugerencia(actividad);
+          programarSugerencia(actividad);
+        });
+        texto.addEventListener('blur', function () { programarSugerencia(actividad, true); });
+        const caja = nodo.querySelector('[data-campo="sugerencia"]');
+        caja.querySelector('[data-accion="usar-sugerencia"]').addEventListener('click', function () {
+          const s = actividad.sugerencia;
+          if (!s) return;
+          actividad.texto = s.texto;
+          texto.value = s.texto;
+          actividad.revisado = s.texto.trim();
+          actividad.sugerencia = null;
+          pintarSugerencia(actividad);
+          marcarCambio();
+        });
+        caja.querySelector('[data-accion="ignorar-sugerencia"]').addEventListener('click', function () {
+          const s = actividad.sugerencia;
+          if (!s) return;
+          actividad.ignoradas = (actividad.ignoradas || []).concat([s.para]);
+          actividad.sugerencia = null;
+          pintarSugerencia(actividad);
+        });
+        pintarSugerencia(actividad);
         responsable.addEventListener('input', function () { actividad.responsable = responsable.value; marcarCambio(); });
 
         const mover = function (paso) {

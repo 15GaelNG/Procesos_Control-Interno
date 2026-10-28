@@ -158,8 +158,9 @@ function planGuardarUsuario_(datos, actuales, sesion, ambiente) {
 
 /** Aplica un alta o un cambio. Lanza error con los motivos si no pasa las reglas. */
 function guardarUsuario_(sesion, datos) {
-  const actuales = { usuarios: leerTabla_('Usuarios'), perfiles: leerTabla_('UsuarioPerfiles'),
-    usuarioDeptos: leerTabla_('UsuarioDepartamentos'), departamentos: leerTabla_('Departamentos') };
+  // Frescas: se escribe por número de renglón y lo recordado podría no estar al día.
+  const actuales = { usuarios: leerTablaFresca_('Usuarios'), perfiles: leerTablaFresca_('UsuarioPerfiles'),
+    usuarioDeptos: leerTablaFresca_('UsuarioDepartamentos'), departamentos: leerTabla_('Departamentos') };
   const plan = planGuardarUsuario_(datos, actuales, sesion, ambienteActual_());
   if (plan.errores.length) throw new Error(plan.errores.join(' '));
   if (plan.sinCambios) return { idUsuario: plan.idUsuario, mensaje: 'No había cambios que guardar.' };

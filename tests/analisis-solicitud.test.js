@@ -69,6 +69,28 @@ test('corregir redacción: prompt corto (solo actividades, sin puestos ni datos 
   assert.ok(!/texto_propuesto/.test(gs.construirPromptAnalisis_(enviada).sistema), 'el análisis ya no pide reescribir');
 });
 
+test('corregir redacción: cada actividad lleva las respuestas que el colaborador dio sobre ella (no «No lo sé»)', function () {
+  const respuestas = ACLARACIONES.concat([
+    { _fila: 5, ID_ACLARACION: 'ACL-4', ID_SOLICITUD: 'SOL-2026-0001', ID_ACTIVIDAD: 'ACT-1', TIPO: 'sistema', PREGUNTA: '¿Cómo llega la solicitud?',
+      RESPUESTA: 'Por correo en 24 horas', ESTADO: 'RESPONDIDA', ORIGEN: 'IA' }]);
+  const entrada = gs.entradaAnalisis_(detalle(), respuestas, PUESTOS);
+  const r = gs.construirPromptRedaccion_(entrada);
+  assert.ok(r.usuario.indexOf('Información del colaborador:\n   - ¿Cómo llega la solicitud? → Por correo en 24 horas') !== -1);
+  assert.ok(r.usuario.indexOf('¿En cuánto tiempo?') === -1, '«No lo sé» no se manda');
+  assert.ok(r.usuario.indexOf('Se regresa al área solicitante') === -1, 'las respuestas generales no van en la redacción');
+  const v = plano(gs.validarRedaccion_(entrada, { actividades: [
+    { id: 'ACT-1', texto_propuesto: 'El auxiliar de compras recibe por correo la solicitud en un plazo de 24 horas.' },
+    { id: 'ACT-2', texto_propuesto: 'Se capturan los datos en SAP.' }] }));
+  assert.deepStrictEqual(v.analisis.actividades[0].cifrasNuevas, [], 'el 24 viene de su respuesta');
+});
+
+test('sugerencia al escribir: solo se muestra si cambia algo y avisa cifras nuevas', function () {
+  assert.deepStrictEqual(plano(gs.respuestaSugerencia_('recibe la solicitud', ' Recibe la solicitud. ', 'Mayúscula', [])),
+    { texto: ' Recibe la solicitud. ', igual: false, cambios: 'Mayúscula', aviso: '' });
+  assert.strictEqual(gs.respuestaSugerencia_('Recibe la solicitud.', 'Recibe  la solicitud.', '', []).igual, true);
+  assert.ok(/no estaban en tu texto \(3\)/.test(gs.respuestaSugerencia_('a', 'b en 3 días', '', ['3']).aviso));
+});
+
 test('validar redacción: una por actividad que exista; la que falte se conserva; avisa cifras nuevas', function () {
   const entrada = gs.entradaAnalisis_(detalle(), [], PUESTOS);
   const v = plano(gs.validarRedaccion_(entrada, { actividades: [

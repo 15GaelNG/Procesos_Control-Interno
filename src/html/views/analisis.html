@@ -44,7 +44,7 @@
 
     <section class="tarjeta seccion-analisis" data-campo="seccion-preguntas" hidden>
       <h2><i data-lucide="circle-help" class="ico"></i>Preguntas para completar tu proceso <span class="chip dorado" data-campo="conteo-preguntas"></span></h2>
-      <p class="nota">Contéstalas con lo que sepas. Si no aplica a tu proceso o no lo sabes, elígelo: también cuenta como respuesta.</p>
+      <p class="nota">Contéstalas con lo que sepas; se guardan solas mientras escribes. Si no aplica a tu proceso o no lo sabes, elígelo: también cuenta como respuesta. Después, «Corregir redacción» incorpora tus respuestas al texto de cada actividad.</p>
       <div class="lista-preguntas" data-campo="preguntas"></div>
     </section>
 
@@ -90,6 +90,7 @@
     <div data-campo="respondida" class="pregunta-respuesta" hidden></div>
     <div data-campo="formulario" class="pregunta-formulario">
       <textarea rows="2" maxlength="2000" placeholder="Tu respuesta"></textarea>
+      <span class="nota" data-campo="estado-borrador"></span>
       <div class="pregunta-botones">
         <button type="button" class="boton" data-accion="responder">Guardar respuesta</button>
         <button type="button" class="boton secundario" data-accion="no-aplica">No aplica</button>

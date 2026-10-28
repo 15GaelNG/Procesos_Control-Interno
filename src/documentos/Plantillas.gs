@@ -192,7 +192,7 @@ function probarDocumentoLargo() {
  * («Procedimiento.docx» → tipo «Procedimiento»), para que la generación no dependa del nombre.
  */
 function registrarPlantillaEnTipo_(base, idPreliminar, idFinal) {
-  const tipo = leerTabla_('TiposDocumento').filter(function (t) { return normalizar_(t.NOMBRE) === normalizar_(base); })[0];
+  const tipo = leerTablaFresca_('TiposDocumento').filter(function (t) { return normalizar_(t.NOMBRE) === normalizar_(base); })[0];
   if (!tipo) return 'No hay un tipo de documento llamado «' + base + '»: estas plantillas no se usarán hasta que exista.';
   actualizarFila_('TiposDocumento', tipo._fila, { ID_PLANTILLA_PRELIMINAR: idPreliminar, ID_PLANTILLA_FINAL: idFinal });
   return 'Registradas en el tipo «' + tipo.NOMBRE + '» (' + tipo.ID_TIPO + ').';

@@ -85,7 +85,16 @@ function apiSolicitud(comoUsuario, idSolicitud) {
   const detalle = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
   detalle.esSuya = fila.ELABORO_ID === sesion.idUsuario;
   detalle.imagen = parametrosImagen_();
+  // Sugerencias de la IA mientras se escribe (paso 3).
+  detalle.sugerirRedaccion = permiso.editar && sugerenciasActivas_();
+  detalle.sugerencia = { minCaracteres: IA_SUGERENCIA_MIN_CARACTERES, esperaMs: IA_SUGERENCIA_ESPERA_MS };
   return detalle;
+}
+
+/** La redacción que sugiere la IA para una actividad mientras se escribe (no guarda nada). */
+function apiSugerirRedaccion(comoUsuario, idSolicitud, texto) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return sugerirRedaccion_(sesion, idSolicitud, texto);
 }
 
 /** Guardado automático del borrador (inicio, actividades, pies de imagen, fin). */
@@ -112,47 +121,49 @@ function apiImagen(comoUsuario, idImagen) {
 
 /** Paso 4: actividades, propuestas y preguntas vigentes, y textos derivados. */
 function apiAnalisis(comoUsuario, idSolicitud) {
-  const sesion = sesionEfectiva_(comoUsuario);
-  const fila = filaSolicitud_(idSolicitud);
-  const permiso = permisoSolicitud_(sesion, fila);
-  if (!permiso.ver) throw new Error('No puedes ver esta solicitud.');
-  const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
-  const estado = estadoAnalisis_(det, leerTabla_('PropuestasIA'), leerTabla_('Aclaraciones'), obtenerConfig_('IA_ACTIVA', 'NO') === 'SI', formatoFecha_);
-  estado.solicitud = { id: det.id, nombre: det.nombre, estado: det.estado, esSuya: fila.ELABORO_ID === sesion.idUsuario };
-  // Cuándo lanzar el mismo trabajo con otro modelo si la IA no contesta (Config.gs).
-  estado.reintentoIa = { esperaSegundos: IA_ESPERA_OTRO_MODELO_S, intentos: IA_INTENTOS_PARALELOS };
-  return estado;
+  return pantallaAnalisis_(sesionEfectiva_(comoUsuario), idSolicitud);
 }
 
-/** Manda el proceso a la IA (puede tardar hasta un minuto). */
+/*
+ * Las acciones del paso 4 devuelven la pantalla ya al día (paso4): un solo viaje por acción.
+ */
+
+/** Manda el proceso a la IA (unos segundos; si tarda, la pantalla lanza otro intento). */
 function apiAnalizar(comoUsuario, idSolicitud, operacion, intento, corrida) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return analizarSolicitud_(sesion, idSolicitud, { operacion: operacion === 'REDACCION' ? 'REDACCION' : 'ANALISIS',
+  const r = analizarSolicitud_(sesion, idSolicitud, { operacion: operacion === 'REDACCION' ? 'REDACCION' : 'ANALISIS',
     intento: Math.max(0, Math.min(Number(intento) || 0, IA_INTENTOS_PARALELOS - 1)), corrida: String(corrida || '') });
+  return r.descartado ? r : conPantallaAnalisis_(sesion, idSolicitud, r);
 }
 
 /** decision: ACEPTADA | EDITADA | RECHAZADA. */
 function apiDecidirPropuesta(comoUsuario, idSolicitud, idPropuesta, decision, valor) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor);
+  return conPantallaAnalisis_(sesion, idSolicitud, decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor));
 }
 
 /** Acepta de una vez todas las correcciones de redacción pendientes. */
 function apiAceptarRedacciones(comoUsuario, idSolicitud) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return aceptarRedacciones_(sesion, idSolicitud);
+  return conPantallaAnalisis_(sesion, idSolicitud, aceptarRedacciones_(sesion, idSolicitud));
 }
 
 /** estado: RESPONDIDA | NO_APLICA | NO_LO_SE. */
 function apiResponderPregunta(comoUsuario, idSolicitud, idAclaracion, estado, respuesta) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return responderAclaracion_(sesion, idSolicitud, idAclaracion, estado, respuesta);
+  return conPantallaAnalisis_(sesion, idSolicitud, responderAclaracion_(sesion, idSolicitud, idAclaracion, estado, respuesta));
 }
 
 /** Objetivo, alcance, responsabilidades y definiciones escritos a mano. */
 function apiGuardarDerivados(comoUsuario, idSolicitud, datos) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return guardarDerivados_(sesion, idSolicitud, datos);
+  return conPantallaAnalisis_(sesion, idSolicitud, guardarDerivados_(sesion, idSolicitud, datos));
+}
+
+/** Lo escrito sin guardar en el paso 4 (respuestas y textos), de una vez. pendientes: { respuestas, derivados }. */
+function apiGuardarPendientesAnalisis(comoUsuario, idSolicitud, pendientes) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return conPantallaAnalisis_(sesion, idSolicitud, guardarPendientesAnalisis_(sesion, idSolicitud, pendientes));
 }
 
 /** Paso 5: el borrador integral, lo que falta y la huella de lo que se está viendo. */
