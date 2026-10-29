@@ -179,9 +179,48 @@ function resumenSolicitudes_(filas, idUsuario, t, formatear) {
         editable: ESTADOS_EDITABLES.indexOf(s.ESTADO) !== -1, tipoSolicitud: NOMBRES_TIPO_SOLICITUD[s.TIPO_SOLICITUD] || s.TIPO_SOLICITUD,
         tipoDocumento: nombreDe(t.tipos, 'ID_TIPO', s.ID_TIPO), departamento: nombreDe(t.departamentos, 'ID_DEPARTAMENTO', s.ID_DEPARTAMENTO),
         area: nombreDe(t.areas, 'ID_AREA', s.ID_AREA), codigo: String(s.CODIGO || ''),
+        revisor: s.REVISOR_ASIGNADO_ID ? nombreDe(t.usuarios || [], 'ID_USUARIO', s.REVISOR_ASIGNADO_ID) : '',
         actualizada: marcaDe_(s.FECHA_ACTUALIZACION) ? formatear(new Date(marcaDe_(s.FECHA_ACTUALIZACION))) : ''
       };
     });
+}
+
+/** Enlaces de una actividad guardados como JSON: [{ url, texto }]; [] si está vacía o dañada. */
+function enlacesDe_(v) {
+  try {
+    const lista = JSON.parse(String(v || '[]'));
+    return Array.isArray(lista) ? lista.filter(function (e) { return e && e.url; })
+      .map(function (e) { return { url: String(e.url), texto: String(e.texto || '') }; }) : [];
+  } catch (e) { return []; }
+}
+
+/**
+ * Una dirección como la escribió la persona, lista para guardar: sin espacios y con https:// si no traía
+ * protocolo. '' si no parece una dirección web (solo se aceptan http y https).
+ */
+function normalizarEnlace_(url) {
+  let u = String(url || '').trim();
+  if (!u) return '';
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u.replace(/^\/+/, '');
+  return /^https?:\/\/[^\s\/?#]+[^\s]*$/i.test(u) ? u : '';
+}
+
+/** Valida y limpia los enlaces de una actividad (sin tocar Google): { enlaces, errores }. */
+function planEnlaces_(lista, numero) {
+  const L = LIMITES_CAPTURA;
+  const r = { enlaces: [], errores: [] };
+  (Array.isArray(lista) ? lista : []).forEach(function (e) {
+    const escrito = String((e && e.url) || '').trim();
+    const texto = String((e && e.texto) || '').replace(/\s+/g, ' ').trim();
+    if (!escrito && !texto) return;
+    const url = normalizarEnlace_(escrito);
+    if (!url) { r.errores.push('El enlace «' + (escrito || texto).slice(0, 60) + '» de la actividad ' + numero + ' no es una dirección web (https://…).'); return; }
+    if (url.length > L.ENLACE_MAX) { r.errores.push('Un enlace de la actividad ' + numero + ' es demasiado largo.'); return; }
+    if (texto.length > L.ENLACE_TEXTO_MAX) { r.errores.push('La descripción de un enlace de la actividad ' + numero + ' pasa de ' + L.ENLACE_TEXTO_MAX + ' caracteres.'); return; }
+    r.enlaces.push({ url: url, texto: texto });
+  });
+  if (r.enlaces.length > L.ENLACES_MAX) r.errores.push('La actividad ' + numero + ' tiene más de ' + L.ENLACES_MAX + ' enlaces.');
+  return r;
 }
 
 /** Lista guardada como JSON en una celda (responsabilidades, definiciones); [] si está vacía o dañada. */
@@ -222,6 +261,7 @@ function detalleSolicitud_(fila, actividades, imagenes, t, permiso, formatear) {
       return {
         id: a.ID_ACTIVIDAD, texto: texto(a.TEXTO_FINAL).trim() ? texto(a.TEXTO_FINAL) : texto(a.TEXTO_ORIGINAL),
         responsable: texto(a.PUESTO_TEXTO), idPuesto: texto(a.ID_PUESTO), responsableConfirmado: esActivo_(a.RESPONSABLE_CONFIRMADO),
+        enlaces: enlacesDe_(a.ENLACES),
         imagenes: imagenes.filter(function (i) { return vivas(i) && i.ID_ACTIVIDAD === a.ID_ACTIVIDAD; })
           .sort(function (x, y) { return Number(x.ORDEN) - Number(y.ORDEN); })
           .map(function (i) { return { id: i.ID_IMAGEN, pie: texto(i.PIE), ancho: Number(i.ANCHO) || 0, alto: Number(i.ALTO) || 0 }; })
@@ -245,7 +285,8 @@ function marcaDeTiempo_(fecha) {
 
 /**
  * Qué escribir para dejar la solicitud como la mandó el navegador (sin tocar Google).
- *   contenido: { marca, inicio, fin, actividades: [{ id ('' = nueva), clave, texto, responsable, imagenes: [{ id, pie }] }] }
+ *   contenido: { marca, inicio, fin, actividades: [{ id ('' = nueva), clave, texto, responsable, imagenes: [{ id, pie }],
+ *                enlaces: [{ url, texto }] }] }
  * Las actividades que ya no vienen se marcan ELIMINADA (nada se borra); las imágenes siguen ligadas a
  * su actividad por ID aunque se reordene. Editar una solicitud CONFIRMADA la regresa a BORRADOR.
  */
@@ -276,9 +317,13 @@ function planGuardarBorrador_(contenido, fila, actividades, imagenes) {
     const responsable = limpio(a.responsable).replace(/\s+/g, ' ');
     if (texto.length > L.ACTIVIDAD_MAX) e.push('La actividad ' + (i + 1) + ' pasa de ' + L.ACTIVIDAD_MAX + ' caracteres.');
     if (responsable.length > L.RESPONSABLE_MAX) e.push('El responsable de la actividad ' + (i + 1) + ' es demasiado largo.');
+    // Sin la lista de enlaces no se tocan (como las imágenes).
+    const enlaces = Array.isArray(a.enlaces) ? planEnlaces_(a.enlaces, i + 1) : null;
+    if (enlaces) enlaces.errores.forEach(function (x) { e.push(x); });
+    const enlacesJson = enlaces && enlaces.enlaces.length ? JSON.stringify(enlaces.enlaces) : '';
     const orden = String(i + 1);
     if (!a.id) {
-      plan.actividadesNuevas.push({ clave: String(a.clave || ''), ORDEN: orden, TEXTO_ORIGINAL: texto, PUESTO_TEXTO: responsable });
+      plan.actividadesNuevas.push({ clave: String(a.clave || ''), ORDEN: orden, TEXTO_ORIGINAL: texto, PUESTO_TEXTO: responsable, ENLACES: enlacesJson });
       return;
     }
     const actual = vivas.filter(function (x) { return x.ID_ACTIVIDAD === a.id; })[0];
@@ -293,6 +338,7 @@ function planGuardarBorrador_(contenido, fila, actividades, imagenes) {
     if (limpio(actual.PUESTO_TEXTO) !== responsable) {
       cambios.PUESTO_TEXTO = responsable; cambios.ID_PUESTO = ''; cambios.RESPONSABLE_CONFIRMADO = 'NO';
     }
+    if (enlaces && JSON.stringify(enlacesDe_(actual.ENLACES)) !== JSON.stringify(enlaces.enlaces)) cambios.ENLACES = enlacesJson;
     if (Object.keys(cambios).length) plan.actividadesCambios.push({ _fila: actual._fila, cambios: cambios });
 
     // Sin la lista de imágenes no se toca ninguna (así un envío incompleto nunca borra imágenes).
@@ -340,7 +386,8 @@ function guardarBorrador_(sesion, idSolicitud, contenido) {
   const nuevas = plan.actividadesNuevas.map(function (a, i) {
     ids[a.clave] = nuevosIds[i];
     return { ID_ACTIVIDAD: nuevosIds[i], ID_SOLICITUD: idSolicitud, ORDEN: a.ORDEN, TEXTO_ORIGINAL: a.TEXTO_ORIGINAL, TEXTO_FINAL: '',
-      ID_PUESTO: '', PUESTO_TEXTO: a.PUESTO_TEXTO, RESPONSABLE_CONFIRMADO: 'NO', ELIMINADA: 'NO', FECHA_ACTUALIZACION: ahora };
+      ID_PUESTO: '', PUESTO_TEXTO: a.PUESTO_TEXTO, RESPONSABLE_CONFIRMADO: 'NO', ELIMINADA: 'NO', FECHA_ACTUALIZACION: ahora,
+      ENLACES: a.ENLACES };
   });
   agregarFilas_('Actividades', nuevas);
   plan.actividadesCambios.forEach(function (c) {
@@ -372,16 +419,20 @@ function estadoTrasCambios_(filas, cambios, eliminar, nuevas) {
 
 /**
  * Último paso de TODO cambio al contenido (captura, imágenes, decisiones sobre la IA, textos
- * derivados): nueva marca, nueva huella y, si estaba CONFIRMADA, regresa a BORRADOR (§3.5).
+ * derivados, correcciones de Procesos): nueva marca, nueva huella y, si estaba CONFIRMADA, regresa a
+ * BORRADOR (§3.5).
  * contenido (opcional): { actividades, imagenes } como quedaron, para no volver a leer la hoja.
+ * opciones.revisor: la corrigió Procesos durante la revisión; esa huella también se puede autorizar
+ * (HUELLA_REVISOR, decisión 26).
  */
-function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo, contenido) {
+function aplicarCambioContenido_(sesion, fila, cambiosSolicitud, motivo, contenido, opciones) {
   const ahora = marcaDeTiempo_(new Date());
   const cambios = Object.assign({ FECHA_ACTUALIZACION: ahora }, cambiosSolicitud || {});
   const invalida = fila.ESTADO === ESTADOS.CONFIRMADO;
   if (invalida) cambios.ESTADO = ESTADOS.BORRADOR;
   const filaNueva = Object.assign({}, fila, cambios);
   cambios.HUELLA_CONTENIDO = contenido ? huellaDeFilas_(filaNueva, contenido.actividades, contenido.imagenes) : huellaSolicitud_(filaNueva);
+  if (opciones && opciones.revisor) cambios.HUELLA_REVISOR = cambios.HUELLA_CONTENIDO;
   actualizarFila_('Solicitudes', fila._fila, cambios);
   if (invalida) {
     registrarBitacora_(sesion, 'EDITAR_CONFIRMADO', motivo + ' después de confirmar: hay que volver a confirmar.',

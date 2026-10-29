@@ -1,0 +1,161 @@
+<script>
+  /*
+   * Tablero de indicadores (apiTablero, decisión 30): para el administrador y Soporte CI. Solo consulta.
+   * Cifras clave arriba, barras por etapa y por mes, y tablas por departamento, colaborador y revisor.
+   * Las barras son HTML sencillo: cada una dice su número (no se depende del color).
+   */
+  function iniciarTablero(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+
+    function cifra(titulo, valor, nota, clase) {
+      const c = elemento('div', 'tarjeta cifra' + (clase ? ' ' + clase : ''));
+      c.appendChild(elemento('span', 'cifra-titulo', titulo));
+      c.appendChild(elemento('strong', 'cifra-valor', valor === null || valor === undefined ? '—' : String(valor)));
+      if (nota) c.appendChild(elemento('span', 'nota', nota));
+      return c;
+    }
+
+    function dias(n) { return n === null || n === undefined ? '—' : (n === 1 ? '1 día' : n + ' días'); }
+
+    /* Barras horizontales de una sola serie: [{ nombre, n }]. */
+    function barras(titulo, filas) {
+      const t = elemento('section', 'tarjeta tablero-bloque');
+      t.appendChild(elemento('h2', '', titulo));
+      const maximo = Math.max.apply(null, filas.map(function (f) { return f.n; }).concat([1]));
+      filas.forEach(function (f) {
+        const fila = elemento('div', 'barra-fila');
+        fila.title = f.nombre + ': ' + f.n;
+        fila.appendChild(elemento('span', 'barra-nombre', f.nombre));
+        const pista = elemento('span', 'barra-pista');
+        const barra = elemento('span', 'barra-valor');
+        barra.style.width = (f.n ? Math.max(2, Math.round(f.n / maximo * 100)) : 0) + '%';
+        pista.appendChild(barra);
+        fila.appendChild(pista);
+        fila.appendChild(elemento('span', 'barra-numero', String(f.n)));
+        t.appendChild(fila);
+      });
+      return t;
+    }
+
+    /* Por mes: creadas y autorizadas, lado a lado, con leyenda y su número en cada barra. */
+    function porMes(meses) {
+      const t = elemento('section', 'tarjeta tablero-bloque');
+      t.appendChild(elemento('h2', '', 'Últimos 6 meses'));
+      const leyenda = elemento('div', 'leyenda');
+      [['serie-1', 'Creadas'], ['serie-2', 'Autorizadas']].forEach(function (x) {
+        const l = elemento('span', 'leyenda-item');
+        l.appendChild(elemento('span', 'leyenda-marca ' + x[0]));
+        l.appendChild(document.createTextNode(x[1]));
+        leyenda.appendChild(l);
+      });
+      t.appendChild(leyenda);
+      const maximo = Math.max.apply(null, meses.map(function (m) { return Math.max(m.creadas, m.autorizadas); }).concat([1]));
+      const grafica = elemento('div', 'meses');
+      meses.forEach(function (m) {
+        const col = elemento('div', 'mes');
+        col.title = m.mes + ': ' + m.creadas + ' creadas, ' + m.autorizadas + ' autorizadas';
+        const par = elemento('div', 'mes-barras');
+        [['serie-1', m.creadas], ['serie-2', m.autorizadas]].forEach(function (x) {
+          const b = elemento('div', 'mes-barra ' + x[0]);
+          b.style.height = (x[1] ? Math.max(4, Math.round(x[1] / maximo * 100)) : 0) + '%';
+          b.appendChild(elemento('span', 'mes-numero', String(x[1])));
+          par.appendChild(b);
+        });
+        col.appendChild(par);
+        col.appendChild(elemento('span', 'mes-nombre', m.mes));
+        grafica.appendChild(col);
+      });
+      t.appendChild(grafica);
+      return t;
+    }
+
+    function tabla(titulo, columnas, filas, vacio) {
+      const t = elemento('section', 'tarjeta tablero-bloque');
+      t.appendChild(elemento('h2', '', titulo));
+      if (!filas.length) { t.appendChild(elemento('p', 'nota', vacio)); return t; }
+      const caja = elemento('div', 'tabla-desplazable');
+      const tb = elemento('table', 'tabla');
+      const cabeza = elemento('tr');
+      columnas.forEach(function (c) { cabeza.appendChild(elemento('th', c.numero ? 'numero' : '', c.titulo)); });
+      tb.appendChild(cabeza);
+      filas.forEach(function (f) {
+        const tr = elemento('tr');
+        columnas.forEach(function (c) { tr.appendChild(elemento('td', c.numero ? 'numero' : '', c.valor(f))); });
+        tb.appendChild(tr);
+      });
+      caja.appendChild(tb);
+      t.appendChild(caja);
+      return t;
+    }
+
+    function pintar(r) {
+      contenido.textContent = '';
+      const tt = r.totales;
+      const cifras = elemento('div', 'cifras');
+      cifras.appendChild(cifra('Procesos', tt.total, tt.canceladas ? tt.canceladas + ' cancelados aparte' : ''));
+      cifras.appendChild(cifra('En captura', tt.enCaptura, 'Borrador o confirmados sin enviar'));
+      cifras.appendChild(cifra('En revisión', tt.enRevision, tt.sinAsignar ? tt.sinAsignar + ' sin que nadie los tome' : 'Todos tienen revisor', tt.sinAsignar ? 'alerta' : ''));
+      cifras.appendChild(cifra('Con observaciones', tt.conObservaciones, 'Esperando al colaborador'));
+      cifras.appendChild(cifra('En CH', tt.enCH, 'Con Vo.Bo., esperando autorización'));
+      cifras.appendChild(cifra('Autorizados', tt.autorizadas, tt.noProcedentes ? tt.noProcedentes + ' no procedentes' : ''));
+      contenido.appendChild(cifras);
+
+      const tiempos = elemento('div', 'cifras');
+      tiempos.appendChild(cifra('Revisión de Procesos', dias(r.tiempos.revision), 'Promedio del envío al Vo.Bo.'));
+      tiempos.appendChild(cifra('Autorización en CH', dias(r.tiempos.autorizacion), 'Promedio del Vo.Bo. a la autorización'));
+      tiempos.appendChild(cifra('De principio a fin', dias(r.tiempos.total), 'Promedio de la captura a la autorización'));
+      tiempos.appendChild(cifra('Devueltos al menos una vez', r.devoluciones.porcentaje === null ? null : r.devoluciones.porcentaje + ' %',
+        r.devoluciones.conDevolucion + ' de ' + r.devoluciones.enviadas + ' enviados'));
+      contenido.appendChild(tiempos);
+
+      const dos = elemento('div', 'tablero-dos');
+      dos.appendChild(barras('Procesos por etapa', r.etapas.map(function (e) { return { nombre: e.nombre, n: e.n }; })));
+      dos.appendChild(porMes(r.porMes));
+      contenido.appendChild(dos);
+
+      contenido.appendChild(tabla('Los que más llevan esperando revisión', [
+        { titulo: 'Folio', valor: function (f) { return f.id; } },
+        { titulo: 'Proceso', valor: function (f) { return f.nombre; } },
+        { titulo: 'Departamento', valor: function (f) { return f.departamento; } },
+        { titulo: 'Elaboró', valor: function (f) { return f.elaborador; } },
+        { titulo: 'Revisa', valor: function (f) { return f.revisor || 'Nadie la ha tomado'; } },
+        { titulo: 'Días', numero: true, valor: function (f) { return String(f.dias); } }
+      ], r.esperando, 'No hay procesos esperando revisión.'));
+      const columnasGrupo = [
+        { titulo: 'Total', numero: true, valor: function (f) { return String(f.total); } },
+        { titulo: 'En curso', numero: true, valor: function (f) { return String(f.enCurso); } },
+        { titulo: 'Autorizados', numero: true, valor: function (f) { return String(f.autorizadas); } },
+        { titulo: 'Devueltos', numero: true, valor: function (f) { return String(f.devueltas); } }
+      ];
+      contenido.appendChild(tabla('Por departamento', [{ titulo: 'Departamento', valor: function (f) { return f.nombre; } }].concat(columnasGrupo),
+        r.departamentos, 'Todavía no hay procesos.'));
+      contenido.appendChild(tabla('Por colaborador', [{ titulo: 'Colaborador', valor: function (f) { return f.nombre; } }].concat(columnasGrupo),
+        r.colaboradores, 'Todavía no hay procesos.'));
+      contenido.appendChild(tabla('Revisores de Procesos', [
+        { titulo: 'Revisor', valor: function (f) { return f.nombre; } },
+        { titulo: 'Revisando ahora', numero: true, valor: function (f) { return String(f.asignadas); } },
+        { titulo: 'Vo.Bo. dados', numero: true, valor: function (f) { return String(f.vobos); } },
+        { titulo: 'Días promedio', numero: true, valor: function (f) { return f.promedioDias === null ? '—' : String(f.promedioDias); } }
+      ], r.revisores, 'Todavía nadie ha revisado.'));
+      contenido.appendChild(elemento('p', 'nota', 'Actualizado: ' + r.actualizado + '.'));
+      pintarIconos();
+    }
+
+    function cargar() {
+      return cargarConMemoria('tablero', function () { return llamar('apiTablero'); }, function (r, memoria, igual) {
+        if (!contenido.isConnected || igual) return;
+        pintar(r);
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        const t = elemento('div', 'tarjeta');
+        t.appendChild(estadoVacio('triangle-alert', 'No se pudo calcular el tablero', e.message));
+        contenido.appendChild(t);
+        pintarIconos();
+      });
+    }
+
+    raiz.querySelector('[data-accion="recargar"]').addEventListener('click', cargar);
+    cargar();
+  }
+</script>

@@ -7,10 +7,14 @@
  *   observaciones        → por apartado o actividad: ABIERTA → ATENDIDA (colaborador) → CERRADA (revisor).
  *   devolver_ / noProcedente_ / darVoBo_ → las tres salidas de la revisión.
  *
- * Reglas: nadie revisa lo que él mismo elaboró; solo el revisor asignado observa y decide; el Vo.Bo.
- * exige que no haya observaciones abiertas y que el contenido sea el confirmado; asigna el código
- * (el sistema propone el siguiente libre y Procesos puede corregirlo) y la versión. No procedente no
- * consume código (§2.1). Lo puro está probado en tests/revision.test.js.
+ *   editarComoRevisor_()  → Procesos corrige el contenido (decisión 26); queda registrado como CAMBIO.
+ *   cambiarCodigo_()      → Procesos corrige el código después del Vo.Bo. (decisión 28).
+ *
+ * Reglas: nadie revisa lo que él mismo elaboró; solo el revisor asignado observa, corrige y decide; el
+ * Vo.Bo. exige que no haya observaciones abiertas y que el contenido sea el confirmado por el colaborador
+ * o el que dejó Procesos al corregirlo; asigna el código (el sistema propone el siguiente libre y Procesos
+ * puede corregirlo) y la versión. No procedente no consume código (§2.1). Cada salida avisa por correo
+ * (services/Avisos.gs). Lo puro está probado en tests/revision.test.js.
  */
 
 // ─────────────────────────────── Personas ───────────────────────────────
@@ -28,6 +32,15 @@ function revisoresActivos_(usuarios, perfiles) {
     .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
 }
 
+/**
+ * ¿El contenido (su huella) es uno que se puede autorizar? El que confirmó el colaborador o el que dejó
+ * Procesos al corregirlo durante la revisión (HUELLA_REVISOR, decisión 26).
+ */
+function contenidoAprobado_(fila, huella) {
+  const h = String(huella || '');
+  return !!h && (h === String(fila.HUELLA_CONFIRMADA || '') || h === String(fila.HUELLA_REVISOR || ''));
+}
+
 function esRevisorAsignado_(sesion, fila) {
   return !!sesion.registrado && sesion.perfiles.indexOf('REVISOR') !== -1 && fila.REVISOR_ASIGNADO_ID === sesion.idUsuario &&
     fila.ELABORO_ID !== sesion.idUsuario;
@@ -43,7 +56,7 @@ function instantanea_(det, revision, motivo) {
     inicio: det.inicio, fin: det.fin, objetivo: det.objetivo, alcance: det.alcance,
     responsabilidades: det.responsabilidades, definiciones: det.definiciones,
     actividades: det.actividades.map(function (a, i) {
-      return { numero: i + 1, id: a.id, responsable: a.responsable, texto: a.texto,
+      return { numero: i + 1, id: a.id, responsable: a.responsable, texto: a.texto, enlaces: a.enlaces || [],
         imagenes: a.imagenes.map(function (im) { return { id: im.id, pie: im.pie }; }) };
     })
   };
@@ -86,6 +99,7 @@ function enviarARevision_(sesion, idSolicitud) {
   guardarInstantanea_(sesion, fila, det, plan.cambios.REVISION, 'ENVIO', huella);
   actualizarFila_('Solicitudes', fila._fila, Object.assign({ FECHA_ENVIO_REVISION: ahora, FECHA_ACTUALIZACION: ahora }, plan.cambios));
   registrarBitacora_(sesion, 'ENVIAR_REVISION', 'Revisión ' + plan.cambios.REVISION + '.', idSolicitud, fila.ESTADO, ESTADOS.EN_REVISION);
+  avisar_(sesion, 'NUEVA_REVISION', Object.assign({}, fila, plan.cambios), correosProcesos_());
   return { estado: ESTADOS.EN_REVISION, revision: plan.cambios.REVISION };
 }
 
@@ -204,6 +218,7 @@ function planCambioObservacion_(obs, fila, sesion, accion, texto, ahora) {
   const plan = { errores: [], cambios: {} };
   const respuesta = String(texto || '').replace(/\r\n/g, '\n').trim();
   if (respuesta.length > OBSERVACION_MAX) { plan.errores.push('La respuesta pasa de ' + OBSERVACION_MAX + ' caracteres.'); return plan; }
+  if (obs.ESTADO === 'CAMBIO') { plan.errores.push('Es una corrección que hizo Procesos: no hay que atenderla.'); return plan; }
   if (accion === 'ATENDER') {
     if (fila.ELABORO_ID !== sesion.idUsuario) plan.errores.push('Solo quien elaboró la solicitud atiende las observaciones.');
     else if (ESTADOS_EDITABLES.indexOf(fila.ESTADO) === -1) plan.errores.push('Las observaciones se atienden cuando Procesos te regresa la solicitud.');
@@ -273,6 +288,10 @@ function devolverSolicitud_(sesion, idSolicitud) {
   const abiertas = observaciones.filter(function (o) { return o.ID_SOLICITUD === idSolicitud && o.ESTADO === 'ABIERTA'; }).length;
   actualizarFila_('Solicitudes', fila._fila, { ESTADO: ESTADOS.DEVUELTO, FECHA_ACTUALIZACION: marcaDeTiempo_(new Date()) });
   registrarBitacora_(sesion, 'DEVOLVER_SOLICITUD', abiertas + (abiertas === 1 ? ' observación.' : ' observaciones.'), idSolicitud, fila.ESTADO, ESTADOS.DEVUELTO);
+  const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: false }, formatoFecha_);
+  avisar_(sesion, 'DEVUELTA', Object.assign({}, fila, {
+    observaciones: observacionesDe_(observaciones, idSolicitud, det, formatoFecha_).filter(function (o) { return o.estado === 'ABIERTA'; })
+  }), [correoDeUsuario_(fila.ELABORO_ID)]);
   return { estado: ESTADOS.DEVUELTO };
 }
 
@@ -284,6 +303,7 @@ function noProcedente_(sesion, idSolicitud, motivo) {
   if (texto.length > OBSERVACION_MAX) throw new Error('El motivo pasa de ' + OBSERVACION_MAX + ' caracteres.');
   actualizarFila_('Solicitudes', fila._fila, { ESTADO: ESTADOS.NO_PROCEDENTE, MOTIVO_CIERRE: texto, FECHA_ACTUALIZACION: marcaDeTiempo_(new Date()) });
   registrarBitacora_(sesion, 'NO_PROCEDENTE', texto, idSolicitud, fila.ESTADO, ESTADOS.NO_PROCEDENTE);
+  avisar_(sesion, 'NO_PROCEDENTE', Object.assign({}, fila, { MOTIVO_CIERRE: texto }), [correoDeUsuario_(fila.ELABORO_ID)]);
   return { estado: ESTADOS.NO_PROCEDENTE };
 }
 
@@ -328,7 +348,7 @@ function planVoBo_(fila, sesion, det, huellaActual, observaciones, codigo, usado
   const plan = { errores: [], cambios: {}, cerrarObservaciones: [], codigo: '' };
   const e = plan.errores;
   if (!esRevisorAsignado_(sesion, fila) || fila.ESTADO !== ESTADOS.EN_REVISION) { e.push('Solo el revisor asignado da el Vo.Bo., mientras está en revisión.'); return plan; }
-  if (huellaActual !== String(fila.HUELLA_CONFIRMADA)) e.push('El contenido no es el que confirmó el colaborador. Devuélvela para que lo revise y confirme.');
+  if (!contenidoAprobado_(fila, huellaActual)) e.push('El contenido no es el que confirmó el colaborador. Devuélvela para que lo revise y confirme.');
   const propias = observaciones.filter(function (o) { return o.ID_SOLICITUD === fila.ID_SOLICITUD; });
   const abiertas = propias.filter(function (o) { return o.ESTADO === 'ABIERTA'; }).length;
   if (abiertas) e.push('Hay ' + abiertas + (abiertas === 1 ? ' observación abierta' : ' observaciones abiertas') + ': devuélvela o ciérralas antes del Vo.Bo.');
@@ -381,6 +401,7 @@ function darVoBo_(sesion, idSolicitud, codigo) {
   det.version = plan.cambios.VERSION;
   guardarInstantanea_(sesion, fila, det, fila.REVISION, 'VOBO', huella);
   registrarBitacora_(sesion, 'VOBO_PROCESOS', 'Código ' + plan.codigo + ', versión ' + plan.cambios.VERSION + '.', idSolicitud, fila.ESTADO, ESTADOS.EN_AUTORIZACION_CH);
+  avisar_(sesion, 'VOBO', Object.assign({}, fila, plan.cambios), [correoDeUsuario_(fila.ELABORO_ID)]);
   return { estado: ESTADOS.EN_AUTORIZACION_CH, codigo: plan.codigo };
 }
 
@@ -394,6 +415,7 @@ function detalleRevision_(sesion, idSolicitud) {
   const t = tablasSolicitud_();
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), t, { editar: false }, formatoFecha_);
   det.puestos = puestosInvolucrados_(det);
+  det.puestosYResponsabilidades = puestosYResponsabilidades_(det);
   det.huella = huellaDeDetalle_(det);
   det.revision = String(fila.REVISION || '');
   det.motivoCierre = String(fila.MOTIVO_CIERRE || '');
@@ -406,10 +428,144 @@ function detalleRevision_(sesion, idSolicitud) {
   det.esRevisorAsignado = esRevisorAsignado_(sesion, fila);
   det.puedeTomar = !planTomar_(fila, sesion, t.usuarios).length && fila.REVISOR_ASIGNADO_ID !== sesion.idUsuario;
   det.puedeDecidir = det.esRevisorAsignado && fila.ESTADO === ESTADOS.EN_REVISION;
-  det.contenidoConfirmado = det.huella === String(fila.HUELLA_CONFIRMADA);
+  det.contenidoConfirmado = contenidoAprobado_(fila, det.huella);
+  det.corregidoPorProcesos = !!String(fila.HUELLA_REVISOR || '') && det.huella === String(fila.HUELLA_REVISOR);
   det.codigoPropuesto = det.puedeDecidir ? propuestaCodigo_(fila, det) : '';
-  det.apartados = APARTADOS_OBSERVACION;
+  det.apartados = {};
+  Object.keys(APARTADOS_OBSERVACION).forEach(function (k) { if (APARTADOS_RETIRADOS.indexOf(k) === -1) det.apartados[k] = APARTADOS_OBSERVACION[k]; });
   det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_);
   det.puedeGenerar = puedeGenerarPreliminar_(sesion, fila);
+  // Después del Vo.Bo. Procesos todavía puede corregir el código (decisión 28).
+  det.puedeCambiarCodigo = puedeOperarCH_(sesion, fila) && [ESTADOS.EN_AUTORIZACION_CH, ESTADOS.AUTORIZADO].indexOf(fila.ESTADO) !== -1;
   return det;
+}
+
+// ─────────────────────────────── Correcciones de Procesos ───────────────────────────────
+
+/**
+ * Qué cambia cuando Procesos corrige el contenido (sin tocar Google). datos: { apartado, idActividad,
+ * valor, responsable }. Se puede corregir el objetivo, el alcance, el inicio, el fin, las responsabilidades
+ * (apartado PUESTOS), las definiciones y el texto y el responsable de una actividad.
+ * Devuelve { errores, solicitud: {COLUMNA: valor}, actividad: { _fila, cambios } | null, antes, despues, sinCambios }.
+ */
+function planEdicionRevisor_(datos, fila, det, actividades, sesion, puestos) {
+  const plan = { errores: [], solicitud: {}, actividad: null, antes: '', despues: '', sinCambios: false };
+  const e = plan.errores;
+  if (!esRevisorAsignado_(sesion, fila) || fila.ESTADO !== ESTADOS.EN_REVISION) {
+    e.push('Para corregir el contenido primero toma la solicitud (y debe estar en revisión).');
+    return plan;
+  }
+  const L = LIMITES_CAPTURA;
+  const limpio = function (v) { return String(v === null || v === undefined ? '' : v).replace(/\r\n/g, '\n').trim(); };
+  const apartado = String(datos.apartado || '');
+  const textos = { OBJETIVO: ['OBJETIVO', 'objetivo', L.DERIVADO_MAX], ALCANCE: ['ALCANCE', 'alcance', L.DERIVADO_MAX],
+    INICIO: ['INICIO_PROCESO', 'inicio', L.PREGUNTA_MAX], FIN: ['FIN_PROCESO', 'fin', L.PREGUNTA_MAX] };
+  if (textos[apartado]) {
+    const valor = limpio(datos.valor);
+    if (!valor) e.push('No puede quedar vacío.');
+    if (valor.length > textos[apartado][2]) e.push('Pasa de ' + textos[apartado][2] + ' caracteres.');
+    plan.antes = det[textos[apartado][1]];
+    plan.despues = valor;
+    if (!e.length && valor !== plan.antes) plan.solicitud[textos[apartado][0]] = valor;
+  } else if (apartado === 'PUESTOS' || apartado === 'DEFINICIONES') {
+    let lineas = renglones_(datos.valor);
+    // En «Puestos y responsabilidades» un renglón que solo es el puesto de una actividad no es una responsabilidad.
+    if (apartado === 'PUESTOS') {
+      const deActividades = puestosInvolucrados_(det).map(normalizar_);
+      lineas = lineas.filter(function (l) {
+        return l.indexOf(':') !== -1 ? !/:\s*$/.test(l) : deActividades.indexOf(normalizar_(l)) === -1;
+      });
+    }
+    if (lineas.length > L.LINEAS_MAX || lineas.some(function (x) { return x.length > L.LINEA_MAX; })) {
+      e.push('Máximo ' + L.LINEAS_MAX + ' renglones de hasta ' + L.LINEA_MAX + ' caracteres.');
+    }
+    const columna = apartado === 'PUESTOS' ? 'RESPONSABILIDADES' : 'DEFINICIONES';
+    const actual = apartado === 'PUESTOS' ? det.responsabilidades : det.definiciones;
+    plan.antes = actual.join('\n');
+    plan.despues = lineas.join('\n');
+    if (!e.length && JSON.stringify(lineas) !== JSON.stringify(actual)) plan.solicitud[columna] = JSON.stringify(lineas);
+  } else if (apartado === 'ACTIVIDAD') {
+    const i = det.actividades.map(function (a) { return a.id; }).indexOf(String(datos.idActividad || ''));
+    const renglon = actividades.filter(function (a) { return a.ID_ACTIVIDAD === datos.idActividad && a.ID_SOLICITUD === fila.ID_SOLICITUD && !esActivo_(a.ELIMINADA); })[0];
+    if (i === -1 || !renglon) { e.push('Esa actividad ya no existe.'); return plan; }
+    const actual = det.actividades[i];
+    const texto = limpio(datos.valor);
+    const responsable = limpio(datos.responsable).replace(/\s+/g, ' ');
+    if (!texto) e.push('La actividad no puede quedar vacía.');
+    if (texto.length > L.ACTIVIDAD_MAX) e.push('La actividad pasa de ' + L.ACTIVIDAD_MAX + ' caracteres.');
+    if (responsable.length > L.RESPONSABLE_MAX) e.push('El puesto es demasiado largo.');
+    if (e.length) return plan;
+    const cambios = {};
+    // El texto del colaborador (TEXTO_ORIGINAL) se conserva; el del documento es TEXTO_FINAL.
+    if (texto !== actual.texto) cambios.TEXTO_FINAL = texto;
+    if (responsable !== actual.responsable) Object.assign(cambios, cambiosResponsable_(responsable, puestos));
+    if (Object.keys(cambios).length) plan.actividad = { _fila: renglon._fila, cambios: cambios };
+    const linea = function (t, r) { return 'Actividad ' + (i + 1) + (r ? ' · ' + r : '') + ': ' + t; };
+    plan.antes = linea(actual.texto, actual.responsable);
+    plan.despues = linea(texto, responsable);
+  } else {
+    e.push('Esa parte del documento no se puede corregir aquí.');
+  }
+  plan.sinCambios = !e.length && !Object.keys(plan.solicitud).length && !plan.actividad;
+  return plan;
+}
+
+/** Texto del registro de una corrección de Procesos (lo ve el colaborador junto a esa parte). */
+function textoCorreccion_(antes, despues) {
+  const corto = function (t) { const x = String(t || '').trim(); return x.length > 900 ? x.slice(0, 900) + '…' : (x || '(vacío)'); };
+  return 'Antes: ' + corto(antes) + '\nAhora: ' + corto(despues);
+}
+
+/** Procesos corrige una parte del contenido mientras revisa (decisión 26). */
+function editarComoRevisor_(sesion, idSolicitud, datos) {
+  const d = datos || {};
+  const fila = filaSolicitud_(idSolicitud);
+  const actividades = leerTabla_('Actividades');
+  const det = detalleSolicitud_(fila, actividades, leerTabla_('Imagenes'), tablasSolicitud_(), { editar: false }, formatoFecha_);
+  const plan = planEdicionRevisor_(d, fila, det, actividades, sesion, leerTabla_('Puestos'));
+  if (plan.errores.length) throw new Error(plan.errores.join(' '));
+  if (plan.sinCambios) return { sinCambios: true };
+  if (plan.actividad) actualizarFila_('Actividades', plan.actividad._fila, Object.assign({ FECHA_ACTUALIZACION: new Date() }, plan.actividad.cambios));
+  const r = aplicarCambioContenido_(sesion, fila, plan.solicitud, 'Procesos corrigió el contenido', null, { revisor: true });
+  const apartado = String(d.apartado);
+  agregarFila_('Observaciones', { ID_OBSERVACION: siguienteId_('OBS', 6), ID_SOLICITUD: idSolicitud, REVISION: String(fila.REVISION || ''),
+    APARTADO: apartado, ID_ACTIVIDAD: apartado === 'ACTIVIDAD' ? String(d.idActividad) : '', AUTOR_ID: sesion.idUsuario,
+    AUTOR_NOMBRE: sesion.nombre, PERFIL: 'REVISOR', TEXTO: textoCorreccion_(plan.antes, plan.despues), ESTADO: 'CAMBIO',
+    RESPUESTA: '', FECHA: new Date(), FECHA_ATENCION: '' });
+  registrarBitacora_(sesion, 'EDITAR_REVISOR', (APARTADOS_OBSERVACION[apartado] || apartado) + ': ' + textoCorreccion_(plan.antes, plan.despues).slice(0, 400), idSolicitud);
+  return { marca: r.marca };
+}
+
+// ─────────────────────────────── Corregir el código ───────────────────────────────
+
+/** Qué cambia al corregir el código después del Vo.Bo. (sin tocar Google). */
+function planCambioCodigo_(fila, sesion, det, codigo, usados) {
+  const plan = { errores: [], codigo: String(codigo || '').trim().toUpperCase() };
+  if (!puedeOperarCH_(sesion, fila)) plan.errores.push('El código lo corrige Procesos (y nunca de una solicitud que elaboró).');
+  else if ([ESTADOS.EN_AUTORIZACION_CH, ESTADOS.AUTORIZADO].indexOf(fila.ESTADO) === -1) plan.errores.push('El código se corrige después del Vo.Bo.; antes, en el Vo.Bo. mismo.');
+  else if (plan.codigo === String(fila.CODIGO || '').toUpperCase()) plan.errores.push('Es el mismo código.');
+  else validarCodigo_(plan.codigo, det.prefijo, det.cuerpo, usados).forEach(function (x) { plan.errores.push(x); });
+  return plan;
+}
+
+function cambiarCodigo_(sesion, idSolicitud, codigo) {
+  let fila, plan, hayFinal;
+  conCandado_(20000, function () {
+    fila = filaSolicitud_(idSolicitud);
+    const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: false }, formatoFecha_);
+    plan = planCambioCodigo_(fila, sesion, det, codigo, codigosUsados_(leerTabla_('Solicitudes'), leerTabla_('Documentos'), idSolicitud));
+    if (plan.errores.length) throw new Error(plan.errores.join(' '));
+    actualizarFila_('Solicitudes', fila._fila, { CODIGO: plan.codigo, FECHA_ACTUALIZACION: marcaDeTiempo_(new Date()) });
+    const doc = leerTabla_('Documentos').filter(function (x) { return x.ID_SOLICITUD_VIGENTE === idSolicitud; })[0];
+    if (doc) actualizarFila_('Documentos', doc._fila, { CODIGO: plan.codigo });
+    // El consecutivo de la serie avanza hasta el número usado (como en el Vo.Bo.).
+    const serie = 'COD-' + det.prefijo + '-' + det.cuerpo;
+    const numero = Number(plan.codigo.split('-').pop()) || 0;
+    const actual = leerTabla_('Consecutivos').filter(function (c) { return c.SERIE === serie; })[0];
+    if (!actual) agregarFila_('Consecutivos', { SERIE: serie, ULTIMO: String(numero), FECHA_ACTUALIZACION: new Date() });
+    else if (numero > Number(actual.ULTIMO)) actualizarFila_('Consecutivos', actual._fila, { ULTIMO: String(numero), FECHA_ACTUALIZACION: new Date() });
+    hayFinal = leerTabla_('Archivos').some(function (a) { return a.ID_SOLICITUD === idSolicitud && a.TIPO === 'FINAL'; });
+  });
+  registrarBitacora_(sesion, 'CAMBIAR_CODIGO', 'De ' + (fila.CODIGO || '(sin código)') + ' a ' + plan.codigo + '.', idSolicitud);
+  return { codigo: plan.codigo, regenerar: hayFinal || fila.ESTADO === ESTADOS.EN_AUTORIZACION_CH };
 }

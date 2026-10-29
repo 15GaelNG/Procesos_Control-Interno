@@ -20,8 +20,11 @@ function contenidoCanonico_(contenido) {
     responsabilidades: (contenido.responsabilidades || []).map(t),
     definiciones: (contenido.definiciones || []).map(t),
     actividades: (contenido.actividades || []).map(function (a) {
-      return { texto: t(a.texto), responsable: t(a.responsable),
+      const actividad = { texto: t(a.texto), responsable: t(a.responsable),
         imagenes: (a.imagenes || []).map(function (i) { return [t(i.id), t(i.pie)]; }) };
+      // Solo si hay: así las huellas de lo que se confirmó antes de que existieran los enlaces no cambian.
+      if (a.enlaces && a.enlaces.length) actividad.enlaces = a.enlaces.map(function (e) { return [t(e.url), t(e.texto)]; });
+      return actividad;
     })
   });
 }

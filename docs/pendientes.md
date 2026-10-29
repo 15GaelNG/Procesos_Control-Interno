@@ -4,6 +4,20 @@ Lista viva de lo que falta hacer o revisar **fuera del código**: lo que Gael co
 que Procesos debe entregar o decidir, y lo que hay que validar en pruebas. Se actualiza en cada commit
 que agregue algo aquí; lo hecho se tacha con la fecha.
 
+## 0. Versión 9 en pruebas (29/10/2026): lo que hay que correr
+
+Los 22 cambios que pidieron el 28 y 29/10 (decisiones 25 a 31). Después de que Claude la suba:
+
+1. En el editor de **BD Procesos - PRUEBAS**, correr **`probarAvisos()`** y **aceptar el permiso de enviar
+   correos**. Es lo primero: mientras no se acepte, la app de pruebas puede marcar error de permisos.
+   Debe llegarte un correo de prueba.
+2. Correr **`instalarPruebas()`**: agrega `ENLACES` (Actividades), `HUELLA_REVISOR` (Solicitudes) y
+   `AVISOS_CORREO` (Config).
+3. En `Config` de pruebas: `CORREO_PROCESOS` = el correo que debe recibir los avisos de Procesos (para
+   probar, el tuyo; en producción, procesos.ci@ciudadmaderas.com).
+4. Recargar la app con Ctrl + F5 y recorrer lo nuevo (ver la respuesta de Claude del 29/10).
+5. Para producción: a procesos.ci@ciudadmaderas.com darle los perfiles **Administrador y Revisor**.
+
 ## 1. Cuando Gael tenga acceso a Apps Script
 
 Todo lo de las fases 1 a 6 está en el código pero **nada se ha probado en Apps Script real**. Primero se

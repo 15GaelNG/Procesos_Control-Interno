@@ -18,6 +18,10 @@
     <div class="aviso-consulta" data-campo="aviso" hidden>
       <i data-lucide="eye" class="ico"></i><span data-campo="aviso-texto"></span>
     </div>
+    <div class="aviso-consulta" data-campo="corregido" hidden>
+      <i data-lucide="pencil" class="ico"></i>
+      <span>Procesos corrigió el contenido en esta revisión: el Vo.Bo. se da sobre lo corregido y el colaborador ve cada cambio.</span>
+    </div>
     <div class="aviso-conflicto" data-campo="no-confirmado" hidden>
       <i data-lucide="triangle-alert" class="ico"></i>
       <span>El contenido ya no es el que confirmó el colaborador. Para darle el Vo.Bo. tiene que volver a confirmarlo: devuélvesela con una observación.</span>
@@ -85,6 +89,18 @@
           </details>
         </section>
 
+        <section class="tarjeta seccion-analisis" data-campo="codigo-tarjeta" hidden>
+          <h2><i data-lucide="hash" class="ico"></i>Código del documento</h2>
+          <p class="nota">Ya tiene el Vo.Bo. Si hace falta, corrige aquí la numeración (mismo tipo, departamento y área).</p>
+          <label class="campo">
+            <span>Código</span>
+            <input type="text" data-campo="codigo-nuevo" maxlength="40" autocomplete="off" spellcheck="false">
+          </label>
+          <div class="pregunta-botones">
+            <button type="button" class="boton secundario" data-accion="cambiar-codigo"><i data-lucide="pencil" class="ico"></i><span>Cambiar código</span></button>
+          </div>
+        </section>
+
         <section class="tarjeta documentos" data-campo="documentos" hidden>
           <div class="documentos-cabeza">
             <div>
@@ -100,6 +116,28 @@
           <div class="lista-archivos" data-campo="archivos"></div>
         </section>
       </aside>
+    </div>
+  </div>
+</template>
+
+<template id="parte-editor-revisor">
+  <div class="dialogo-fondo" role="dialog" aria-modal="true">
+    <div class="tarjeta dialogo">
+      <h2 data-campo="titulo"></h2>
+      <p class="nota" data-campo="ayuda"></p>
+      <label class="campo">
+        <span>Texto</span>
+        <textarea rows="7" data-campo="valor"></textarea>
+      </label>
+      <label class="campo" data-campo="campo-responsable" hidden>
+        <span>Puesto que la realiza</span>
+        <input type="text" data-campo="responsable" maxlength="120">
+      </label>
+      <p class="nota">El colaborador verá junto a esta parte cómo estaba y cómo quedó.</p>
+      <div class="pregunta-botones">
+        <button type="button" class="boton" data-accion="guardar"><i data-lucide="check" class="ico"></i><span>Guardar corrección</span></button>
+        <button type="button" class="boton secundario" data-accion="cancelar">Cancelar</button>
+      </div>
     </div>
   </div>
 </template>

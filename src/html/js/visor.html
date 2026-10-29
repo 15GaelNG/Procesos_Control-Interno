@@ -1,0 +1,89 @@
+<script>
+  /*
+   * Visor de los archivos generados (PDF y Word) dentro de la app, sin descargarlos. apiVerArchivo revisa
+   * el permiso en el servidor, igual que la descarga. El PDF se dibuja con PDF.js y el Word con
+   * docx-preview; las librerías se cargan la primera vez que se abre el visor (sus direcciones están en
+   * Index.html, #librerias-visor, porque aquí no puede ir una dirección web).
+   */
+  const libreriasVisor = {};
+  function cargarLibreria(clave) {
+    if (!libreriasVisor[clave]) {
+      libreriasVisor[clave] = new Promise(function (resolver, rechazar) {
+        const s = document.createElement('script');
+        s.src = document.getElementById('librerias-visor').dataset[clave];
+        s.onload = resolver;
+        s.onerror = function () {
+          delete libreriasVisor[clave];
+          rechazar(new Error('No se pudo cargar el visor. Revisa tu conexión o descarga el archivo.'));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return libreriasVisor[clave];
+  }
+
+  function bytesDeBase64(base64) {
+    const binario = atob(base64);
+    const bytes = new Uint8Array(binario.length);
+    for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+    return bytes;
+  }
+
+  /* Abre el visor de un archivo: { id, nombre, formato }. */
+  function verArchivo(archivo) {
+    const f = clonar('parte-visor-archivo');
+    const visor = f.querySelector('.visor-archivo');
+    const q = function (c) { return visor.querySelector('[data-campo="' + c + '"]'); };
+    q('nombre').textContent = archivo.nombre;
+    const cerrar = function () { visor.remove(); document.removeEventListener('keydown', teclas); };
+    const teclas = function (e) { if (e.key === 'Escape') cerrar(); };
+    visor.addEventListener('click', function (e) { if (e.target === visor || e.target.closest('[data-accion="cerrar"]')) cerrar(); });
+    const descargar = visor.querySelector('[data-accion="descargar"]');
+    descargar.addEventListener('click', function () { descargarArchivoGenerado(archivo.id, descargar); });
+    document.addEventListener('keydown', teclas);
+    document.body.appendChild(f);
+    pintarIconos();
+    llamar('apiVerArchivo', archivo.id).then(function (r) {
+      const bytes = bytesDeBase64(r.base64);
+      return r.formato === 'DOCX' ? pintarWord(q('hojas'), bytes) : pintarPdf(q('hojas'), bytes);
+    }).then(function () {
+      q('cargando').hidden = true;
+    }).catch(function (e) {
+      q('cargando').textContent = e.message;
+    });
+  }
+
+  /* Cada página del PDF en un canvas del ancho del visor. */
+  function pintarPdf(contenedor, bytes) {
+    /* El «worker» de PDF.js se carga en la página: el navegador no deja crearlo desde otra dirección. */
+    return cargarLibreria('pdf').then(function () { return cargarLibreria('pdfWorker'); }).then(function () {
+      const pdfjs = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+      pdfjs.GlobalWorkerOptions.workerSrc = document.getElementById('librerias-visor').dataset.pdfWorker;
+      return pdfjs.getDocument({ data: bytes }).promise;
+    }).then(function (pdf) {
+      let cadena = Promise.resolve();
+      for (let n = 1; n <= pdf.numPages; n++) {
+        cadena = cadena.then(function () { return pdf.getPage(n); }).then(function (pagina) {
+          const ancho = Math.min(Math.max(contenedor.clientWidth - 24, 280), 920);
+          const escala = ancho / pagina.getViewport({ scale: 1 }).width;
+          const densidad = window.devicePixelRatio || 1;
+          const vista = pagina.getViewport({ scale: escala * densidad });
+          const lienzo = document.createElement('canvas');
+          lienzo.className = 'visor-hoja';
+          lienzo.width = vista.width;
+          lienzo.height = vista.height;
+          lienzo.style.width = Math.round(vista.width / densidad) + 'px';
+          contenedor.appendChild(lienzo);
+          return pagina.render({ canvasContext: lienzo.getContext('2d'), viewport: vista }).promise;
+        });
+      }
+      return cadena;
+    });
+  }
+
+  function pintarWord(contenedor, bytes) {
+    return cargarLibreria('jszip').then(function () { return cargarLibreria('docx'); }).then(function () {
+      return window.docx.renderAsync(bytes.buffer, contenedor, null, { className: 'docx', inWrapper: true, breakPages: true });
+    });
+  }
+</script>

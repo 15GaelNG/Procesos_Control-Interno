@@ -72,11 +72,28 @@ Reglas:
 - **Sin IA** (`Config → IA_ACTIVA = NO`, sin cuota o falla): el botón se deshabilita y todo se escribe a
   mano (responsables en el paso 3; objetivo, alcance y demás aquí). El sistema funciona igual.
 
+### Nada espera al servidor (29/10/2026)
+
+Aceptar, editar o descartar una propuesta, «Aceptar todas», responder o elegir «No aplica» / «No lo sé»
+cambian la pantalla **al instante** y se mandan por detrás, en orden; ninguna bloquea a las demás. Cuando
+ya no hay nada pendiente, la pantalla se compara con la del servidor (sin estorbar a quien escribe). El
+**objetivo, el alcance, las responsabilidades y las definiciones se guardan solos** a los 2 s de dejar de
+escribir (ya no hay botón «Guardar»).
+
+- **«Aceptar todas»** también para lo que propone el análisis (responsables, objetivo, alcance,
+  responsabilidades y definiciones: `GRUPOS_PROPUESTA.DEMAS`), además de las correcciones de redacción.
+- **Las preguntas son obligatorias** para continuar: «Continuar a la vista previa» lleva a la primera
+  que falte (vale «No aplica» o «No lo sé»).
+- Las observaciones de Procesos sobre el objetivo, el alcance, etc. se ven junto a cada campo.
+
 ## Paso 5 · Vista previa y confirmación
 
-El borrador integral en el orden de la plantilla: datos generales, **1. Objetivo, 2. Alcance, 3. Puestos
-involucrados**, Responsabilidades y Definiciones (si hay; si no, se quitan y se renumera, como en el
-documento) y **Desarrollo** (cada actividad con su responsable, texto e imágenes con «Imagen n.m – pie»).
+El borrador integral en el orden de la plantilla: datos generales, **1. Objetivo, 2. Alcance, 3. Puestos y
+responsabilidades** (cada puesto de las actividades con lo que le toca; decisión 25), Definiciones (si
+hay; si no, se quita y se renumera, como en el documento) y **Desarrollo** (cada actividad con su
+responsable, texto, enlaces e imágenes con «Imagen n.m – pie»). Cada parte tiene un **lápiz** que lleva
+a corregirla (paso 3 o 4) y, si Procesos la devolvió, sus observaciones van **al lado de cada parte**
+(como los comentarios de Word) con «Corregir aquí» y «Marcar como atendida».
 
 **Para confirmar hace falta** (decisión 21):
 - cada actividad con texto y **responsable**;
@@ -84,12 +101,18 @@ documento) y **Desarrollo** (cada actividad con su responsable, texto e imágene
 - **todas las preguntas respondidas** (vale «No aplica» o «No lo sé»).
 
 Si falta algo, la pantalla lo lista con botones al paso 3 o 4. Si no falta nada, pregunta:
-**«¿El documento describe correctamente cómo se realiza el proceso en tu departamento?»**
+**«¿Todo lo que dice el documento es correcto?»** (decisión 29)
 
-- **Sí** → la solicitud queda `CONFIRMADO` con la huella de exactamente lo que vio
-  (`HUELLA_CONFIRMADA`, `FECHA_CONFIRMACION`, bitácora `CONFIRMAR_SOLICITUD`). Si el contenido cambió
-  desde que abrió la vista previa (otra pestaña), no confirma y pide revisar de nuevo.
-- **Necesita ajustes** → elige qué corregir y lo lleva al paso 3 o al 4.
+- **«Sí, es correcto: enviar a Procesos»** → confirma con la huella de exactamente lo que vio
+  (`HUELLA_CONFIRMADA`, `FECHA_CONFIRMACION`, bitácora `CONFIRMAR_SOLICITUD`) **y la envía a revisión**
+  en el mismo paso (`confirmarYEnviar_`). Si quedan observaciones de Procesos por atender, se queda
+  confirmada y dice qué falta; arriba aparece «Falta un paso: enviarla a Procesos» con su botón. Si el
+  contenido cambió desde que abrió la vista previa (otra pestaña), no confirma y pide revisar de nuevo.
+- **«No, necesito corregir algo»** → directo al desarrollo (paso 3), con el aviso de seguir a la
+  corrección con IA y volver a confirmar.
+
+Al colaborador solo se le genera el **PDF** (el Word es para Procesos) y lo puede generar y **ver en la
+app** también mientras la revisan.
 
 La confirmación **no es el Vo.Bo. de Procesos**. Cualquier cambio posterior (texto, imagen, decisión,
 objetivo…) la regresa a `BORRADOR` y hay que volver a confirmar (§3.5). Lo siguiente es generar el

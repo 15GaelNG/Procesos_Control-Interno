@@ -29,7 +29,7 @@ const NOMBRES_PERFIL = {
 const DESCRIPCIONES_PERFIL = {
   COLABORADOR: 'Documenta sus procesos y los envía a revisión.',
   REVISOR: 'Área de Procesos: revisa, hace observaciones, da el Vo.Bo. y registra el resultado de CH. Nunca revisa lo que él mismo elaboró.',
-  ADMINISTRADOR: 'Usuarios, catálogos, plantillas y parámetros. No revisa documentos.',
+  ADMINISTRADOR: 'Usuarios, catálogos, plantillas, parámetros y tablero de indicadores. Para revisar documentos necesita además el perfil de revisor.',
   SOPORTE_CI: 'Consulta todo (solicitudes, usuarios, catálogos y bitácora) sin poder cambiar nada.'
 };
 
@@ -39,6 +39,8 @@ const DESCRIPCIONES_PERFIL = {
 // Procesos. Los perfiles van como texto: una constante no debe leer otra al declararse.
 const MODULOS_APP = [
   { id: 'inicio', nombre: 'Inicio', icono: 'house', perfiles: [] },
+  { id: 'tablero', nombre: 'Tablero', icono: 'chart-column', perfiles: ['ADMINISTRADOR', 'SOPORTE_CI'],
+    descripcion: 'Cómo van los procesos: cuántos hay en cada etapa, tiempos, devoluciones, departamentos, colaboradores y revisores.' },
   { id: 'mis-solicitudes', seccion: 'Documentar', nombre: 'Mis solicitudes', icono: 'folder-open',
     perfiles: ['COLABORADOR'],
     descripcion: 'Tus documentos en elaboración y en qué etapa va cada uno.',
@@ -116,7 +118,11 @@ const NOMBRES_ACCION = {
   ENVIO_CH: 'Subida a CH',
   AUTORIZADO_CH: 'Autorizada en CH',
   RECHAZADO_CH: 'Rechazada en CH',
-  GENERAR_FINAL: 'Documento final generado'
+  GENERAR_FINAL: 'Documento final generado',
+  EDITAR_REVISOR: 'Corrección de Procesos',
+  CAMBIAR_CODIGO: 'Cambio de código',
+  AVISO_CORREO: 'Aviso por correo',
+  VER_ARCHIVO: 'Archivo consultado'
 };
 
 const TIPOS_SOLICITUD = {
@@ -194,19 +200,27 @@ const ESTADOS_ACLARACION = ['PENDIENTE', 'RESPONDIDA', 'NO_APLICA', 'NO_LO_SE', 
 // Cómo se le dice a la IA lo que respondió la persona cuando eligió un botón en lugar de escribir.
 const RESPUESTA_POR_ESTADO = { NO_APLICA: 'No aplica', NO_LO_SE: 'No lo sé' };
 // ABIERTA (la hizo Procesos) → ATENDIDA (el colaborador dice que la corrigió) → CERRADA (Procesos lo verificó).
-const ESTADOS_OBSERVACION = ['ABIERTA', 'ATENDIDA', 'CERRADA'];
-const NOMBRES_ESTADO_OBSERVACION = { ABIERTA: 'Por atender', ATENDIDA: 'Atendida', CERRADA: 'Cerrada' };
+// CAMBIO: no es una observación sino el registro de una corrección que hizo Procesos (decisión 26).
+const ESTADOS_OBSERVACION = ['ABIERTA', 'ATENDIDA', 'CERRADA', 'CAMBIO'];
+const NOMBRES_ESTADO_OBSERVACION = { ABIERTA: 'Por atender', ATENDIDA: 'Atendida', CERRADA: 'Cerrada', CAMBIO: 'Corregido por Procesos' };
 // De qué parte del documento es una observación. ACTIVIDAD lleva además ID_ACTIVIDAD.
 const APARTADOS_OBSERVACION = {
   GENERAL: 'General', NOMBRE: 'Nombre del documento', INICIO: 'Inicio del proceso', OBJETIVO: 'Objetivo', ALCANCE: 'Alcance',
-  PUESTOS: 'Puestos involucrados', RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones',
+  PUESTOS: 'Puestos y responsabilidades', RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones',
   ACTIVIDAD: 'Actividad', FIN: 'Fin del proceso'
 };
+// Desde que se juntaron puestos y responsabilidades (decisión 25) ya no se observa aparte; se conserva por las viejas.
+const APARTADOS_RETIRADOS = ['RESPONSABILIDADES'];
 const DECISIONES_PROPUESTA = ['PENDIENTE', 'ACEPTADA', 'EDITADA', 'RECHAZADA', 'REEMPLAZADA'];
 
 // Qué propone la IA (columna CAMPO de PropuestasIA). ORDEN es solo una sugerencia: la IA nunca
 // reordena (§3.4); la persona reordena a mano si está de acuerdo.
 const CAMPOS_PROPUESTA = ['TEXTO', 'RESPONSABLE', 'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES', 'ORDEN'];
+// «Aceptar todas»: las correcciones de redacción, o lo demás que propone el análisis (ORDEN no: solo informa).
+const GRUPOS_PROPUESTA = {
+  REDACCION: ['TEXTO'],
+  DEMAS: ['RESPONSABLE', 'OBJETIVO', 'ALCANCE', 'RESPONSABILIDADES', 'DEFINICIONES']
+};
 // Resultado de cada envío a CH (hoja EnviosCH), que Procesos registra a mano (decisión 15).
 const RESULTADOS_CH = ['PENDIENTE', 'AUTORIZADO', 'RECHAZADO'];
 

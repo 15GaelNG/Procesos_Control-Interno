@@ -43,18 +43,35 @@ finaliza?». Cada actividad tiene:
   fase 3 lo detectará del texto y preguntará si falta).
 - **Imágenes**: botón, **Ctrl + V** o arrastrar y soltar. Cada una con su **pie**. Se pueden ver en
   grande, mover y quitar.
+- **Enlaces** (decisión 31): «Agregar enlace» → qué es y la dirección (páginas, carpetas de Drive,
+  sistemas). Se acepta con o sin `https://`; si no parece una dirección web, avisa y no la guarda. Hasta
+  `LIMITES_CAPTURA.ENLACES_MAX` por actividad. Salen en la vista previa y en el documento como ligas.
 - Botones para subir, bajar y eliminar la actividad.
+
+Arriba va la **barra de progreso** de la solicitud (captura → confirmación → revisión de Procesos →
+Vo.Bo. → autorización en CH → autorizado), la misma que ven todos los perfiles. Si Procesos la devolvió,
+sus observaciones aparecen **junto a la parte** a la que se refieren (inicio, cada actividad, fin), con
+«Marcar como atendida» ahí mismo.
 
 ### La IA sugiere la redacción mientras se escribe
 
-Cuando la persona deja de escribir una actividad unos segundos (`IA_SUGERENCIA_ESPERA_MS`) o sale de
-ella, y el texto tiene al menos `IA_SUGERENCIA_MIN_CARACTERES` caracteres, la IA corrige su ortografía y
+Cuando la persona deja de escribir una actividad, el inicio o el fin unos segundos
+(`IA_SUGERENCIA_ESPERA_MS`) o sale del campo, y el texto tiene al menos `IA_SUGERENCIA_MIN_CARACTERES` caracteres, la IA corrige su ortografía y
 redacción (`apiSugerirRedaccion`, modelos rápidos, unos segundos) y aparece debajo **«Sugerencia de la
-IA»** con **«Usar esta redacción»** o **«Ignorar»**. No cambia nada sola ni guarda nada: si la usa, es
+IA»** con **«Usar esta redacción»**, **«Usarla y editarla»** (la pone y deja el cursor para seguir
+escribiendo) o **«Ignorar»**. No cambia nada sola ni guarda nada: si la usa, es
 como si la hubiera escrito (se guarda con el guardado automático). Sin datos sensibles hacia la IA. Si la
 persona sigue escribiendo, la sugerencia vieja desaparece. Se apaga con `Config → IA_SUGERIR_AL_ESCRIBIR
-= NO` y tiene su propio tope diario (`IA_MAX_SUGERENCIAS_DIA`). Arriba del desarrollo y al final está
-**«Corregir redacción con IA»**, que lleva al paso 4 y corrige todas de una vez.
+= NO` y tiene su propio tope diario (`IA_MAX_SUGERENCIAS_DIA`). Al final hay un solo botón,
+**«Siguiente: corregir con IA»**, que lleva al paso 4 y corrige todas de una vez.
+
+### Abre al instante
+
+Al volver a una pantalla (pasos 3, 4 y 5, «Mis solicitudes», la bandeja…) se pinta de inmediato lo
+último que se vio y, cuando llega lo del servidor, se repinta solo si cambió (`cargarConMemoria`,
+`js/api.html`). En el paso 3 no se puede escribir hasta que el servidor confirma que no cambió (dice
+«Actualizando…» uno o dos segundos). Al cambiar de pantalla no se espera a que termine de guardarse lo
+anterior: la pantalla nueva espera por su cuenta antes de pedir sus datos.
 
 ### Se guarda solo
 

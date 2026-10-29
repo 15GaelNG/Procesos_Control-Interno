@@ -203,7 +203,10 @@ const LIMITES_CAPTURA = {
   DERIVADO_MAX: 2000,        // Objetivo y alcance
   LINEAS_MAX: 40,            // Renglones de responsabilidades o de definiciones
   LINEA_MAX: 600,            // Cada uno de esos renglones
-  RESPUESTA_MAX: 2000        // Respuesta a una pregunta de la IA
+  RESPUESTA_MAX: 2000,       // Respuesta a una pregunta de la IA
+  ENLACES_MAX: 50,           // Enlaces (páginas, carpetas de Drive, sistemas) por actividad
+  ENLACE_MAX: 2000,          // Largo de cada dirección
+  ENLACE_TEXTO_MAX: 200      // Descripción de cada enlace
 };
 // Coincidencias de nombre que se muestran al crear un documento nuevo, y desde qué parecido (0 a 1).
 const COINCIDENCIAS_MAX = 5;

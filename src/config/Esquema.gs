@@ -45,7 +45,8 @@ const ESQUEMA_BD = [
       ['IA_SUGERIR_AL_ESCRIBIR', 'SI', 'SI / NO. La IA sugiere la redacción de cada actividad mientras se escribe (paso 3).'],
       ['IA_MAX_SUGERENCIAS_DIA', '800', 'Tope diario de sugerencias de redacción mientras se escribe (aparte del de análisis).'],
       ['PREFIJO_SOLICITUD', 'SOL', 'Prefijo del identificador interno de solicitudes (SOL-2026-0001).'],
-      ['CORREO_PROCESOS', '', 'Buzón del área de Procesos para avisos.']
+      ['CORREO_PROCESOS', '', 'Buzón del área de Procesos para avisos.'],
+      ['AVISOS_CORREO', 'SI', 'SI / NO. Avisos por correo: a Procesos cuando llega una solicitud y al colaborador cuando se la devuelven, recibe el Vo.Bo., se autoriza o se cierra.']
     ]
   },
   {
@@ -129,13 +130,13 @@ const ESQUEMA_BD = [
       'ELABORO_ID', 'ELABORO_NOMBRE', 'ELABORO_PUESTO', 'FECHA_ELABORACION',
       'REVISO_ID', 'REVISO_NOMBRE', 'REVISO_PUESTO', 'FECHA_REVISION',
       'AUTORIZO_NOMBRE', 'AUTORIZO_PUESTO', 'FECHA_AUTORIZACION',
-      'MOTIVO_CIERRE', 'ID_CARPETA', 'FECHA_ACTUALIZACION', 'FECHA_ENVIO_REVISION']
+      'MOTIVO_CIERRE', 'ID_CARPETA', 'FECHA_ACTUALIZACION', 'FECHA_ENVIO_REVISION', 'HUELLA_REVISOR']
   },
   {
     hoja: 'Actividades', grupo: 'OPERACION',
     descripcion: 'Pasos del proceso de cada solicitud, en el orden que definió el colaborador.',
     columnas: ['ID_ACTIVIDAD', 'ID_SOLICITUD', 'ORDEN', 'TEXTO_ORIGINAL', 'TEXTO_FINAL', 'ID_PUESTO',
-      'PUESTO_TEXTO', 'RESPONSABLE_CONFIRMADO', 'ELIMINADA', 'FECHA_ACTUALIZACION']
+      'PUESTO_TEXTO', 'RESPONSABLE_CONFIRMADO', 'ELIMINADA', 'FECHA_ACTUALIZACION', 'ENLACES']
   },
   {
     hoja: 'Imagenes', grupo: 'OPERACION',
@@ -157,7 +158,7 @@ const ESQUEMA_BD = [
   },
   {
     hoja: 'Observaciones', grupo: 'OPERACION',
-    descripcion: 'Observaciones de Procesos por apartado o actividad: ABIERTA → ATENDIDA (colaborador) → CERRADA (revisor).',
+    descripcion: 'Observaciones de Procesos por apartado o actividad: ABIERTA → ATENDIDA (colaborador) → CERRADA (revisor). CAMBIO: corrección que hizo Procesos.',
     columnas: ['ID_OBSERVACION', 'ID_SOLICITUD', 'REVISION', 'APARTADO', 'ID_ACTIVIDAD', 'AUTOR_ID',
       'AUTOR_NOMBRE', 'PERFIL', 'TEXTO', 'ESTADO', 'RESPUESTA', 'FECHA', 'FECHA_ATENCION']
   },

@@ -16,11 +16,14 @@
     modulos: DATOS.modulos,
     comoUsuario: '',
     alSalir: null,     /* La pantalla abierta puede dejar aquí qué hacer antes de cambiar (p. ej. guardar). */
-    analizarAlAbrir: null /* { id, operacion } que el paso 4 corre en cuanto abre (botón del paso 3). */
+    analizarAlAbrir: null, /* { id, operacion } que el paso 4 corre en cuanto abre (botón del paso 3). */
+    enfocar: null,     /* { id, apartado, idActividad }: la parte que la pantalla enfoca al abrir (irACorregir). */
+    ajustando: {}      /* Solicitudes en las que se eligió «Necesito corregir algo» en la vista previa. */
   };
 
   /* Pantallas que piden datos al servidor al abrirse: id del módulo → función(contenedor, parámetro). */
   const PANTALLAS = {
+    tablero: iniciarTablero,
     'mis-solicitudes': iniciarMisSolicitudes,
     nueva: iniciarNuevaSolicitud,
     revision: iniciarBandeja,
@@ -269,6 +272,7 @@
     const anterior = estado.comoUsuario;
     lista.disabled = true;
     estado.comoUsuario = idUsuario;
+    olvidarVistas();
     return llamar('apiSesion').then(function (r) {
       estado.sesion = r.sesion;
       estado.modulos = r.modulos;

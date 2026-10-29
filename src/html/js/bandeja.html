@@ -84,8 +84,13 @@
       info.appendChild(elemento('div', 'solicitud-nombre', s.nombre));
       info.appendChild(elemento('div', 'nota', [s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''),
         s.elaborador ? 'Elaboró ' + s.elaborador : ''].filter(Boolean).join(' · ')));
-      info.appendChild(elemento('div', 'nota', [s.enviada ? 'Enviada ' + s.enviada + ' (' + tiempoEsperando(s.dias) + ')' : '',
-        s.revisor ? 'Revisa ' + s.revisor : 'Sin revisor'].filter(Boolean).join(' · ')));
+      info.appendChild(elemento('div', 'nota', s.enviada ? 'Enviada ' + s.enviada + ' (' + tiempoEsperando(s.dias) + ')' : ''));
+      /* Quién la tomó, a la vista (o que nadie la ha tomado). */
+      const quien = elemento('div', 'revisa' + (s.revisor ? '' : ' nadie'));
+      quien.innerHTML = '<i class="ico" data-lucide="' + (s.revisor ? 'user-check' : 'user-x') + '"></i><span></span>';
+      quien.querySelector('span').textContent = s.revisor ? (s.revisorId === estado.sesion.idUsuario ? 'La tomaste tú' : 'La tomó ' + s.revisor) : 'Nadie la ha tomado';
+      info.appendChild(quien);
+      info.appendChild(barraProgreso(s.estado, true));
       f.appendChild(info);
 
       const botones = elemento('div', 'solicitud-botones');
@@ -136,8 +141,8 @@
     }
 
     function cargar() {
-      return llamar('apiBandeja').then(function (r) {
-        if (!contenido.isConnected) return;
+      return cargarConMemoria('bandeja', function () { return llamar('apiBandeja'); }, function (r, memoria, igual) {
+        if (!contenido.isConnected || igual) return;
         datos = r;
         if (!datos.soyRevisor) {
           raiz.querySelector('[data-campo="subtitulo"]').textContent =

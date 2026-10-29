@@ -212,7 +212,8 @@
         datos.appendChild(cabeza);
         datos.appendChild(elemento('div', 'solicitud-nombre', s.nombre));
         datos.appendChild(elemento('div', 'nota', [s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''),
-          s.actualizada ? 'Actualizada ' + s.actualizada : ''].filter(Boolean).join(' · ')));
+          s.actualizada ? 'Actualizada ' + s.actualizada : '', s.revisor ? 'Revisa ' + s.revisor : ''].filter(Boolean).join(' · ')));
+        datos.appendChild(barraProgreso(s.estado, true));
         fila.appendChild(datos);
         const botones = elemento('div', 'solicitud-botones');
         const abrir = elemento('button', 'boton ' + (s.editable ? '' : 'secundario'), s.editable ? 'Continuar' : 'Ver');
@@ -235,8 +236,8 @@
     }
 
     function cargar() {
-      return llamar('apiMisSolicitudes').then(function (r) {
-        if (!contenido.isConnected) return;
+      return cargarConMemoria('mis-solicitudes', function () { return llamar('apiMisSolicitudes'); }, function (r, memoria, igual) {
+        if (!contenido.isConnected || igual) return;
         lista = r;
         pintar();
       }).catch(function (e) {

@@ -8,9 +8,14 @@
    * El servidor rechaza un guardado si la solicitud cambió en otra pestaña (marca); entonces se detiene
    * el guardado y se pide recargar.
    *
-   * Mientras se escribe, la IA sugiere la redacción de cada actividad (apiSugerirRedaccion) cuando la
-   * persona deja de escribir unos segundos o sale de ella. No cambia nada sola: «Usar esta redacción»
-   * pone el texto sugerido (y se guarda como cualquier cambio) o «Ignorar» la descarta.
+   * Mientras se escribe, la IA sugiere la redacción de cada actividad y del inicio y el fin
+   * (apiSugerirRedaccion) cuando la persona deja de escribir unos segundos o sale del campo. No cambia nada
+   * sola: «Usar esta redacción» (o «Usarla y editarla») pone el texto sugerido y se guarda como cualquier
+   * cambio; «Ignorar» la descarta. Cada actividad puede llevar enlaces (páginas, carpetas, sistemas).
+   * Las observaciones de Procesos van junto a la parte a la que se refieren.
+   *
+   * Al volver a esta pantalla se pinta lo último que se vio (memoria de pantallas, api.html) sin dejar
+   * editar hasta que el servidor confirma que no cambió (misma marca).
    */
   function iniciarEditor(raiz, idSolicitud) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
@@ -22,50 +27,83 @@
     let espera = null;
     let sucio = false;
     let detenido = false;
+    let esperandoServidor = false;
     const miniaturas = {};
     const completas = {};
+    const campoInicio = { texto: '' };
+    const campoFin = { texto: '' };
 
     /* ─────────── Sugerencia de la IA mientras se escribe ─────────── */
     let sugerenciasEnCurso = 0;
-    function programarSugerencia(actividad, ahora) {
-      clearTimeout(actividad.temporizadorIa);
-      if (!sol.sugerirRedaccion || !sol.puedeEditar || detenido) return;
-      actividad.temporizadorIa = setTimeout(function () { pedirSugerencia(actividad); }, ahora ? 0 : sol.sugerencia.esperaMs);
+    function programarSugerencia(campo, ahora) {
+      clearTimeout(campo.temporizadorIa);
+      if (!sol.sugerirRedaccion || !sol.puedeEditar || detenido || esperandoServidor) return;
+      campo.temporizadorIa = setTimeout(function () { pedirSugerencia(campo); }, ahora ? 0 : sol.sugerencia.esperaMs);
     }
-    function pedirSugerencia(actividad) {
-      const texto = actividad.texto.trim();
-      if (texto.length < sol.sugerencia.minCaracteres || texto === actividad.revisado) return;
-      if ((actividad.ignoradas || []).indexOf(texto) !== -1) return;
+    function pedirSugerencia(campo) {
+      const texto = campo.texto.trim();
+      if (texto.length < sol.sugerencia.minCaracteres || texto === campo.revisado) return;
+      if ((campo.ignoradas || []).indexOf(texto) !== -1) return;
       /* Pocas a la vez: si ya hay dos en camino, esta espera un poco. */
-      if (sugerenciasEnCurso >= 2) { actividad.temporizadorIa = setTimeout(function () { pedirSugerencia(actividad); }, 1500); return; }
-      actividad.revisado = texto;
+      if (sugerenciasEnCurso >= 2) { campo.temporizadorIa = setTimeout(function () { pedirSugerencia(campo); }, 1500); return; }
+      campo.revisado = texto;
       sugerenciasEnCurso++;
-      mostrarRevisando(actividad, true);
+      mostrarRevisando(campo, true);
       llamar('apiSugerirRedaccion', idSolicitud, texto).then(function (r) {
         if (r.apagada) { sol.sugerirRedaccion = false; return; }
-        if (actividad.texto.trim() !== texto) return;   /* siguió escribiendo: esta ya no sirve */
-        actividad.sugerencia = r.igual ? null : { para: texto, texto: r.texto, cambios: r.cambios, aviso: r.aviso };
-        pintarSugerencia(actividad);
+        if (campo.texto.trim() !== texto) return;   /* siguió escribiendo: esta ya no sirve */
+        campo.sugerencia = r.igual ? null : { para: texto, texto: r.texto, cambios: r.cambios, aviso: r.aviso };
+        pintarSugerencia(campo);
       }).catch(function () {
-        actividad.revisado = '';   /* sin sugerencia: se vuelve a intentar al seguir escribiendo */
+        campo.revisado = '';   /* sin sugerencia: se vuelve a intentar al seguir escribiendo */
       }).then(function () {
         sugerenciasEnCurso--;
-        mostrarRevisando(actividad, false);
+        mostrarRevisando(campo, false);
       });
     }
-    function mostrarRevisando(actividad, si) {
-      const n = actividad.nodo && actividad.nodo.querySelector('[data-campo="revisando"]');
+    function mostrarRevisando(campo, si) {
+      const n = campo.nodo && campo.nodo.querySelector('[data-campo="revisando"]');
       if (n) n.hidden = !si;
     }
-    function pintarSugerencia(actividad) {
-      const caja = actividad.nodo && actividad.nodo.querySelector('[data-campo="sugerencia"]');
+    function pintarSugerencia(campo) {
+      const caja = campo.nodo && campo.nodo.querySelector('[data-campo="sugerencia"]');
       if (!caja) return;
-      const s = actividad.sugerencia;
-      const vigente = !!s && s.para === actividad.texto.trim();
+      const s = campo.sugerencia;
+      const vigente = !!s && s.para === campo.texto.trim();
       caja.hidden = !vigente;
       if (!vigente) return;
       caja.querySelector('[data-campo="sugerencia-texto"]').textContent = s.texto;
       caja.querySelector('[data-campo="sugerencia-nota"]').textContent = [s.cambios, s.aviso].filter(Boolean).join(' · ');
+    }
+    /*
+     * Conecta un campo de texto con la sugerencia de la IA. campo: { texto, nodo } (una actividad, o el
+     * inicio o el fin); lugar: dónde va la caja de la sugerencia; poner(texto): cómo queda el texto elegido.
+     */
+    function conectarSugerencia(campo, area, lugar, poner) {
+      lugar.appendChild(clonar('parte-sugerencia'));
+      area.addEventListener('input', function () { pintarSugerencia(campo); programarSugerencia(campo); });
+      area.addEventListener('blur', function () { programarSugerencia(campo, true); });
+      const usar = function (editarDespues) {
+        const s = campo.sugerencia;
+        if (!s) return;
+        poner(s.texto);
+        area.value = s.texto;
+        campo.revisado = s.texto.trim();
+        campo.sugerencia = null;
+        pintarSugerencia(campo);
+        marcarCambio();
+        if (editarDespues) { area.focus(); area.setSelectionRange(area.value.length, area.value.length); }
+      };
+      campo.nodo.querySelector('[data-accion="usar-sugerencia"]').addEventListener('click', function () { usar(false); });
+      campo.nodo.querySelector('[data-accion="editar-sugerencia"]').addEventListener('click', function () { usar(true); });
+      campo.nodo.querySelector('[data-accion="ignorar-sugerencia"]').addEventListener('click', function () {
+        const s = campo.sugerencia;
+        if (!s) return;
+        campo.ignoradas = (campo.ignoradas || []).concat([s.para]);
+        campo.sugerencia = null;
+        pintarSugerencia(campo);
+      });
+      pintarSugerencia(campo);
     }
 
     function encolar(tarea) {
@@ -74,26 +112,46 @@
       return p;
     }
 
+    /* ─────────── Enlaces ─────────── */
+    /* La dirección como se guardará (con el protocolo https si no lo traía), o '' si no parece una página web. */
+    function enlaceNormalizado(url) {
+      let u = String(url || '').trim();
+      if (!u) return '';
+      if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https:\/\/' + u.replace(/^\/+/, '');
+      return /^https?:\/\/[^\s\/?#]+[^\s]*$/i.test(u) ? u : '';
+    }
+
     /* ─────────── Guardado ─────────── */
     function contenidoActual() {
       return {
         marca: sol.marca, inicio: sol.inicio, fin: sol.fin,
         actividades: sol.actividades.map(function (a) {
           return { id: a.id || '', clave: a.clave || '', texto: a.texto, responsable: a.responsable,
-            imagenes: a.imagenes.filter(function (i) { return i.id; }).map(function (i) { return { id: i.id, pie: i.pie }; }) };
+            imagenes: a.imagenes.filter(function (i) { return i.id; }).map(function (i) { return { id: i.id, pie: i.pie }; }),
+            /* Las direcciones que no son válidas no se mandan (la pantalla avisa en cada una). */
+            enlaces: a.enlaces.filter(function (e) { return enlaceNormalizado(e.url); })
+              .map(function (e) { return { url: enlaceNormalizado(e.url), texto: e.texto }; }) };
         })
       };
+    }
+
+    /* Lo que se recuerda de esta pantalla para pintarla al instante la próxima vez (sin lo de la página). */
+    function recordarEditor() {
+      if (!sol) return;
+      const fuera = ['nodo', 'temporizadorIa', 'sugerencia', 'revisado', 'ignoradas', 'vista'];
+      recordarVista('solicitud:' + idSolicitud, JSON.parse(JSON.stringify(sol, function (k, v) { return fuera.indexOf(k) !== -1 ? undefined : v; })));
     }
 
     function mostrarGuardado(como, detalle) {
       const caja = editor && editor.querySelector('[data-campo="guardado"]');
       if (!caja) return;
-      const textos = { guardado: 'Guardado', guardando: 'Guardando…', pendiente: 'Cambios sin guardar', error: 'No se pudo guardar' };
-      const iconos = { guardado: 'check', guardando: 'loader', pendiente: 'pencil', error: 'triangle-alert' };
+      const textos = { guardado: 'Guardado', guardando: 'Guardando…', pendiente: 'Cambios sin guardar', error: 'No se pudo guardar',
+        actualizando: 'Actualizando…' };
+      const iconos = { guardado: 'check', guardando: 'loader', pendiente: 'pencil', error: 'triangle-alert', actualizando: 'loader' };
       caja.className = 'estado-guardado ' + como;
       caja.innerHTML = '<i class="ico"></i><span></span>';
       caja.querySelector('i').setAttribute('data-lucide', iconos[como]);
-      if (como === 'guardando') caja.querySelector('i').classList.add('girando');
+      if (como === 'guardando' || como === 'actualizando') caja.querySelector('i').classList.add('girando');
       caja.querySelector('span').textContent = textos[como];
       caja.title = detalle || '';
       pintarIconos();
@@ -108,6 +166,7 @@
         sol.actividades.forEach(function (a) { if (!a.id && r.ids[a.clave]) a.id = r.ids[a.clave]; });
         cambioDeEstado(r.estado);
         mostrarGuardado(sucio ? 'pendiente' : 'guardado');
+        recordarEditor();
       }).catch(function (e) {
         sucio = true;
         if (/otra ventana/.test(e.message)) {
@@ -129,7 +188,7 @@
     }
 
     function marcarCambio() {
-      if (!sol.puedeEditar || detenido) return;
+      if (!sol.puedeEditar || detenido || esperandoServidor) return;
       sucio = true;
       mostrarGuardado('pendiente');
       clearTimeout(espera);
@@ -146,6 +205,7 @@
 
     /* Al salir de la pantalla, lo pendiente se guarda de inmediato y se espera (también las imágenes que suben). */
     estado.alSalir = function () {
+      recordarEditor();
       if (detenido) return null;
       if (sucio) guardar();
       return cola;
@@ -166,7 +226,7 @@
     }
 
     function agregarImagenes(actividad, archivos) {
-      if (!sol.puedeEditar || detenido || !archivos.length) return;
+      if (!sol.puedeEditar || detenido || esperandoServidor || !archivos.length) return;
       const lugar = sol.imagen.maxPorActividad - actividad.imagenes.length;
       if (lugar <= 0) { avisar('Cada actividad admite hasta ' + sol.imagen.maxPorActividad + ' imágenes.', 'error'); return; }
       if (archivos.length > lugar) avisar('Solo caben ' + lugar + ' imágenes más en esta actividad.', 'error');
@@ -192,6 +252,7 @@
         }).then(function () {
           pintarImagenesDe(actividad);
           if (!sucio) mostrarGuardado('guardado');
+          recordarEditor();
         }).catch(function (e) {
           actividad.imagenes.splice(actividad.imagenes.indexOf(temporal), 1);
           pintarImagenesDe(actividad);
@@ -218,6 +279,37 @@
       else llamar('apiImagen', imagen.id).then(function (url) { completas[imagen.id] = url; poner(url); }).catch(function () { /* se queda la miniatura */ });
     }
 
+    /* ─────────── Observaciones de Procesos ─────────── */
+    function accionesObservacion() {
+      if (!sol.puedeEditar || !sol.esSuya) return null;
+      return {
+        atender: function (o, texto, boton) {
+          boton.disabled = true;
+          llamar('apiCambiarObservacion', idSolicitud, o.id, 'ATENDER', texto).then(function () {
+            o.estado = 'ATENDIDA';
+            o.nombreEstado = 'Atendida';
+            o.respuesta = String(texto || '').trim();
+            avisar('Observación atendida.', 'exito');
+            pintarComentarios();
+          }).catch(function (e) { avisar(e.message, 'error'); boton.disabled = false; });
+        }
+      };
+    }
+    function ponerComentarios(lugar, apartado, idActividad) {
+      if (!lugar) return;
+      lugar.textContent = '';
+      const c = comentariosDe(sol.observaciones, apartado, idActividad, accionesObservacion());
+      if (c) lugar.appendChild(c);
+    }
+    function pintarComentarios() {
+      ponerComentarios(editor.querySelector('[data-campo="campo-inicio"] [data-campo="comentarios"]'), 'INICIO');
+      ponerComentarios(editor.querySelector('[data-campo="campo-fin"] [data-campo="comentarios"]'), 'FIN');
+      sol.actividades.forEach(function (a) {
+        if (a.id && a.nodo) ponerComentarios(a.nodo.querySelector('[data-campo="comentarios"]'), 'ACTIVIDAD', a.id);
+      });
+      pintarIconos();
+    }
+
     /* ─────────── Pintar ─────────── */
     function pintarEncabezado() {
       editor.querySelector('[data-campo="folio"]').textContent = sol.id + (sol.codigo ? ' · ' + sol.codigo : '');
@@ -225,6 +317,7 @@
       const chip = editor.querySelector('[data-campo="estado"]');
       chip.className = 'chip estado-' + sol.estado.toLowerCase();
       chip.textContent = DATOS.nombresEstado[sol.estado] || sol.estado;
+      pintarProgreso(raiz, sol.estado);
     }
 
     function pintarImagenesDe(actividad) {
@@ -268,6 +361,42 @@
       pintarIconos();
     }
 
+    function pintarEnlacesDe(actividad, enfocarUltimo) {
+      const caja = actividad.nodo && actividad.nodo.querySelector('[data-campo="enlaces"]');
+      if (!caja) return;
+      caja.textContent = '';
+      actividad.enlaces.forEach(function (e, j) {
+        const f = clonar('parte-enlace');
+        const fila = f.querySelector('.enlace-fila');
+        const texto = fila.querySelector('[data-campo="texto"]');
+        const url = fila.querySelector('[data-campo="url"]');
+        const abrir = fila.querySelector('[data-campo="abrir"]');
+        const error = fila.querySelector('[data-campo="error"]');
+        texto.value = e.texto;
+        url.value = e.url;
+        texto.readOnly = url.readOnly = !sol.puedeEditar;
+        const revisar = function () {
+          const u = enlaceNormalizado(url.value);
+          error.hidden = !url.value.trim() || !!u;
+          abrir.hidden = !u;
+          if (u) abrir.href = u;
+        };
+        revisar();
+        texto.addEventListener('input', function () { e.texto = texto.value; marcarCambio(); });
+        url.addEventListener('input', function () { e.url = url.value; revisar(); marcarCambio(); });
+        const quitar = fila.querySelector('[data-accion="quitar"]');
+        quitar.hidden = !sol.puedeEditar;
+        quitar.addEventListener('click', function () {
+          actividad.enlaces.splice(j, 1);
+          pintarEnlacesDe(actividad);
+          marcarCambio();
+        });
+        caja.appendChild(f);
+        if (enfocarUltimo && j === actividad.enlaces.length - 1) setTimeout(function () { url.focus(); }, 0);
+      });
+      pintarIconos();
+    }
+
     function pintarActividades(enfocar) {
       const lista = editor.querySelector('[data-campo="actividades"]');
       lista.textContent = '';
@@ -275,38 +404,15 @@
         const f = clonar('parte-actividad');
         const nodo = f.querySelector('.actividad');
         actividad.nodo = nodo;
+        nodo.dataset.actividad = actividad.id || '';
         nodo.querySelector('[data-campo="titulo"]').textContent = 'Actividad ' + (i + 1);
         const texto = nodo.querySelector('[data-campo="texto"]');
         const responsable = nodo.querySelector('[data-campo="responsable"]');
         texto.value = actividad.texto;
         responsable.value = actividad.responsable;
         texto.readOnly = responsable.readOnly = !sol.puedeEditar;
-        texto.addEventListener('input', function () {
-          actividad.texto = texto.value;
-          marcarCambio();
-          pintarSugerencia(actividad);
-          programarSugerencia(actividad);
-        });
-        texto.addEventListener('blur', function () { programarSugerencia(actividad, true); });
-        const caja = nodo.querySelector('[data-campo="sugerencia"]');
-        caja.querySelector('[data-accion="usar-sugerencia"]').addEventListener('click', function () {
-          const s = actividad.sugerencia;
-          if (!s) return;
-          actividad.texto = s.texto;
-          texto.value = s.texto;
-          actividad.revisado = s.texto.trim();
-          actividad.sugerencia = null;
-          pintarSugerencia(actividad);
-          marcarCambio();
-        });
-        caja.querySelector('[data-accion="ignorar-sugerencia"]').addEventListener('click', function () {
-          const s = actividad.sugerencia;
-          if (!s) return;
-          actividad.ignoradas = (actividad.ignoradas || []).concat([s.para]);
-          actividad.sugerencia = null;
-          pintarSugerencia(actividad);
-        });
-        pintarSugerencia(actividad);
+        texto.addEventListener('input', function () { actividad.texto = texto.value; marcarCambio(); });
+        conectarSugerencia(actividad, texto, nodo.querySelector('[data-campo="ia"]'), function (t) { actividad.texto = t; });
         responsable.addEventListener('input', function () { actividad.responsable = responsable.value; marcarCambio(); });
 
         const mover = function (paso) {
@@ -314,6 +420,7 @@
           if (k < 0 || k >= sol.actividades.length) return;
           sol.actividades.splice(k, 0, sol.actividades.splice(i, 1)[0]);
           pintarActividades();
+          pintarComentarios();
           marcarCambio();
         };
         nodo.querySelector('[data-accion="subir"]').disabled = i === 0;
@@ -322,14 +429,20 @@
         nodo.querySelector('[data-accion="bajar"]').addEventListener('click', function () { mover(1); });
         nodo.querySelector('[data-accion="eliminar"]').addEventListener('click', function () {
           if (actividad.imagenes.some(function (im) { return im.subiendo; })) { avisar('Espera a que terminen de subir sus imágenes.', 'error'); return; }
-          const tieneAlgo = actividad.texto.trim() || actividad.imagenes.length;
+          const tieneAlgo = actividad.texto.trim() || actividad.imagenes.length || actividad.enlaces.length;
           if (tieneAlgo && !confirm('¿Eliminar la actividad ' + (i + 1) + (actividad.imagenes.length ? ' y sus imágenes' : '') + '?')) return;
           sol.actividades.splice(i, 1);
           if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
           pintarActividades();
+          pintarComentarios();
           marcarCambio();
         });
 
+        nodo.querySelector('[data-accion="agregar-enlace"]').addEventListener('click', function () {
+          if (actividad.enlaces.length >= 50) { avisar('Cada actividad admite hasta 50 enlaces.', 'error'); return; }
+          actividad.enlaces.push({ url: '', texto: '' });
+          pintarEnlacesDe(actividad, true);
+        });
         const archivo = nodo.querySelector('[data-campo="archivo"]');
         archivo.addEventListener('change', function () {
           agregarImagenes(actividad, Array.prototype.slice.call(archivo.files || []));
@@ -358,6 +471,7 @@
         }
         lista.appendChild(f);
         pintarImagenesDe(actividad);
+        pintarEnlacesDe(actividad);
       });
       pintarIconos();
       if (enfocar) {
@@ -367,17 +481,26 @@
     }
 
     function nuevaActividad() {
-      return { id: '', clave: 'n' + (claveSiguiente++), texto: '', responsable: '', imagenes: [] };
+      return { id: '', clave: 'n' + (claveSiguiente++), texto: '', responsable: '', imagenes: [], enlaces: [] };
     }
 
     function textoSoloLectura() {
       if (!sol.esSuya) return 'Modo consulta: solo quien elaboró la solicitud puede editarla.';
       const motivos = {
-        EN_REVISION: 'Está en revisión de Procesos: podrás editarla si te la regresan con observaciones.',
+        EN_REVISION: 'Está en revisión de Procesos' + (sol.revisor ? ' (la revisa ' + sol.revisor + ')' : '') + ': podrás editarla si te la regresan con observaciones.',
         EN_AUTORIZACION_CH: 'Procesos ya le dio su Vo.Bo.; está en autorización en el sistema CH.',
         AUTORIZADO: 'Ya está autorizada.', CANCELADO: 'Cancelaste esta solicitud.', NO_PROCEDENTE: 'Procesos la cerró como no procedente.'
       };
       return motivos[sol.estado] || 'No se puede editar en este momento.';
+    }
+
+    /* Mientras llega lo del servidor, lo recordado se ve pero no se edita. */
+    function esperarServidor(si) {
+      esperandoServidor = si;
+      if (!editor) return;
+      editor.classList.toggle('actualizando', si);
+      if (si) mostrarGuardado('actualizando');
+      else if (sol.puedeEditar) mostrarGuardado(sucio ? 'pendiente' : 'guardado');
     }
 
     function pintar() {
@@ -404,16 +527,20 @@
 
       const inicio = editor.querySelector('textarea[name="inicio"]');
       const fin = editor.querySelector('textarea[name="fin"]');
-      inicio.value = sol.inicio;
-      fin.value = sol.fin;
+      inicio.value = campoInicio.texto = sol.inicio;
+      fin.value = campoFin.texto = sol.fin;
       inicio.readOnly = fin.readOnly = !sol.puedeEditar;
-      inicio.addEventListener('input', function () { sol.inicio = inicio.value; marcarCambio(); });
-      fin.addEventListener('input', function () { sol.fin = fin.value; marcarCambio(); });
-
-      editor.querySelector('[data-accion="ir-analisis"]').addEventListener('click', function () {
-        ir('solicitud', true, idSolicitud + ':analisis');
+      inicio.addEventListener('input', function () { sol.inicio = campoInicio.texto = inicio.value; marcarCambio(); });
+      fin.addEventListener('input', function () { sol.fin = campoFin.texto = fin.value; marcarCambio(); });
+      [[campoInicio, inicio, 'campo-inicio', 'inicio'], [campoFin, fin, 'campo-fin', 'fin']].forEach(function (x) {
+        const caja = editor.querySelector('[data-campo="' + x[2] + '"]');
+        x[0].nodo = caja;
+        const lugar = document.createElement('div');
+        caja.insertBefore(lugar, caja.querySelector('[data-campo="comentarios"]'));
+        conectarSugerencia(x[0], x[1], lugar, function (t) { sol[x[3]] = x[0].texto = t; });
       });
-      /* Pasa al paso 4 y ahí arranca la corrección (ir() espera a que se guarde lo pendiente). */
+
+      /* Pasa al paso 4 y ahí arranca la corrección (la pantalla nueva espera a que se guarde lo pendiente). */
       editor.querySelectorAll('[data-accion="corregir-ia"]').forEach(function (b) {
         b.hidden = !sol.puedeEditar;
         b.addEventListener('click', function () {
@@ -435,6 +562,7 @@
         editor.querySelector('[data-campo="devuelta"]').hidden = false;
         editor.querySelector('[data-accion="ver-observaciones"]').addEventListener('click', function () { ir('solicitud', true, idSolicitud + ':vista'); });
       }
+      editor.querySelector('[data-campo="ajustando"]').hidden = !(sol.puedeEditar && estado.ajustando[idSolicitud]);
       if (!sol.puedeEditar) {
         editor.querySelector('[data-campo="solo-lectura"]').hidden = false;
         editor.querySelector('[data-campo="solo-lectura-texto"]').textContent = textoSoloLectura();
@@ -446,20 +574,50 @@
       }
       if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
       pintarActividades();
+      pintarComentarios();
     }
 
-    llamar('apiSolicitud', idSolicitud).then(function (d) {
-      if (!contenido.isConnected) return;
+    /* Lo que pidió la vista previa o una observación: llevar la vista a esa parte. */
+    function enfocarPedido() {
+      const e = tomarEnfoque(idSolicitud);
+      if (!e) return;
+      if (e.apartado === 'INICIO' || e.apartado === 'FIN') {
+        const caja = editor.querySelector('[data-campo="campo-' + e.apartado.toLowerCase() + '"]');
+        resaltar(caja, caja.querySelector('textarea'));
+      } else if (e.apartado === 'ACTIVIDAD') {
+        const a = sol.actividades.filter(function (x) { return x.id === e.idActividad; })[0];
+        if (a && a.nodo) resaltar(a.nodo, a.nodo.querySelector('textarea'));
+      }
+    }
+
+    function mostrarSolicitud(d) {
       sol = d;
-      sol.actividades.forEach(function (a) { a.clave = ''; });
+      sol.actividades.forEach(function (a) { a.clave = a.clave || ''; a.enlaces = a.enlaces || []; });
+      sol.observaciones = sol.observaciones || [];
       pintar();
-      if (sol.actividades.some(function (a) { return a.imagenes.length; })) {
+      if (sol.actividades.some(function (a) { return a.imagenes.some(function (im) { return im.id && !miniaturas[im.id]; }); })) {
         llamar('apiMiniaturas', idSolicitud).then(function (m) {
           Object.keys(m).forEach(function (k) { if (m[k]) miniaturas[k] = m[k]; });
           if (editor && editor.isConnected) sol.actividades.forEach(pintarImagenesDe);
         }).catch(function () { /* se quedan sin miniatura */ });
       }
-    }).catch(function (e) {
+    }
+
+    /* Lo recordado es igual a lo del servidor si tiene la misma marca y las mismas observaciones. */
+    const igualAlServidor = function (a, b) {
+      return a.marca === b.marca && a.estado === b.estado && JSON.stringify(a.observaciones || []) === JSON.stringify(b.observaciones || []);
+    };
+    cargarConMemoria('solicitud:' + idSolicitud, function () { return llamar('apiSolicitud', idSolicitud); }, function (d, memoria, igual) {
+      if (!contenido.isConnected) return;
+      if (memoria) {
+        mostrarSolicitud(d);
+        esperarServidor(true);
+        return;
+      }
+      if (!igual) mostrarSolicitud(d);
+      esperarServidor(false);
+      enfocarPedido();
+    }, igualAlServidor).catch(function (e) {
       if (!contenido.isConnected) return;
       contenido.textContent = '';
       const t = document.createElement('div');

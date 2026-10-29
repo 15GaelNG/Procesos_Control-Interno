@@ -66,8 +66,15 @@
 
   <div id="sin-acceso" class="pantalla-completa" hidden></div>
   <div id="avisos" class="avisos" aria-live="polite"></div>
+  <!-- Librerías del visor de PDF y Word (js/visor.html las carga la primera vez que se abre). -->
+  <div id="librerias-visor" hidden
+    data-pdf="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+    data-pdf-worker="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+    data-jszip="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+    data-docx="https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js"></div>
 
   <?!= include('views/inicio'); ?>
+  <?!= include('views/tablero'); ?>
   <?!= include('views/mis-solicitudes'); ?>
   <?!= include('views/nueva-solicitud'); ?>
   <?!= include('views/solicitud'); ?>
@@ -90,6 +97,9 @@
   <?!= include('js/api'); ?>
   <!-- Pantallas con datos: antes de app, que las arranca al entrar a ellas (PANTALLAS en app.html). -->
   <?!= include('js/imagenes'); ?>
+  <?!= include('js/progreso'); ?>
+  <?!= include('js/visor'); ?>
+  <?!= include('js/tablero'); ?>
   <?!= include('js/solicitudes'); ?>
   <?!= include('js/editor'); ?>
   <?!= include('js/analisis'); ?>

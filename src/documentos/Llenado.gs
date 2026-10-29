@@ -9,7 +9,9 @@
  * @param {Object} datos
  * @param {Object<string,string>} datos.simples        { CODIGO: 'P-CM01-001', … }
  * @param {Object<string,string[]>} datos.listas        { PUESTOS: ['…'], RESPONSABILIDADES: ['Puesto: …'] }
- * @param {{responsable: string, descripcion: string, imagenes: {blob: Blob, pie: string}[]}[]} datos.actividades
+ * @param {Object<string,string>} [datos.titulos]       { PUESTOS: 'Puestos y responsabilidades' }: nuevo título de su sección
+ * @param {{responsable: string, descripcion: string, enlaces: {url: string, texto: string}[],
+ *          imagenes: {blob: Blob, pie: string}[]}[]} datos.actividades
  * @return {{encontrados: Object<string,string[]>, sinLlenar: string[]}}
  */
 function llenarPlantilla_(doc, datos) {
@@ -17,6 +19,7 @@ function llenarPlantilla_(doc, datos) {
   const secciones = seccionesDelDocumento_(doc);
   const encontrados = marcadoresEnSecciones_(secciones);
 
+  Object.keys(datos.titulos || {}).forEach(function (clave) { renombrarSeccion_(cuerpo, clave, datos.titulos[clave]); });
   MARCADORES_PLANTILLA.listas.forEach(function (clave) {
     const elementos = (datos.listas || {})[clave] || [];
     if (!elementos.length && MARCADORES_PLANTILLA.opcionales.indexOf(clave) !== -1) {
@@ -170,6 +173,22 @@ function quitarSeccion_(cuerpo, clave) {
       /^\s*\d+\.\s/.test(titulo.asParagraph().getText())) titulo.removeFromParent();
 }
 
+/** Cambia el título de la sección de un marcador («3. Puestos involucrados» → «3. Puestos y responsabilidades»). */
+function renombrarSeccion_(cuerpo, clave, titulo) {
+  const p = parrafoDelMarcador_(cuerpo, clave);
+  if (!p || p.indice < 1) return;
+  const anterior = cuerpo.getChild(p.indice - 1);
+  if (anterior.getType() !== DocumentApp.ElementType.PARAGRAPH) return;
+  const t = anterior.asParagraph().editAsText();
+  const m = /^(\s*\d+\.\s+)(.*\S)\s*$/.exec(t.getText());
+  if (!m) return;
+  const inicio = m[1].length;
+  const atributos = t.getAttributes(inicio);
+  t.deleteText(inicio, inicio + m[2].length - 1);
+  t.insertText(inicio, titulo);
+  t.setAttributes(inicio, inicio + titulo.length - 1, atributos);
+}
+
 /** Vuelve a numerar «1. Objetivo…», «2. …» en orden, por si se quitó una sección opcional. */
 function renumerarSecciones_(cuerpo) {
   let n = 0;
@@ -217,10 +236,19 @@ function insertarDesarrollo_(cuerpo, actividades) {
   };
   const negrita = {}; negrita[DocumentApp.Attribute.BOLD] = true; negrita[DocumentApp.Attribute.FOREGROUND_COLOR] = '#06263A';
   const pie = {}; pie[DocumentApp.Attribute.ITALIC] = true; pie[DocumentApp.Attribute.FONT_SIZE] = 8; pie[DocumentApp.Attribute.FOREGROUND_COLOR] = '#667085';
+  const liga = {}; liga[DocumentApp.Attribute.FOREGROUND_COLOR] = '#1F5FA8'; liga[DocumentApp.Attribute.UNDERLINE] = true;
 
   actividades.forEach(function (a, i) {
     nuevo('Actividad ' + (i + 1) + ' · ' + (a.responsable || 'Responsable por confirmar'), estilo(negrita)).setSpacingBefore(10).setSpacingAfter(2);
     nuevo(a.descripcion, estilo()).setSpacingAfter(4);
+    // Enlaces (páginas, carpetas, sistemas): «Descripción: dirección», con la dirección como liga.
+    (a.enlaces || []).forEach(function (e) {
+      const etiqueta = (e.texto || 'Enlace') + ': ';
+      const par = nuevo(etiqueta + e.url, estilo()).setSpacingAfter(2);
+      const t = par.editAsText();
+      t.setLinkUrl(etiqueta.length, etiqueta.length + e.url.length - 1, e.url);
+      t.setAttributes(etiqueta.length, etiqueta.length + e.url.length - 1, liga);
+    });
     (a.imagenes || []).forEach(function (img, j) {
       // Google Docs no deja un párrafo con texto vacío: se crea con un espacio, se agrega la imagen
       // y luego se quita el espacio (si no se puede, se queda; no se nota porque va centrado).

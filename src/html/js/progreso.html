@@ -1,0 +1,93 @@
+<script>
+  /*
+   * Barra de progreso de una solicitud (todas las pantallas y perfiles): en qué etapa va, de la captura a
+   * la autorización en CH, para que nadie crea que ya terminó cuando falta algo.
+   * Y «ir a corregir»: abre el paso donde se edita una parte del documento y la deja enfocada
+   * (estado.enfocar), desde la vista previa o desde una observación de Procesos.
+   */
+  const ETAPAS_SOLICITUD = ['Captura', 'Confirmación', 'Revisión de Procesos', 'Vo.Bo. de Procesos', 'Autorización en CH', 'Autorizado'];
+
+  /* En qué etapa va: { actual (índice; 6 = terminada), alerta, cerrada, nota }. */
+  function progresoDe(estadoSolicitud) {
+    const etapas = {
+      BORRADOR: { actual: 0, nota: 'Se está capturando el proceso.' },
+      CONFIRMADO: { actual: 1, nota: 'Confirmada, pero falta enviarla a Procesos.' },
+      EN_REVISION: { actual: 2, nota: 'Procesos la está revisando.' },
+      DEVUELTO: { actual: 2, alerta: true, nota: 'Con observaciones: el colaborador corrige y la vuelve a enviar.' },
+      EN_AUTORIZACION_CH: { actual: 4, nota: 'Ya tiene el Vo.Bo. de Procesos; falta la autorización en el sistema CH.' },
+      AUTORIZADO: { actual: 6, nota: 'Autorizada: el documento final está en el inventario.' },
+      NO_PROCEDENTE: { actual: -1, cerrada: true, nota: 'Procesos la cerró como no procedente.' },
+      CANCELADO: { actual: -1, cerrada: true, nota: 'Se canceló.' }
+    };
+    return etapas[estadoSolicitud] || { actual: 0, nota: '' };
+  }
+
+  /* La barra completa (arriba de la solicitud) o compacta (en las tarjetas de las listas). */
+  function barraProgreso(estadoSolicitud, compacta, extra) {
+    const p = progresoDe(estadoSolicitud);
+    const caja = elemento('div', 'progreso' + (compacta ? ' compacto' : '') + (p.cerrada ? ' cerrada' : '') + (p.alerta ? ' alerta' : ''));
+    const pasos = elemento('ol', 'progreso-pasos');
+    ETAPAS_SOLICITUD.forEach(function (nombre, i) {
+      const li = elemento('li', i < p.actual ? 'hecho' : (i === p.actual ? 'actual' : ''));
+      li.title = nombre;
+      li.appendChild(elemento('span', 'progreso-punto', i < p.actual ? '✓' : String(i + 1)));
+      li.appendChild(elemento('span', 'progreso-nombre', nombre));
+      pasos.appendChild(li);
+    });
+    caja.appendChild(pasos);
+    const etapa = p.cerrada ? '' : (p.actual >= ETAPAS_SOLICITUD.length ? 'Terminada. ' : 'Etapa ' + (p.actual + 1) + ' de ' + ETAPAS_SOLICITUD.length + ': ');
+    caja.appendChild(elemento('p', 'progreso-nota', etapa + p.nota + (extra ? ' ' + extra : '')));
+    return caja;
+  }
+
+  /* Pone la barra completa en [data-campo="progreso"] de la pantalla de la solicitud. */
+  function pintarProgreso(raiz, estadoSolicitud, extra) {
+    const lugar = raiz && raiz.querySelector('[data-campo="progreso"]');
+    if (!lugar) return;
+    lugar.textContent = '';
+    lugar.appendChild(barraProgreso(estadoSolicitud, false, extra));
+  }
+
+  /*
+   * Abre el paso donde se corrige esa parte y la deja enfocada. INICIO, FIN y ACTIVIDAD (con su
+   * idActividad) están en el paso 3; OBJETIVO, ALCANCE, PUESTOS (responsabilidades) y DEFINICIONES, en el 4.
+   */
+  function irACorregir(idSolicitud, apartado, idActividad) {
+    const enAnalisis = ['OBJETIVO', 'ALCANCE', 'PUESTOS', 'RESPONSABILIDADES', 'DEFINICIONES'].indexOf(apartado) !== -1;
+    estado.enfocar = { id: idSolicitud, apartado: apartado, idActividad: idActividad || '' };
+    ir('solicitud', true, idSolicitud + (enAnalisis ? ':analisis' : ':desarrollo'));
+  }
+
+  /* Lo que la pantalla de esa solicitud tiene que enfocar al abrir (y lo olvida), o null. */
+  function tomarEnfoque(idSolicitud) {
+    const e = estado.enfocar;
+    if (!e || e.id !== idSolicitud) return null;
+    estado.enfocar = null;
+    return e;
+  }
+
+  /* Lleva la vista a una parte, la marca un momento y enfoca su campo. */
+  function resaltar(nodo, campo) {
+    if (!nodo) return;
+    nodo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    nodo.classList.add('resaltado');
+    setTimeout(function () { nodo.classList.remove('resaltado'); }, 2600);
+    if (campo) setTimeout(function () { campo.focus({ preventScroll: true }); }, 350);
+  }
+
+  /*
+   * Lo que Procesos dijo (o corrigió) de una parte, como comentario junto a ella (al estilo de Word).
+   * acciones: atender(o, texto, boton) para el colaborador; cerrar/reabrir para el revisor; corregir() para
+   * ir a editar esa parte.
+   */
+  function comentariosDe(observaciones, apartado, idActividad, acciones) {
+    const suyas = (observaciones || []).filter(function (o) {
+      const mismo = o.apartado === apartado || (apartado === 'PUESTOS' && o.apartado === 'RESPONSABILIDADES');
+      return o.estado !== 'CERRADA' && mismo && (!idActividad || o.idActividad === idActividad);
+    });
+    if (!suyas.length) return null;
+    const caja = elemento('div', 'comentarios');
+    suyas.forEach(function (o) { caja.appendChild(tarjetaObservacion(o, acciones, true)); });
+    return caja;
+  }
+</script>

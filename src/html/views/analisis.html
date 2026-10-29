@@ -44,7 +44,7 @@
 
     <section class="tarjeta seccion-analisis" data-campo="seccion-preguntas" hidden>
       <h2><i data-lucide="circle-help" class="ico"></i>Preguntas para completar tu proceso <span class="chip dorado" data-campo="conteo-preguntas"></span></h2>
-      <p class="nota">Contéstalas con lo que sepas; se guardan solas mientras escribes. Si no aplica a tu proceso o no lo sabes, elígelo: también cuenta como respuesta. Después, «Corregir redacción» incorpora tus respuestas al texto de cada actividad.</p>
+      <p class="nota"><strong>Son obligatorias para continuar:</strong> contéstalas con lo que sepas o elige «No aplica» o «No lo sé» (también cuenta como respuesta). Se guardan solas mientras escribes. Después, «Corregir redacción» incorpora tus respuestas al texto de cada actividad.</p>
       <div class="lista-preguntas" data-campo="preguntas"></div>
     </section>
 
@@ -55,12 +55,14 @@
     </section>
 
     <section class="tarjeta seccion-analisis">
-      <h2><i data-lucide="file-text" class="ico"></i>Objetivo, alcance, responsabilidades y definiciones</h2>
-      <p class="nota">Van al inicio del documento. Puedes usar lo que propone la IA y luego ajustarlo, o escribirlo tú.</p>
+      <div class="seccion-cabeza">
+        <h2><i data-lucide="file-text" class="ico"></i>Objetivo, alcance, responsabilidades y definiciones</h2>
+        <button type="button" class="boton" data-accion="aceptar-demas" hidden><i data-lucide="check-check" class="ico"></i><span></span></button>
+      </div>
+      <p class="nota">Van al inicio del documento. Puedes usar lo que propone la IA (una por una o todas de una vez) y luego ajustarlo, o escribirlo tú. Se guarda solo mientras escribes.</p>
       <div class="derivados" data-campo="derivados"></div>
       <div class="acciones-formulario">
         <span class="estado-guardado" data-campo="guardado-derivados"></span>
-        <button type="button" class="boton" data-accion="guardar-derivados"><i data-lucide="save" class="ico"></i><span>Guardar</span></button>
       </div>
     </section>
 
@@ -72,9 +74,9 @@
     <div class="tarjeta siguiente-paso">
       <div>
         <strong>Siguiente paso: vista previa y confirmación</strong>
-        <p class="nota">Verás el documento completo tal como irá y confirmarás si describe tu proceso.</p>
+        <p class="nota" data-campo="nota-siguiente">Verás el documento completo tal como irá y confirmarás si describe tu proceso.</p>
       </div>
-      <button type="button" class="boton" data-accion="ir-vista"><span>Ver la vista previa</span><i data-lucide="arrow-right" class="ico"></i></button>
+      <button type="button" class="boton" data-accion="ir-vista"><span>Continuar a la vista previa</span><i data-lucide="arrow-right" class="ico"></i></button>
     </div>
   </div>
 </template>
@@ -92,7 +94,7 @@
       <textarea rows="2" maxlength="2000" placeholder="Tu respuesta"></textarea>
       <span class="nota" data-campo="estado-borrador"></span>
       <div class="pregunta-botones">
-        <button type="button" class="boton" data-accion="responder">Guardar respuesta</button>
+        <button type="button" class="boton" data-accion="responder">Responder</button>
         <button type="button" class="boton secundario" data-accion="no-aplica">No aplica</button>
         <button type="button" class="boton secundario" data-accion="no-se">No lo sé</button>
       </div>

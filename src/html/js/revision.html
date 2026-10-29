@@ -1,9 +1,11 @@
 <script>
   /*
    * Revisión de Procesos de una solicitud (apiRevision, apiTomar, apiLiberar, apiObservar,
-   * apiCambiarObservacion, apiDevolver, apiNoProcedente, apiVoBo; §4.3 y decisión 23).
-   * El documento se dibuja con construirDocumento() (js/vista-previa.html) y cada parte lleva
-   * «Observar». Solo el revisor asignado observa y decide; los demás la ven en consulta.
+   * apiCambiarObservacion, apiEditarRevisor, apiDevolver, apiNoProcedente, apiVoBo, apiCambiarCodigo;
+   * §4.3 y decisiones 23, 26 y 28).
+   * El documento se dibuja con construirDocumento() (js/vista-previa.html) y cada parte lleva «Observar»
+   * y un lápiz para corregirla ahí mismo (el colaborador ve cómo estaba y cómo quedó). Solo el revisor
+   * asignado observa, corrige y decide; los demás la ven en consulta.
    */
   function iniciarRevision(raiz, idSolicitud) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
@@ -32,9 +34,49 @@
       return 'Todavía no se ha enviado a revisión.';
     }
 
+    /* Procesos corrige una parte del documento (en una ventana sobre la pantalla). */
+    function corregir(apartado, idActividad) {
+      const f = clonar('parte-editor-revisor');
+      const fondo = f.querySelector('.dialogo-fondo');
+      const q = function (c) { return fondo.querySelector('[data-campo="' + c + '"]'); };
+      const i = d.actividades.map(function (a) { return a.id; }).indexOf(idActividad);
+      const actividad = d.actividades[i];
+      const ayudas = {
+        PUESTOS: 'Un renglón por puesto: «Puesto: lo que le toca». Los puestos salen de las actividades; aquí van sus responsabilidades.',
+        DEFINICIONES: 'Un renglón por término: «Término: qué significa».'
+      };
+      const valores = { OBJETIVO: d.objetivo, ALCANCE: d.alcance, INICIO: d.inicio, FIN: d.fin,
+        PUESTOS: (d.responsabilidades.length ? d.responsabilidades : d.puestos.map(function (p) { return p + ': '; })).join('\n'),
+        DEFINICIONES: d.definiciones.join('\n'), ACTIVIDAD: actividad ? actividad.texto : '' };
+      q('titulo').textContent = 'Corregir: ' + (apartado === 'ACTIVIDAD' ? 'Actividad ' + (i + 1) : d.apartados[apartado] || apartado);
+      q('ayuda').textContent = ayudas[apartado] || '';
+      q('ayuda').hidden = !ayudas[apartado];
+      q('valor').value = valores[apartado] || '';
+      q('campo-responsable').hidden = apartado !== 'ACTIVIDAD';
+      if (actividad) q('responsable').value = actividad.responsable;
+      const cerrar = function () { fondo.remove(); document.removeEventListener('keydown', teclas); };
+      const teclas = function (e) { if (e.key === 'Escape') cerrar(); };
+      fondo.addEventListener('click', function (e) { if (e.target === fondo || e.target.closest('[data-accion="cancelar"]')) cerrar(); });
+      const guardarB = fondo.querySelector('[data-accion="guardar"]');
+      guardarB.addEventListener('click', function () {
+        const listo = ocupar(guardarB, 'Guardando…');
+        llamar('apiEditarRevisor', idSolicitud, { apartado: apartado, idActividad: idActividad || '', valor: q('valor').value,
+          responsable: q('responsable').value }).then(function (r) {
+          cerrar();
+          avisar(r.sinCambios ? 'No cambiaste nada.' : 'Corrección guardada. El colaborador verá cómo estaba y cómo quedó.', r.sinCambios ? '' : 'exito');
+          if (!r.sinCambios) return cargar();
+        }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+      });
+      document.addEventListener('keydown', teclas);
+      document.body.appendChild(f);
+      pintarIconos();
+      q('valor').focus();
+    }
+
     function pintar() {
       contenido.textContent = '';
       contenido.appendChild(clonar('parte-revision'));
+      pintarProgreso(raiz, d.estado, d.revisor ? 'Revisa: ' + d.revisor + '.' : '');
       const ui = contenido.querySelector('.revision');
       const q = function (c) { return ui.querySelector('[data-campo="' + c + '"]'); };
       const accion = function (a) { return ui.querySelector('[data-accion="' + a + '"]'); };
@@ -90,8 +132,10 @@
           elegir(valorApartado, idActividad);
           nueva.scrollIntoView({ behavior: 'smooth', block: 'start' });
           textoObs.focus({ preventScroll: true });
-        }
+        },
+        editar: corregir
       } : null));
+      q('corregido').hidden = !d.corregidoPorProcesos;
 
       /* Nueva observación */
       if (d.puedeDecidir) {
@@ -186,6 +230,25 @@
           llamar('apiNoProcedente', idSolicitud, motivo).then(function () {
             avisar('Se cerró como no procedente.', 'exito');
             volverABandeja();
+          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+      }
+
+      /* Después del Vo.Bo., Procesos todavía puede corregir el código (decisión 28). */
+      if (d.puedeCambiarCodigo) {
+        q('codigo-tarjeta').hidden = false;
+        const nuevo = q('codigo-nuevo');
+        nuevo.value = d.codigo;
+        const cambiarB = accion('cambiar-codigo');
+        cambiarB.addEventListener('click', function () {
+          const c = nuevo.value.trim().toUpperCase();
+          if (!c || c === d.codigo) { avisar('Escribe el código nuevo.', 'error'); nuevo.focus(); return; }
+          if (!confirm('¿Cambiar el código de ' + d.codigo + ' a ' + c + '?')) return;
+          const listo = ocupar(cambiarB, 'Cambiando…');
+          llamar('apiCambiarCodigo', idSolicitud, c).then(function (r) {
+            avisar('Código cambiado a ' + r.codigo + '.', 'exito');
+            if (r.regenerar) avisar('Vuelve a generar el documento para que lleve el código nuevo.', '');
+            return cargar();
           }).catch(function (e) { avisar(e.message, 'error'); listo(); });
         });
       }

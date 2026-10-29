@@ -44,12 +44,12 @@ Si una plantilla ya convertida se quiere regenerar, se borra el Google Doc y se 
    | `{{CAMBIO_DESCRIPCION}}` · `{{CAMBIO_RESPONSABLE}}` | «Emisión inicial del documento.» · quien lo elaboró |
    | `{{ELABORO_*}}` | Nombre, puesto y fecha fijados al crear la solicitud (§4.1) |
    | `{{REVISO_*}}` · `{{AUTORIZO_*}}` | Vacíos hasta el Vo.Bo. de Procesos y el resultado de CH (fases 5 y 6) |
-   | `{{PUESTOS}}` | Los responsables de las actividades, sin repetir |
-   | `{{DESARROLLO}}` | Cada actividad con texto (las vacías no van), con su JPG y su pie |
+   | `{{PUESTOS}}` | «Puestos y responsabilidades» (decisión 25): cada responsable de las actividades, sin repetir, con lo que le toca («Puesto: …»). La sección cambia de título al llenarse y la de `{{RESPONSABILIDADES}}` se quita (va vacía), así que la plantilla no cambia |
+   | `{{DESARROLLO}}` | Cada actividad con texto (las vacías no van), sus enlaces como ligas («Descripción: dirección») y su JPG con su pie |
 
    `tests/documentos.test.js` revisa que los datos cubran todos los marcadores del contrato.
-3. Exporta **PDF y Word**, los registra en `Archivos` con la huella del contenido y manda el Google Doc
-   intermedio a la papelera de Drive.
+3. Exporta **PDF y Word** (al colaborador, solo el PDF: decisión 29), los registra en `Archivos` con la
+   huella del contenido y manda el Google Doc intermedio a la papelera de Drive.
 
 Un doble clic no genera dos (aviso de 5 minutos en la caché). Si el contenido cambió después de
 confirmar, no genera: pide volver a confirmar.

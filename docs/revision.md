@@ -53,6 +53,8 @@ que atender antes, una confirmación adelantada lo dejaría sin poder enviar.
 
 ## Bandeja de revisión
 
+Cada solicitud dice **quién la tomó** («La tomó …» o «Nadie la ha tomado») y su barra de progreso.
+
 | Pestaña | Qué hay |
 |---|---|
 | **Mías** | Las que el revisor tiene en revisión |
@@ -75,6 +77,50 @@ revisa el formato y que no esté en uso. Una **actualización** conserva su cód
 
 Pendiente con Procesos: si el consecutivo cuenta por tipo + departamento + área (como está) o de otra
 forma (pregunta F).
+
+## Correcciones de Procesos (decisión 26)
+
+El revisor asignado, con la solicitud en revisión, tiene un **lápiz** en cada parte del documento
+(objetivo, alcance, puestos y responsabilidades, definiciones, inicio, fin y cada actividad con su
+responsable). Corrige en una ventana y se guarda (`editarComoRevisor_`): el texto de una actividad va a
+`TEXTO_FINAL` (el del colaborador se conserva en `TEXTO_ORIGINAL`), el responsable se coteja con el
+catálogo de puestos. Cada corrección:
+
+- queda como **«Corregido por Procesos»** (observación con estado `CAMBIO`: cómo estaba y cómo quedó),
+  que el colaborador ve junto a esa parte; no hay que atenderla;
+- se anota en la bitácora (`EDITAR_REVISOR`);
+- deja su huella en `HUELLA_REVISOR`: el Vo.Bo. se puede dar sobre lo corregido (`contenidoAprobado_`
+  acepta la huella confirmada o la del revisor), y así también el resultado de CH y el final.
+
+Si después la devuelve, el colaborador ve los cambios y vuelve a confirmar.
+
+### Corregir el código después del Vo.Bo. (decisión 28)
+
+Mientras se encuentra el inventario anterior de códigos, Procesos puede cambiar la numeración después del
+Vo.Bo.: en la revisión («Código del documento») o en Envíos a CH (lápiz junto al código). Mismo tipo,
+departamento y área; sin repetir; el consecutivo avanza hasta el número usado. Si ya había documento
+generado, hay que volver a generarlo para que lleve el código nuevo.
+
+## Avisos por correo
+
+(decisión 27, `services/Avisos.gs`) Un aviso nunca detiene la acción: si falla, se anota en el registro.
+
+| Cuándo | A quién |
+|---|---|
+| Llega una solicitud a revisión | `Config → CORREO_PROCESOS` (separados por coma) y todos los revisores activos |
+| Procesos la devuelve | Al colaborador, con la lista de observaciones por atender |
+| Vo.Bo., autorizada o rechazada en CH, no procedente | Al colaborador |
+
+Cada correo trae el botón para abrir la solicitud. En **pruebas**, los usuarios de prueba
+(`@procesos.test`) no tienen buzón: su aviso le llega a la persona real que hizo la acción, con la nota
+de para quién era. `Config → AVISOS_CORREO = NO` los apaga. La primera vez hay que dar permiso de enviar
+correos corriendo `probarAvisos()` desde el editor.
+
+## Archivos: ver sin descargar
+
+Cada archivo generado tiene **Ver** (visor dentro de la app: el PDF con PDF.js y el Word con
+docx-preview, cargados la primera vez) y **Descargar**. Ver revisa el mismo permiso que descargar y se
+anota en la bitácora (`VER_ARCHIVO`).
 
 ## Quién ve qué
 

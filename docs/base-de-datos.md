@@ -88,7 +88,8 @@ Parámetros que se pueden ajustar sin tocar código: `CLAVE` · `VALOR` · `DESC
 | `IA_SUGERIR_AL_ESCRIBIR` | SI | La IA sugiere la redacción de cada actividad mientras se escribe (paso 3) |
 | `IA_MAX_SUGERENCIAS_DIA` | 800 | Tope diario de esas sugerencias (aparte del de análisis) |
 | `PREFIJO_SOLICITUD` | SOL | Prefijo del folio interno |
-| `CORREO_PROCESOS` | (vacío) | Buzón del área para avisos |
+| `CORREO_PROCESOS` | (vacío) | Correo(s) del área de Procesos para avisos (separados por coma); además se avisa a todos los revisores activos |
+| `AVISOS_CORREO` | SI | Avisos por correo de cada etapa (decisión 27, [revision.md](revision.md#avisos-por-correo)); `NO` los apaga |
 
 La llave de la IA **no** va aquí: va en las Propiedades del script ([ambientes.md](ambientes.md)).
 
@@ -198,6 +199,7 @@ Cada trámite, de borrador hasta el resultado de CH.
 | `MOTIVO_CIERRE` | Por qué se cerró como no procedente |
 | `ID_CARPETA` · `FECHA_ACTUALIZACION` | Carpeta de la solicitud en Drive; último cambio |
 | `FECHA_ENVIO_REVISION` | Último envío a revisión de Procesos (ordena la bandeja por tiempo de espera). Columna nueva de la fase 5, al final |
+| `HUELLA_REVISOR` | Huella del contenido como lo dejó Procesos al corregirlo durante la revisión: también se puede autorizar (decisión 26). Columna nueva del 29/10/2026, al final |
 
 ### Actividades
 `ID_ACTIVIDAD` · `ID_SOLICITUD` · `ORDEN` (lo define el colaborador; la IA no lo cambia) ·
@@ -206,7 +208,9 @@ editó; si está vacío, al documento va `TEXTO_ORIGINAL`. Si después edita el 
 `TEXTO_ORIGINAL` y `TEXTO_FINAL` se vacía) · `ID_PUESTO` (del catálogo, si coincide) · `PUESTO_TEXTO` (el
 responsable como quedó: escrito por el colaborador, aceptado de la IA o respondido a la pregunta) ·
 `RESPONSABLE_CONFIRMADO` (`SI` cuando lo aceptó o respondió en el análisis; cambiarlo a mano lo regresa
-a `NO`) · `ELIMINADA` · `FECHA_ACTUALIZACION`.
+a `NO`) · `ELIMINADA` · `FECHA_ACTUALIZACION` · `ENLACES` (lista JSON de `{ url, texto }`: páginas,
+carpetas o sistemas que usa la actividad; solo http/https. Columna nueva del 29/10/2026, al final; decisión 31).
+Cuando Procesos corrige el texto de una actividad, va a `TEXTO_FINAL` y `TEXTO_ORIGINAL` conserva el del colaborador.
 
 ### Imagenes
 `ID_IMAGEN` · `ID_ACTIVIDAD` · `ID_SOLICITUD` · `ORDEN` (dentro de la actividad) · `ID_ARCHIVO` (WebP
@@ -238,7 +242,8 @@ en el texto) · `EVIDENCIA` (fragmento del texto del colaborador que la sustenta
 De Procesos. `ID_OBSERVACION` (`OBS-000001`) · `ID_SOLICITUD` · `REVISION` (vuelta en que se hizo) ·
 `APARTADO` (`GENERAL`, `NOMBRE`, `INICIO`, `OBJETIVO`, `ALCANCE`, `PUESTOS`, `RESPONSABILIDADES`,
 `DEFINICIONES`, `ACTIVIDAD`, `FIN`) · `ID_ACTIVIDAD` (solo `ACTIVIDAD`) · `AUTOR_ID` · `AUTOR_NOMBRE` ·
-`PERFIL` · `TEXTO` · `ESTADO` (`ABIERTA` → `ATENDIDA` por el colaborador → `CERRADA` por el revisor) ·
+`PERFIL` · `TEXTO` · `ESTADO` (`ABIERTA` → `ATENDIDA` por el colaborador → `CERRADA` por el revisor; `CAMBIO` es el
+registro de una corrección que hizo Procesos, con cómo estaba y cómo quedó en `TEXTO`) ·
 `RESPUESTA` (lo que contestó el colaborador) · `FECHA` · `FECHA_ATENCION`. Ver [revision.md](revision.md#observaciones).
 
 ### EnviosCH

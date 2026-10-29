@@ -50,13 +50,16 @@ function datosDocumento_(det, fila, formatear, ahora) {
       CAMBIO_DESCRIPCION: nuevo ? 'Emisión inicial del documento.' : String(fila.DESCRIPCION_CAMBIO || ''),
       CAMBIO_RESPONSABLE: String(fila.ELABORO_NOMBRE || '')
     },
+    // Puestos y responsabilidades van juntos (decisión 25): la sección «Responsabilidades» de la
+    // plantilla queda vacía y se quita, y la de puestos cambia de título.
     listas: {
-      PUESTOS: puestosInvolucrados_(det),
-      RESPONSABILIDADES: det.responsabilidades,
+      PUESTOS: puestosYResponsabilidades_(det),
+      RESPONSABILIDADES: [],
       DEFINICIONES: det.definiciones
     },
+    titulos: { PUESTOS: 'Puestos y responsabilidades' },
     actividades: det.actividades.filter(function (a) { return a.texto.trim(); }).map(function (a) {
-      return { responsable: a.responsable, descripcion: a.texto,
+      return { responsable: a.responsable, descripcion: a.texto, enlaces: a.enlaces || [],
         imagenes: a.imagenes.map(function (i) { return { idImagen: i.id, pie: i.pie }; }) };
     })
   };
@@ -64,14 +67,21 @@ function datosDocumento_(det, fila, formatear, ahora) {
 
 /**
  * ¿Puede esta sesión generar el preliminar? El colaborador, cuando ya confirmó (§3.5: solo después de
- * la confirmación); Procesos, mientras la revisa o la manda a CH (fases 5 y 6). Nunca el final.
+ * la confirmación), también mientras Procesos la revisa o se autoriza en CH (su PDF); Procesos, mientras
+ * la revisa o la manda a CH (fases 5 y 6). Nunca el final.
  */
 function puedeGenerarPreliminar_(sesion, fila) {
   if (!sesion || !sesion.registrado) return false;
   const tiene = function (p) { return sesion.perfiles.indexOf(p) !== -1; };
-  if (fila.ELABORO_ID === sesion.idUsuario && tiene('COLABORADOR') && fila.ESTADO === ESTADOS.CONFIRMADO) return true;
+  if (fila.ELABORO_ID === sesion.idUsuario && tiene('COLABORADOR') &&
+    [ESTADOS.CONFIRMADO, ESTADOS.EN_REVISION, ESTADOS.EN_AUTORIZACION_CH].indexOf(fila.ESTADO) !== -1) return true;
   return tiene('REVISOR') && fila.ELABORO_ID !== sesion.idUsuario &&
     [ESTADOS.EN_REVISION, ESTADOS.EN_AUTORIZACION_CH].indexOf(fila.ESTADO) !== -1;
+}
+
+/** ¿A esta sesión solo se le genera y muestra el PDF? Al colaborador que la elaboró (el Word es para Procesos). */
+function soloPdf_(sesion, fila) {
+  return !!sesion && fila.ELABORO_ID === sesion.idUsuario;
 }
 
 /**
@@ -123,7 +133,7 @@ function generarPreliminar_(sesion, idSolicitud) {
     throw new Error(fila.ESTADO === ESTADOS.BORRADOR || fila.ESTADO === ESTADOS.DEVUELTO
       ? 'Primero confirma en la vista previa que el documento describe tu proceso.' : 'No puedes generar el documento de esta solicitud.');
   }
-  return generarArchivos_(sesion, fila, 'PRELIMINAR');
+  return generarArchivos_(sesion, fila, 'PRELIMINAR', soloPdf_(sesion, fila) ? ['PDF'] : ['PDF', 'DOCX']);
 }
 
 /**
@@ -134,7 +144,7 @@ function generarFinal_(sesion, idSolicitud) {
   const fila = filaSolicitud_(idSolicitud);
   if (!puedeOperarCH_(sesion, fila)) throw new Error('El documento final lo genera Procesos (y nunca de una solicitud que elaboró).');
   if (fila.ESTADO !== ESTADOS.AUTORIZADO) throw new Error('El documento final solo se genera cuando CH ya lo autorizó.');
-  const r = generarArchivos_(sesion, fila, 'FINAL');
+  const r = generarArchivos_(sesion, fila, 'FINAL', ['PDF', 'DOCX']);
   const doc = leerTabla_('Documentos').filter(function (d) { return d.ID_SOLICITUD_VIGENTE === idSolicitud; })[0];
   if (doc) actualizarFila_('Documentos', doc._fila, { ID_ARCHIVO_PDF: r.pdf, ID_ARCHIVO_WORD: r.docx });
   return r;
@@ -142,16 +152,17 @@ function generarFinal_(sesion, idSolicitud) {
 
 /**
  * Copia la plantilla del tipo (PRELIMINAR con «COPIA NO AUTORIZADA» o FINAL sin marca), la llena, exporta
- * PDF y Word a Solicitudes/<folio>/Documentos y los registra en Archivos. Siempre archivos NUEVOS.
+ * los formatos pedidos (PDF y/o DOCX) a Solicitudes/<folio>/Documentos y los registra en Archivos.
+ * Siempre archivos NUEVOS.
  */
-function generarArchivos_(sesion, fila, cual) {
+function generarArchivos_(sesion, fila, cual, formatos) {
   const idSolicitud = fila.ID_SOLICITUD;
   const final = cual === 'FINAL';
   const t = tablasSolicitud_();
   const imagenes = leerTabla_('Imagenes');
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), imagenes, t, { editar: false }, formatoFecha_);
   const huella = huellaDeDetalle_(det);
-  if ((fila.ESTADO === ESTADOS.CONFIRMADO || final) && huella !== String(fila.HUELLA_CONFIRMADA)) {
+  if ((fila.ESTADO === ESTADOS.CONFIRMADO && huella !== String(fila.HUELLA_CONFIRMADA)) || (final && !contenidoAprobado_(fila, huella))) {
     throw new Error(final ? 'El contenido no es el que se confirmó y autorizó: no se puede generar el final.'
       : 'El contenido cambió después de confirmar. Revisa la vista previa y vuelve a confirmar.');
   }
@@ -182,22 +193,26 @@ function generarArchivos_(sesion, fila, cual) {
     doc.saveAndClose();
     if (reporte.sinLlenar.length) console.warn('Marcadores sin llenar en ' + idSolicitud + ': ' + reporte.sinLlenar.join(', '));
 
-    const pdf = carpeta.createFile(copia.getAs(MimeType.PDF)).setName(nombre + '.pdf');
-    const docx = carpeta.createFile(exportarDocx_(copia.getId())).setName(nombre + '.docx');
+    const archivos = formatos.map(function (f) {
+      return { formato: f, archivo: f === 'PDF' ? carpeta.createFile(copia.getAs(MimeType.PDF)).setName(nombre + '.pdf')
+        : carpeta.createFile(exportarDocx_(copia.getId())).setName(nombre + '.docx') };
+    });
     // El Google Doc intermedio no se conserva: lo oficial son el PDF y el Word (va a la papelera de Drive).
     copia.setTrashed(true);
 
     const quien = correoReal_(sesion);
-    const ids = reservarIds_('ARC', 2, 6);
-    const registro = function (id, archivo, formato) {
-      return { ID_ARCHIVO: id, ID_SOLICITUD: idSolicitud, REVISION: String(fila.REVISION || '0'), TIPO: cual, FORMATO: formato,
-        ID_DRIVE: archivo.getId(), CON_MARCA_AGUA: final ? 'NO' : 'SI', HUELLA_CONTENIDO: huella, GENERADO_POR: quien, FECHA: ahora,
-        NOMBRE: archivo.getName(), PESO_KB: String(Math.round(archivo.getSize() / 1024)) };
-    };
-    agregarFilas_('Archivos', [registro(ids[0], pdf, 'PDF'), registro(ids[1], docx, 'DOCX')]);
+    const ids = reservarIds_('ARC', archivos.length, 6);
+    agregarFilas_('Archivos', archivos.map(function (x, i) {
+      return { ID_ARCHIVO: ids[i], ID_SOLICITUD: idSolicitud, REVISION: String(fila.REVISION || '0'), TIPO: cual, FORMATO: x.formato,
+        ID_DRIVE: x.archivo.getId(), CON_MARCA_AGUA: final ? 'NO' : 'SI', HUELLA_CONTENIDO: huella, GENERADO_POR: quien, FECHA: ahora,
+        NOMBRE: x.archivo.getName(), PESO_KB: String(Math.round(x.archivo.getSize() / 1024)) };
+    }));
+    const formatosTexto = formatos.map(function (f) { return f === 'PDF' ? 'PDF' : 'Word'; }).join(' y ');
     registrarBitacora_(sesion, final ? 'GENERAR_FINAL' : 'GENERAR_PRELIMINAR',
-      nombre + (final ? ' (PDF y Word, sin marca de agua).' : ' (PDF y Word, con marca de agua).'), idSolicitud);
-    return { pdf: ids[0], docx: ids[1], nombre: nombre };
+      nombre + ' (' + formatosTexto + (final ? ', sin marca de agua).' : ', con marca de agua).'), idSolicitud);
+    const r = { nombre: nombre };
+    archivos.forEach(function (x, i) { r[x.formato === 'PDF' ? 'pdf' : 'docx'] = ids[i]; });
+    return r;
   } finally {
     cache.remove(clave);
   }
@@ -217,13 +232,17 @@ function archivosSolicitud_(filas, idSolicitud, huellaActual, formatear) {
     });
 }
 
-/** El archivo como { nombre, tipo, base64 } para que el navegador lo descargue (permiso: puedeDescargar_). */
-function descargarArchivo_(sesion, idArchivo) {
+/**
+ * El archivo como { nombre, tipo, formato, base64 } para que el navegador lo descargue o lo muestre en el
+ * visor (paraVer); el permiso se revisa aquí (puedeDescargar_).
+ */
+function descargarArchivo_(sesion, idArchivo, paraVer) {
   const a = leerTabla_('Archivos').filter(function (x) { return x.ID_ARCHIVO === idArchivo; })[0];
   if (!a) throw new Error('No existe ese archivo.');
   const fila = filaSolicitud_(a.ID_SOLICITUD);
   if (!puedeDescargar_(sesion, fila, a)) throw new Error('No puedes descargar este archivo.');
   const blob = DriveApp.getFileById(a.ID_DRIVE).getBlob();
-  registrarBitacora_(sesion, 'DESCARGAR_ARCHIVO', String(a.NOMBRE || a.ID_ARCHIVO), a.ID_SOLICITUD);
-  return { nombre: String(a.NOMBRE || idArchivo), tipo: blob.getContentType(), base64: Utilities.base64Encode(blob.getBytes()) };
+  registrarBitacora_(sesion, paraVer ? 'VER_ARCHIVO' : 'DESCARGAR_ARCHIVO', String(a.NOMBRE || a.ID_ARCHIVO), a.ID_SOLICITUD);
+  return { nombre: String(a.NOMBRE || idArchivo), tipo: blob.getContentType(), formato: String(a.FORMATO || ''),
+    base64: Utilities.base64Encode(blob.getBytes()) };
 }

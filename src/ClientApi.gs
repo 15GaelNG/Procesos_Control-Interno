@@ -88,6 +88,11 @@ function apiSolicitud(comoUsuario, idSolicitud) {
   // Sugerencias de la IA mientras se escribe (paso 3).
   detalle.sugerirRedaccion = permiso.editar && sugerenciasActivas_();
   detalle.sugerencia = { minCaracteres: IA_SUGERENCIA_MIN_CARACTERES, esperaMs: IA_SUGERENCIA_ESPERA_MS };
+  // Lo que Procesos observó (o corrigió) y no está cerrado: se muestra junto a cada parte.
+  detalle.observaciones = observacionesDe_(leerTabla_('Observaciones'), idSolicitud, detalle, formatoFecha_)
+    .filter(function (o) { return o.estado !== 'CERRADA'; });
+  const revisor = leerTabla_('Usuarios').filter(function (u) { return u.ID_USUARIO === fila.REVISOR_ASIGNADO_ID; })[0];
+  detalle.revisor = revisor ? String(revisor.NOMBRE) : '';
   return detalle;
 }
 
@@ -136,22 +141,30 @@ function apiAnalizar(comoUsuario, idSolicitud, operacion, intento, corrida) {
   return r.descartado ? r : conPantallaAnalisis_(sesion, idSolicitud, r);
 }
 
+/*
+ * sinPantalla: la pantalla ya se actualizó sola (la persona no espera al servidor) y no necesita que se
+ * la regresen.
+ */
+
 /** decision: ACEPTADA | EDITADA | RECHAZADA. */
-function apiDecidirPropuesta(comoUsuario, idSolicitud, idPropuesta, decision, valor) {
+function apiDecidirPropuesta(comoUsuario, idSolicitud, idPropuesta, decision, valor, sinPantalla) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return conPantallaAnalisis_(sesion, idSolicitud, decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor));
+  const r = decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor);
+  return sinPantalla ? r : conPantallaAnalisis_(sesion, idSolicitud, r);
 }
 
-/** Acepta de una vez todas las correcciones de redacción pendientes. */
-function apiAceptarRedacciones(comoUsuario, idSolicitud) {
+/** Acepta de una vez las propuestas pendientes de un grupo: REDACCION o DEMAS (GRUPOS_PROPUESTA). */
+function apiAceptarPropuestas(comoUsuario, idSolicitud, grupo, sinPantalla) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return conPantallaAnalisis_(sesion, idSolicitud, aceptarRedacciones_(sesion, idSolicitud));
+  const r = aceptarPropuestas_(sesion, idSolicitud, grupo);
+  return sinPantalla ? r : conPantallaAnalisis_(sesion, idSolicitud, r);
 }
 
 /** estado: RESPONDIDA | NO_APLICA | NO_LO_SE. */
-function apiResponderPregunta(comoUsuario, idSolicitud, idAclaracion, estado, respuesta) {
+function apiResponderPregunta(comoUsuario, idSolicitud, idAclaracion, estado, respuesta, sinPantalla) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
-  return conPantallaAnalisis_(sesion, idSolicitud, responderAclaracion_(sesion, idSolicitud, idAclaracion, estado, respuesta));
+  const r = responderAclaracion_(sesion, idSolicitud, idAclaracion, estado, respuesta);
+  return sinPantalla ? r : conPantallaAnalisis_(sesion, idSolicitud, r);
 }
 
 /** Objetivo, alcance, responsabilidades y definiciones escritos a mano. */
@@ -181,6 +194,12 @@ function apiConfirmar(comoUsuario, idSolicitud, huella) {
   return confirmarSolicitud_(sesion, idSolicitud, huella);
 }
 
+/** «Sí, es correcto: enviar a Procesos»: confirma y envía en un paso (si falta algo, dice qué). */
+function apiConfirmarYEnviar(comoUsuario, idSolicitud, huella) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return confirmarYEnviar_(sesion, idSolicitud, huella);
+}
+
 // ─────────────────────────────── Documentos (fase 4) ───────────────────────────────
 
 /** Word y PDF con «COPIA NO AUTORIZADA» del contenido confirmado (puede tardar hasta un minuto). */
@@ -192,6 +211,11 @@ function apiGenerarPreliminar(comoUsuario, idSolicitud) {
 /** El archivo para descargarlo; el permiso se revisa en el servidor (§4.4). */
 function apiDescargarArchivo(comoUsuario, idArchivo) {
   return descargarArchivo_(sesionEfectiva_(comoUsuario), idArchivo);
+}
+
+/** El archivo para verlo en el visor de la app (mismo permiso que descargarlo). */
+function apiVerArchivo(comoUsuario, idArchivo) {
+  return descargarArchivo_(sesionEfectiva_(comoUsuario), idArchivo, true);
 }
 
 // ─────────────────────────────── Revisión de Procesos (fase 5) ───────────────────────────────
@@ -242,6 +266,18 @@ function apiObservar(comoUsuario, idSolicitud, datos) {
   return agregarObservacion_(sesion, idSolicitud, datos);
 }
 
+/** Procesos corrige una parte del contenido. datos: { apartado, idActividad, valor, responsable }. */
+function apiEditarRevisor(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return editarComoRevisor_(sesion, idSolicitud, datos);
+}
+
+/** Procesos corrige el código después del Vo.Bo. */
+function apiCambiarCodigo(comoUsuario, idSolicitud, codigo) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return cambiarCodigo_(sesion, idSolicitud, codigo);
+}
+
 /** accion: ATENDER (colaborador) · CERRAR o REABRIR (revisor). */
 function apiCambiarObservacion(comoUsuario, idSolicitud, idObservacion, accion, texto) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR', 'REVISOR']);
@@ -288,6 +324,13 @@ function apiResultadoCH(comoUsuario, idSolicitud, datos) {
 function apiGenerarFinal(comoUsuario, idSolicitud) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
   return generarFinal_(sesion, idSolicitud);
+}
+
+/** Tablero de indicadores: cómo van los procesos (solo consulta). */
+function apiTablero(comoUsuario) {
+  requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);
+  const t = tablasSolicitud_();
+  return tablero_(leerTabla_('Solicitudes'), t, new Date(), formatoFecha_);
 }
 
 function apiInventario(comoUsuario) {

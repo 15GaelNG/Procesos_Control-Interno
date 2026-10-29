@@ -6,14 +6,9 @@
         <strong data-campo="aviso-titulo"></strong>
         <p class="nota" data-campo="aviso-texto"></p>
       </div>
+      <button type="button" class="boton secundario" data-accion="primera-observacion" hidden><i data-lucide="arrow-down" class="ico"></i>Ir a la primera</button>
       <button type="button" class="boton" data-accion="enviar" hidden><i data-lucide="send" class="ico"></i><span>Enviar a revisión de Procesos</span></button>
     </div>
-
-    <section class="tarjeta seccion-analisis" data-campo="observaciones" hidden>
-      <h2><i data-lucide="message-square-warning" class="ico"></i>Observaciones de Procesos</h2>
-      <p class="nota" data-campo="ayuda-observaciones"></p>
-      <div class="lista-observaciones" data-campo="lista-observaciones"></div>
-    </section>
 
     <section class="tarjeta documentos" data-campo="documentos" hidden>
       <div class="documentos-cabeza">
@@ -37,25 +32,24 @@
       <ul data-campo="lista-faltantes"></ul>
       <div class="pregunta-botones">
         <button type="button" class="boton secundario" data-accion="ir-desarrollo">Ir al desarrollo (paso 3)</button>
-        <button type="button" class="boton secundario" data-accion="ir-analisis">Ir al análisis (paso 4)</button>
+        <button type="button" class="boton secundario" data-accion="ir-analisis">Ir a la corrección con IA (paso 4)</button>
       </div>
     </section>
 
     <section class="tarjeta confirmar" data-campo="confirmar" hidden>
-      <h2>¿El documento describe correctamente cómo se realiza el proceso en tu departamento?</h2>
-      <p class="nota">Al confirmar, queda registrado exactamente este contenido. No es el Vo.Bo. de Procesos: después lo revisarán.</p>
+      <h2>¿Todo lo que dice el documento es correcto?</h2>
+      <p class="nota" data-campo="nota-confirmar"></p>
       <div class="pregunta-botones">
-        <button type="button" class="boton" data-accion="confirmar"><i data-lucide="check" class="ico"></i><span>Sí, lo describe correctamente</span></button>
-        <button type="button" class="boton secundario" data-accion="ajustes"><i data-lucide="pencil" class="ico"></i>Necesita ajustes</button>
+        <button type="button" class="boton" data-accion="confirmar"><i data-lucide="send" class="ico"></i><span>Sí, es correcto: enviar a Procesos</span></button>
+        <button type="button" class="boton secundario" data-accion="ajustes"><i data-lucide="pencil" class="ico"></i>No, necesito corregir algo</button>
       </div>
-      <div class="ajustes" data-campo="ajustes" hidden>
-        <p>¿Qué necesitas corregir?</p>
-        <div class="pregunta-botones">
-          <button type="button" class="boton secundario" data-accion="ir-desarrollo">Actividades, imágenes, inicio o fin</button>
-          <button type="button" class="boton secundario" data-accion="ir-analisis">Objetivo, alcance, responsabilidades o propuestas de la IA</button>
-        </div>
-      </div>
+      <p class="nota">Confirmar no es el Vo.Bo. de Procesos: después lo revisan y, si hace falta, te lo regresan con observaciones.</p>
     </section>
+
+    <details class="tarjeta seccion-analisis historial-observaciones" data-campo="observaciones" hidden>
+      <summary><i data-lucide="message-square-warning" class="ico"></i><span data-campo="titulo-observaciones">Historial de observaciones de Procesos</span></summary>
+      <div class="lista-observaciones" data-campo="lista-observaciones"></div>
+    </details>
   </div>
 </template>
 
@@ -68,13 +62,27 @@
     </div>
     <p class="observacion-texto" data-campo="texto"></p>
     <p class="observacion-respuesta" data-campo="respuesta" hidden></p>
+    <button type="button" class="boton chico" data-campo="corregir" hidden><i data-lucide="pencil" class="ico"></i>Corregir aquí</button>
     <div class="observacion-atender" data-campo="atender" hidden>
       <textarea rows="2" maxlength="2000" placeholder="¿Qué corregiste? (opcional)"></textarea>
-      <button type="button" class="boton secundario" data-accion="atender"><i data-lucide="check" class="ico"></i><span>Marcar como atendida</span></button>
+      <button type="button" class="boton secundario chico" data-accion="atender"><i data-lucide="check" class="ico"></i><span>Marcar como atendida</span></button>
     </div>
     <div class="pregunta-botones" data-campo="revisor" hidden>
-      <button type="button" class="boton secundario" data-accion="cerrar"><i data-lucide="check-check" class="ico"></i>Cerrar</button>
-      <button type="button" class="boton secundario" data-accion="reabrir"><i data-lucide="rotate-ccw" class="ico"></i>Reabrir</button>
+      <button type="button" class="boton secundario chico" data-accion="cerrar"><i data-lucide="check-check" class="ico"></i>Cerrar</button>
+      <button type="button" class="boton secundario chico" data-accion="reabrir"><i data-lucide="rotate-ccw" class="ico"></i>Reabrir</button>
     </div>
   </article>
+</template>
+
+<template id="parte-visor-archivo">
+  <div class="visor visor-archivo" role="dialog" aria-modal="true">
+    <div class="visor-archivo-barra">
+      <strong data-campo="nombre"></strong>
+      <button type="button" class="boton secundario chico" data-accion="descargar"><i data-lucide="download" class="ico"></i>Descargar</button>
+      <button type="button" class="btn-icono" data-accion="cerrar" title="Cerrar"><i data-lucide="x" class="ico"></i></button>
+    </div>
+    <div class="visor-archivo-hojas" data-campo="hojas">
+      <p class="visor-archivo-cargando" data-campo="cargando"><i data-lucide="loader" class="ico girando"></i> Abriendo el documento…</p>
+    </div>
+  </div>
 </template>

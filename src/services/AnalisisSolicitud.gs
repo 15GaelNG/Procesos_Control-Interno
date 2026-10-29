@@ -321,39 +321,56 @@ function decidirPropuesta_(sesion, idSolicitud, idPropuesta, decision, valor) {
 }
 
 /**
- * Las correcciones de redacción pendientes que se pueden aceptar de una vez (sin tocar Google): las de
+ * Las propuestas pendientes de esos campos que se pueden aceptar de una vez (sin tocar Google): las de
  * actividades que no cambiaron después del análisis. Las demás quedan como vencidas.
  */
-function planAceptarRedacciones_(propuestas, actividades, det, idSolicitud) {
+function planAceptarPropuestas_(propuestas, actividades, det, idSolicitud, campos, puestos) {
   const plan = { aplicar: [], vencidas: [] };
-  propuestas.filter(function (p) { return p.ID_SOLICITUD === idSolicitud && p.CAMPO === 'TEXTO' && p.DECISION === 'PENDIENTE'; })
+  propuestas.filter(function (p) { return p.ID_SOLICITUD === idSolicitud && campos.indexOf(p.CAMPO) !== -1 && p.DECISION === 'PENDIENTE'; })
     .forEach(function (p) {
-      const actividad = actividades.filter(function (a) { return a.ID_ACTIVIDAD === p.ID_ACTIVIDAD && !esActivo_(a.ELIMINADA); })[0];
-      const d = planDecision_(p, 'ACEPTADA', '', actividad, det, []);
+      const actividad = p.ID_ACTIVIDAD ? actividades.filter(function (a) { return a.ID_ACTIVIDAD === p.ID_ACTIVIDAD && !esActivo_(a.ELIMINADA); })[0] : null;
+      const d = planDecision_(p, 'ACEPTADA', '', actividad, det, puestos || []);
       if (d.errores.length) plan.vencidas.push({ propuesta: p, obsoleta: d.obsoleta });
       else plan.aplicar.push({ propuesta: p, actividad: actividad, plan: d });
     });
   return plan;
 }
 
-/** «Aceptar todas las correcciones de redacción»: una sola llamada y un solo cambio de contenido. */
-function aceptarRedacciones_(sesion, idSolicitud) {
+/** Las correcciones de redacción que se pueden aceptar de una vez. */
+function planAceptarRedacciones_(propuestas, actividades, det, idSolicitud) {
+  return planAceptarPropuestas_(propuestas, actividades, det, idSolicitud, GRUPOS_PROPUESTA.REDACCION, []);
+}
+
+/**
+ * «Aceptar todas»: las correcciones de redacción (grupo REDACCION) o lo demás que propuso el análisis
+ * (DEMAS: responsables, objetivo, alcance, responsabilidades, definiciones). Una sola llamada y un solo
+ * cambio de contenido.
+ */
+function aceptarPropuestas_(sesion, idSolicitud, grupo) {
+  const campos = GRUPOS_PROPUESTA[grupo];
+  if (!campos) throw new Error('Grupo de propuestas no válido.');
   const fila = filaSolicitud_(idSolicitud);
   if (!permisoSolicitud_(sesion, fila).editar) throw new Error('No puedes editar esta solicitud.');
   const actividades = leerTabla_('Actividades');
   const det = detalleSolicitud_(fila, actividades, leerTabla_('Imagenes'), tablasSolicitud_(), { editar: true }, formatoFecha_);
-  const plan = planAceptarRedacciones_(leerTabla_('PropuestasIA'), actividades, det, idSolicitud);
-  if (!plan.aplicar.length && !plan.vencidas.length) throw new Error('No hay correcciones de redacción pendientes.');
+  const plan = planAceptarPropuestas_(leerTabla_('PropuestasIA'), actividades, det, idSolicitud, campos, leerTabla_('Puestos'));
+  if (!plan.aplicar.length && !plan.vencidas.length) throw new Error('No hay propuestas pendientes de ese tipo.');
   const ahora = new Date();
+  const cambiosSolicitud = {};
   plan.vencidas.forEach(function (v) { if (v.obsoleta) actualizarFila_('PropuestasIA', v.propuesta._fila, { DECISION: 'REEMPLAZADA' }); });
   plan.aplicar.forEach(function (x) {
     actualizarFila_('PropuestasIA', x.propuesta._fila, Object.assign({ FECHA_DECISION: ahora }, x.plan.propuesta));
-    actualizarFila_('Actividades', x.actividad._fila, Object.assign({ FECHA_ACTUALIZACION: ahora }, x.plan.actividad));
+    if (Object.keys(x.plan.actividad).length) actualizarFila_('Actividades', x.actividad._fila, Object.assign({ FECHA_ACTUALIZACION: ahora }, x.plan.actividad));
+    Object.assign(cambiosSolicitud, x.plan.solicitud);
   });
   const r = plan.aplicar.length
-    ? aplicarCambioContenido_(sesion, fila, {}, 'Se aceptaron ' + plan.aplicar.length + ' correcciones de la IA')
+    ? aplicarCambioContenido_(sesion, fila, cambiosSolicitud, 'Se aceptaron ' + plan.aplicar.length + ' propuestas de la IA')
     : { marca: String(marcaDe_(fila.FECHA_ACTUALIZACION)), estado: fila.ESTADO };
   return Object.assign({ aceptadas: plan.aplicar.length, sinAplicar: plan.vencidas.length }, r);
+}
+
+function aceptarRedacciones_(sesion, idSolicitud) {
+  return aceptarPropuestas_(sesion, idSolicitud, 'REDACCION');
 }
 
 // ─────────────────────────────── Sugerencia mientras se escribe (paso 3) ───────────────────────────────
@@ -397,6 +414,9 @@ function pantallaAnalisis_(sesion, idSolicitud) {
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
   const estado = estadoAnalisis_(det, leerTabla_('PropuestasIA'), leerTabla_('Aclaraciones'), obtenerConfig_('IA_ACTIVA', 'NO') === 'SI', formatoFecha_);
   estado.solicitud = { id: det.id, nombre: det.nombre, estado: det.estado, esSuya: fila.ELABORO_ID === sesion.idUsuario };
+  // Lo que Procesos observó del objetivo, alcance, etc. (se muestra junto a cada campo).
+  estado.observaciones = observacionesDe_(leerTabla_('Observaciones'), idSolicitud, det, formatoFecha_)
+    .filter(function (o) { return o.estado !== 'CERRADA'; });
   // Cuándo lanzar el mismo trabajo con otro modelo si la IA no contesta (Config.gs).
   estado.reintentoIa = { esperaSegundos: IA_ESPERA_OTRO_MODELO_S, intentos: IA_INTENTOS_PARALELOS };
   return estado;
@@ -547,6 +567,32 @@ function puestosInvolucrados_(det) {
   return vistos;
 }
 
+/**
+ * «Puestos y responsabilidades» (decisión 25: antes eran dos secciones y se repetían los puestos): cada
+ * puesto que participa, en el orden de las actividades, con lo que le toca según las responsabilidades
+ * («Puesto: lo que le toca»). Las de un puesto que no aparece en las actividades van al final, tal cual.
+ */
+function puestosYResponsabilidades_(det) {
+  const lineas = det.responsabilidades.map(function (r) {
+    const i = r.indexOf(':');
+    return i > 0 ? { puesto: r.slice(0, i).trim(), texto: r.slice(i + 1).trim(), linea: r } : { puesto: '', texto: r, linea: r };
+  });
+  const usadas = [];
+  const resultado = puestosInvolucrados_(det).map(function (p) {
+    const suyas = [];
+    lineas.forEach(function (l, k) {
+      if (usadas.indexOf(k) !== -1) return;
+      // «Puesto: lo que le toca», o un renglón que solo repite el puesto (no agrega nada).
+      const suyo = l.puesto ? normalizar_(l.puesto) === normalizar_(p) : normalizar_(l.texto) === normalizar_(p);
+      if (!suyo) return;
+      usadas.push(k);
+      if (l.puesto && l.texto) suyas.push(l.texto);
+    });
+    return suyas.length ? p + ': ' + suyas.join('; ') : p;
+  });
+  return resultado.concat(lineas.filter(function (l, k) { return usadas.indexOf(k) === -1; }).map(function (l) { return l.linea; }));
+}
+
 function vistaPrevia_(sesion, idSolicitud) {
   const fila = filaSolicitud_(idSolicitud);
   const permiso = permisoSolicitud_(sesion, fila);
@@ -554,18 +600,24 @@ function vistaPrevia_(sesion, idSolicitud) {
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), permiso, formatoFecha_);
   const preguntas = leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; });
   det.puestos = puestosInvolucrados_(det);
+  det.puestosYResponsabilidades = puestosYResponsabilidades_(det);
   det.faltantes = permiso.editar ? faltantesConfirmacion_(det, preguntas) : [];
   det.huella = huellaDeDetalle_(det);
   det.confirmada = fila.ESTADO === ESTADOS.CONFIRMADO && det.huella === String(fila.HUELLA_CONFIRMADA);
   det.puedeConfirmar = permiso.editar && fila.ESTADO !== ESTADOS.CONFIRMADO && !det.faltantes.length;
   // Documentos generados (fase 4) y si se puede generar uno con el contenido actual.
-  det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_);
+  // Al colaborador solo le sirve el PDF (el Word es para Procesos).
+  det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_)
+    .filter(function (a) { return !soloPdf_(sesion, fila) || a.formato === 'PDF'; });
+  det.soloPdf = soloPdf_(sesion, fila);
   det.puedeGenerar = puedeGenerarPreliminar_(sesion, fila) && (fila.ESTADO !== ESTADOS.CONFIRMADO || det.confirmada);
   // Revisión de Procesos (fase 5): sus observaciones y si ya se puede enviar.
   det.observaciones = observacionesDe_(leerTabla_('Observaciones'), idSolicitud, det, formatoFecha_);
   det.revision = String(fila.REVISION || '');
   det.motivoCierre = String(fila.MOTIVO_CIERRE || '');
   det.esSuya = fila.ELABORO_ID === sesion.idUsuario;
+  const revisor = leerTabla_('Usuarios').filter(function (u) { return u.ID_USUARIO === fila.REVISOR_ASIGNADO_ID; })[0];
+  det.revisor = revisor ? String(revisor.NOMBRE) : '';
   // Autorización en CH (fase 6): quién autorizó, como lo registró Procesos.
   det.autorizo = String(fila.AUTORIZO_NOMBRE || '');
   det.autorizoPuesto = String(fila.AUTORIZO_PUESTO || '');
@@ -573,6 +625,23 @@ function vistaPrevia_(sesion, idSolicitud) {
   det.puedeEnviar = det.esSuya && fila.ESTADO === ESTADOS.CONFIRMADO && det.confirmada &&
     !det.observaciones.some(function (o) { return o.estado === 'ABIERTA'; });
   return det;
+}
+
+/**
+ * «Sí, es correcto: enviar a Procesos» (decisión 29): confirma (si hace falta) y la envía a revisión en un
+ * solo paso. Si todavía no se puede enviar (observaciones por atender), se queda confirmada y dice qué falta.
+ */
+function confirmarYEnviar_(sesion, idSolicitud, huellaVista) {
+  const fila = filaSolicitud_(idSolicitud);
+  const yaConfirmada = fila.ESTADO === ESTADOS.CONFIRMADO && String(fila.HUELLA_CONFIRMADA) === String(huellaVista);
+  if (!yaConfirmada) confirmarSolicitud_(sesion, idSolicitud, huellaVista);
+  const porAtender = leerTabla_('Observaciones').filter(function (o) { return o.ID_SOLICITUD === idSolicitud && o.ESTADO === 'ABIERTA'; }).length;
+  if (porAtender) {
+    return { estado: ESTADOS.CONFIRMADO, enviada: false,
+      motivo: 'Quedó confirmada, pero antes de enviarla atiende ' + (porAtender === 1 ? 'la observación' : 'las ' + porAtender + ' observaciones') + ' de Procesos.' };
+  }
+  const r = enviarARevision_(sesion, idSolicitud);
+  return { estado: r.estado, enviada: true, revision: r.revision };
 }
 
 /**

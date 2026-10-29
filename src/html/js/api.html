@@ -6,7 +6,34 @@
    * Al cambiar de pantalla no se espera a que termine de guardarse lo anterior: la pantalla nueva se
    * muestra de inmediato y sus llamadas esperan a ese guardado (esperarAntesDeLlamar, hasta 20 s) para
    * leer lo ya guardado.
+   *
+   * Memoria de pantallas: lo último que se vio de cada una (recordarVista). Al volver a una pantalla se
+   * pinta de inmediato lo recordado y, cuando llega lo del servidor, se repinta solo si cambió. Se olvida
+   * al cambiar de usuario («ver como»).
    */
+  const memoriaVistas = {};
+  function recordarVista(clave, datos) { memoriaVistas[clave] = JSON.parse(JSON.stringify(datos)); }
+  function vistaRecordada(clave) { return memoriaVistas[clave] ? JSON.parse(JSON.stringify(memoriaVistas[clave])) : null; }
+  function olvidarVistas() { Object.keys(memoriaVistas).forEach(function (k) { delete memoriaVistas[k]; }); }
+
+  /*
+   * Pinta lo recordado de la pantalla (si hay) y luego lo del servidor.
+   *   pintar(datos, deMemoria, igualAlRecordado): con igualAlRecordado la pantalla ya está bien y no
+   *   necesita repintarse (solo desbloquear lo que esperaba al servidor).
+   *   pedir() → promesa con los datos · igual(previo, nuevo): cómo comparar (opcional; si no, todo).
+   * Devuelve la promesa de los datos del servidor.
+   */
+  function cargarConMemoria(clave, pedir, pintar, igual) {
+    const previo = vistaRecordada(clave);
+    if (previo) pintar(previo, true);
+    return pedir().then(function (d) {
+      const mismo = previo && (igual ? igual(previo, d) : JSON.stringify(previo) === JSON.stringify(d));
+      recordarVista(clave, d);
+      pintar(d, false, mismo);
+      return d;
+    });
+  }
+
   let guardadoEnCurso = null;
 
   function esperarAntesDeLlamar(promesa) {

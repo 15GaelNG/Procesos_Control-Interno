@@ -70,26 +70,31 @@ test('descargas: quien ve la solicitud; el final, también el administrador (inv
 
 test('datos del documento: puestos involucrados, listas y actividades con texto (con sus imágenes)', function () {
   const d = plano(gs.datosDocumento_(DET, FILA, formatear, AHORA));
-  assert.deepStrictEqual(d.listas, { PUESTOS: ['Auxiliar de Compras', 'Jefe de Compras'], RESPONSABILIDADES: ['Auxiliar de Compras: recibe'], DEFINICIONES: [] });
+  // Puestos y responsabilidades van juntos (decisión 25): la sección de responsabilidades se quita.
+  assert.deepStrictEqual(d.listas, { PUESTOS: ['Auxiliar de Compras: recibe', 'Jefe de Compras'], RESPONSABILIDADES: [], DEFINICIONES: [] });
+  assert.deepStrictEqual(d.titulos, { PUESTOS: 'Puestos y responsabilidades' });
   assert.deepStrictEqual(d.actividades, [
-    { responsable: 'Auxiliar de Compras', descripcion: 'Recibe la solicitud.', imagenes: [{ idImagen: 'IMG-1', pie: 'Bandeja' }] },
-    { responsable: 'Jefe de Compras', descripcion: 'Autoriza el alta.', imagenes: [] }
+    { responsable: 'Auxiliar de Compras', descripcion: 'Recibe la solicitud.', enlaces: [], imagenes: [{ idImagen: 'IMG-1', pie: 'Bandeja' }] },
+    { responsable: 'Jefe de Compras', descripcion: 'Autoriza el alta.', enlaces: [], imagenes: [] }
   ]);
 });
 
-test('quién genera el preliminar: el colaborador ya confirmado; Procesos al revisar; nadie más', function () {
+test('quién genera el preliminar: el colaborador ya confirmado (también en revisión, su PDF); Procesos al revisar; nadie más', function () {
   const ana = { registrado: true, idUsuario: 'USR-0002', perfiles: ['COLABORADOR'] };
   const paola = { registrado: true, idUsuario: 'USR-0003', perfiles: ['REVISOR'] };
   const diego = { registrado: true, idUsuario: 'USR-0004', perfiles: ['SOPORTE_CI'] };
   const estado = function (e) { return Object.assign({}, FILA, { ESTADO: e }); };
   assert.ok(gs.puedeGenerarPreliminar_(ana, estado('CONFIRMADO')));
   assert.ok(!gs.puedeGenerarPreliminar_(ana, estado('BORRADOR')), 'antes de confirmar no');
-  assert.ok(!gs.puedeGenerarPreliminar_(ana, estado('EN_REVISION')));
+  assert.ok(gs.puedeGenerarPreliminar_(ana, estado('EN_REVISION')) && gs.puedeGenerarPreliminar_(ana, estado('EN_AUTORIZACION_CH')));
+  assert.ok(!gs.puedeGenerarPreliminar_(ana, estado('DEVUELTO')), 'devuelta: primero corrige y confirma');
   assert.ok(gs.puedeGenerarPreliminar_(paola, estado('EN_REVISION')));
   assert.ok(gs.puedeGenerarPreliminar_(paola, estado('EN_AUTORIZACION_CH')));
   assert.ok(!gs.puedeGenerarPreliminar_(paola, estado('CONFIRMADO')));
   const carlos = { registrado: true, idUsuario: 'USR-0002', perfiles: ['COLABORADOR', 'REVISOR'] };
-  assert.ok(!gs.puedeGenerarPreliminar_(carlos, estado('EN_REVISION')), 'Procesos no genera lo que él mismo elaboró');
+  assert.ok(!gs.puedeGenerarPreliminar_(carlos, estado('CANCELADO')));
+  assert.ok(gs.soloPdf_(carlos, estado('EN_REVISION')), 'lo suyo lo genera como colaborador: solo el PDF');
+  assert.ok(!gs.soloPdf_(paola, estado('EN_REVISION')));
   assert.ok(!gs.puedeGenerarPreliminar_(diego, estado('EN_REVISION')), 'Soporte CI solo consulta');
 });
 

@@ -42,6 +42,7 @@
         b.querySelector('span').textContent = a.formato === 'DOCX' ? 'Word' : a.formato;
         b.addEventListener('click', function () { descargarArchivoGenerado(a.id, b); });
         caja.appendChild(b);
+        caja.appendChild(botonIcono('eye', 'Ver ' + (a.formato === 'DOCX' ? 'el Word' : 'el PDF'), function () { verArchivo(a); }));
       });
       return caja;
     }
@@ -59,6 +60,19 @@
       const q = function (c) { return t.querySelector('[data-campo="' + c + '"]'); };
       q('folio').textContent = s.id;
       q('codigo').textContent = s.codigo;
+      /* Después del Vo.Bo. Procesos todavía puede corregir el código (decisión 28). */
+      if (s.puedeOperar && ['EN_AUTORIZACION_CH', 'AUTORIZADO'].indexOf(s.estado) !== -1) {
+        q('codigo').after(botonIcono('pencil', 'Cambiar el código', function (b) {
+          const nuevo = (prompt('Código nuevo para «' + s.nombre + '» (ahora ' + s.codigo + '):', s.codigo) || '').trim().toUpperCase();
+          if (!nuevo || nuevo === s.codigo) return;
+          b.disabled = true;
+          llamar('apiCambiarCodigo', s.id, nuevo).then(function (r) {
+            avisar('Código cambiado a ' + r.codigo + '.', 'exito');
+            if (r.regenerar) avisar('Vuelve a generar el documento para que lleve el código nuevo.', '');
+            return cargar();
+          }).catch(function (e) { avisar(e.message, 'error'); b.disabled = false; });
+        }));
+      }
       q('version').textContent = 'Versión ' + (s.version || '0.0');
       q('nombre').textContent = s.nombre;
       q('datos').textContent = [s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''), s.elaborador ? 'Elaboró ' + s.elaborador : ''].filter(Boolean).join(' · ');

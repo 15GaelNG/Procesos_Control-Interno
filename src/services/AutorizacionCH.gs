@@ -31,7 +31,7 @@ function archivosParaCH_(archivos, fila) {
   const vobo = marcaDe_(fila.FECHA_REVISION);
   return ultimosPorFormato_(archivos.filter(function (a) {
     return a.ID_SOLICITUD === fila.ID_SOLICITUD && a.TIPO === 'PRELIMINAR' && vobo && marcaDe_(a.FECHA) >= vobo &&
-      String(a.HUELLA_CONTENIDO) === String(fila.HUELLA_CONFIRMADA);
+      contenidoAprobado_(fila, a.HUELLA_CONTENIDO);
   }));
 }
 
@@ -163,7 +163,7 @@ function registrarResultadoCH_(sesion, idSolicitud, datos) {
     if (plan.errores.length) throw new Error(plan.errores.join(' '));
     if (plan.solicitud.ESTADO === ESTADOS.AUTORIZADO) {
       const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: false }, formatoFecha_);
-      if (huellaDeDetalle_(det) !== String(fila.HUELLA_CONFIRMADA)) throw new Error('El contenido no es el que se confirmó: revisa la solicitud antes de registrar la autorización.');
+      if (!contenidoAprobado_(fila, huellaDeDetalle_(det))) throw new Error('El contenido no es el que se confirmó: revisa la solicitud antes de registrar la autorización.');
       const idDocumento = siguienteId_('DOC', 4);
       agregarFila_('Documentos', Object.assign({ ID_DOCUMENTO: idDocumento }, plan.documento));
       agregarFila_('HistorialCambios', Object.assign({ ID_CAMBIO: siguienteId_('CAM', 6), ID_DOCUMENTO: idDocumento }, plan.historial));
@@ -178,6 +178,8 @@ function registrarResultadoCH_(sesion, idSolicitud, datos) {
   registrarBitacora_(sesion, autorizado ? 'AUTORIZADO_CH' : 'RECHAZADO_CH',
     autorizado ? 'Autorizó ' + plan.envio.AUTORIZO_NOMBRE + ' (' + plan.envio.AUTORIZO_PUESTO + '). Versión ' + plan.solicitud.VERSION + '.'
       : plan.envio.COMENTARIO, idSolicitud, fila.ESTADO, plan.solicitud.ESTADO);
+  avisar_(sesion, autorizado ? 'AUTORIZADA' : 'RECHAZADA_CH', Object.assign({}, fila, plan.solicitud,
+    { AUTORIZO_NOMBRE: plan.envio.AUTORIZO_NOMBRE, COMENTARIO_CH: plan.envio.COMENTARIO }), [correoDeUsuario_(fila.ELABORO_ID)]);
   return { estado: plan.solicitud.ESTADO };
 }
 

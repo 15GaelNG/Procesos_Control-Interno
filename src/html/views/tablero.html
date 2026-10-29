@@ -1,0 +1,14 @@
+<template id="vista-tablero">
+  <div class="vista-ancho">
+    <div class="encabezado-vista">
+      <div>
+        <h1 class="titulo-vista"><i data-lucide="chart-column" class="ico"></i>Tablero</h1>
+        <p class="subtitulo">Cómo van los procesos: cuántos hay en cada etapa, cuánto tardan, cuántos regresan con observaciones y quién los lleva.</p>
+      </div>
+      <button type="button" class="boton secundario" data-accion="recargar"><i data-lucide="refresh-cw" class="ico"></i>Actualizar</button>
+    </div>
+    <div data-campo="contenido" class="tablero">
+      <div class="tarjeta"><div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Calculando…</p></div></div>
+    </div>
+  </div>
+</template>

@@ -1,6 +1,7 @@
 <template id="vista-solicitud">
   <div class="vista-ancho">
     <button type="button" class="enlace-volver" data-accion="volver"><i data-lucide="arrow-left" class="ico"></i>Mis solicitudes</button>
+    <div data-campo="progreso"></div>
     <nav class="pasos-captura" aria-label="Pasos de la solicitud">
       <span class="paso-captura hecho"><span>2</span>Información general</span>
       <button type="button" class="paso-captura" data-paso="desarrollo"><span>3</span>Desarrollo del proceso</button>
@@ -30,8 +31,12 @@
   </div>
   <div class="aviso-consulta dorado" data-campo="devuelta" hidden>
     <i data-lucide="message-square-warning" class="ico"></i>
-    <span>Procesos te regresó esta solicitud con observaciones. Corrige aquí lo necesario y atiéndelas en el paso 5.</span>
-    <button type="button" class="enlace" data-accion="ver-observaciones">Ver observaciones</button>
+    <span>Procesos te regresó esta solicitud con observaciones: las ves junto a cada parte. Corrige aquí lo necesario, márcalas como atendidas y al final confirma en la vista previa (paso 5).</span>
+    <button type="button" class="enlace" data-accion="ver-observaciones">Ver todas</button>
+  </div>
+  <div class="aviso-consulta" data-campo="ajustando" hidden>
+    <i data-lucide="pencil" class="ico"></i>
+    <span>Corrige lo que necesites aquí. Cuando termines da clic en «Siguiente: corregir con IA» (abajo) y después confirma en la vista previa.</span>
   </div>
   <div class="aviso-conflicto" data-campo="conflicto" hidden>
     <i data-lucide="triangle-alert" class="ico"></i>
@@ -42,44 +47,61 @@
     <div class="desarrollo-encabezado">
       <div>
         <h2>Desarrollo del proceso</h2>
-        <p class="nota">Se guarda solo mientras escribes.</p>
+        <p class="nota">Se guarda solo mientras escribes. La IA te sugiere cómo redactar cada parte.</p>
       </div>
       <div class="desarrollo-acciones">
         <span class="estado-guardado" data-campo="guardado"></span>
-        <button type="button" class="boton secundario" data-accion="corregir-ia"><i data-lucide="spell-check" class="ico"></i><span>Corregir redacción con IA</span></button>
       </div>
     </div>
 
-    <label class="campo">
-      <span>¿Qué sucede para que inicie este proceso?</span>
-      <textarea name="inicio" rows="2" maxlength="2000" placeholder="Ej. Cuando el departamento solicitante envía la solicitud."></textarea>
-    </label>
+    <div class="campo-con-ia" data-campo="campo-inicio">
+      <label class="campo">
+        <span>¿Qué sucede para que inicie este proceso?</span>
+        <textarea name="inicio" rows="2" maxlength="2000" placeholder="Ej. Cuando el departamento solicitante envía la solicitud."></textarea>
+      </label>
+      <div data-campo="comentarios"></div>
+    </div>
 
     <div class="separador"></div>
 
     <div>
       <h3 class="subtitulo-seccion">Describe las actividades en orden</h3>
-      <p class="nota">En cada actividad, menciona qué se hace y quién lo realiza. Puedes adjuntar imágenes o pegar capturas con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
+      <p class="nota">En cada actividad, menciona qué se hace y quién lo realiza. Puedes adjuntar imágenes, pegar capturas con <kbd>Ctrl</kbd> + <kbd>V</kbd> y agregar enlaces a páginas, carpetas de Drive o sistemas que se usen.</p>
     </div>
     <div class="actividades" data-campo="actividades"></div>
     <button type="button" class="boton-agregar" data-accion="agregar"><i data-lucide="plus" class="ico"></i>Agregar siguiente actividad</button>
 
     <div class="separador"></div>
 
-    <label class="campo">
-      <span>¿Cómo finaliza el proceso?</span>
-      <textarea name="fin" rows="2" maxlength="2000" placeholder="Ej. Cuando se autoriza la solicitud y se notifica al interesado."></textarea>
-    </label>
+    <div class="campo-con-ia" data-campo="campo-fin">
+      <label class="campo">
+        <span>¿Cómo finaliza el proceso?</span>
+        <textarea name="fin" rows="2" maxlength="2000" placeholder="Ej. Cuando se autoriza la solicitud y se notifica al interesado."></textarea>
+      </label>
+      <div data-campo="comentarios"></div>
+    </div>
   </section>
 
   <div class="tarjeta siguiente-paso">
     <div>
       <strong>Siguiente paso: corrección con IA</strong>
-      <p class="nota">Primero la IA corrige la ortografía y la redacción (unos segundos); después, en el mismo paso, puede identificar a los responsables, proponer el objetivo y el alcance y preguntarte lo que falte. Tú decides qué aceptar.</p>
+      <p class="nota">La IA corrige la ortografía y la redacción de todo (unos segundos); después identifica a los responsables, propone el objetivo y el alcance y te pregunta lo que falte. Tú decides qué aceptar.</p>
     </div>
     <div class="pregunta-botones">
-      <button type="button" class="boton secundario" data-accion="ir-analisis"><span>Ir al paso 4</span></button>
-      <button type="button" class="boton" data-accion="corregir-ia"><i data-lucide="spell-check" class="ico"></i><span>Corregir redacción con IA</span></button>
+      <button type="button" class="boton" data-accion="corregir-ia"><i data-lucide="arrow-right" class="ico"></i><span>Siguiente: corregir con IA</span></button>
+    </div>
+  </div>
+</template>
+
+<template id="parte-sugerencia">
+  <span class="nota revisando-ia" data-campo="revisando" hidden><i data-lucide="loader" class="ico girando"></i>La IA está revisando la redacción…</span>
+  <div class="sugerencia-ia" data-campo="sugerencia" hidden>
+    <div class="sugerencia-ia-cabeza"><i data-lucide="spell-check" class="ico"></i><strong>Sugerencia de la IA</strong><span class="nota" data-campo="sugerencia-nota"></span></div>
+    <p class="sugerencia-ia-texto" data-campo="sugerencia-texto"></p>
+    <div class="pregunta-botones">
+      <button type="button" class="boton chico" data-accion="usar-sugerencia"><i data-lucide="check" class="ico"></i><span>Usar esta redacción</span></button>
+      <button type="button" class="boton secundario chico" data-accion="editar-sugerencia"><i data-lucide="pencil" class="ico"></i>Usarla y editarla</button>
+      <button type="button" class="boton secundario chico" data-accion="ignorar-sugerencia">Ignorar</button>
     </div>
   </div>
 </template>
@@ -94,29 +116,35 @@
         <button type="button" class="btn-icono chico" data-accion="eliminar" title="Eliminar actividad"><i data-lucide="trash-2" class="ico"></i></button>
       </div>
     </header>
+    <div data-campo="comentarios"></div>
     <textarea data-campo="texto" rows="3" maxlength="4000" placeholder="Ej. El auxiliar recibe la solicitud y revisa que los documentos estén completos."></textarea>
-    <span class="nota revisando-ia" data-campo="revisando" hidden><i data-lucide="loader" class="ico girando"></i>La IA está revisando la redacción…</span>
-    <div class="sugerencia-ia" data-campo="sugerencia" hidden>
-      <div class="sugerencia-ia-cabeza"><i data-lucide="spell-check" class="ico"></i><strong>Sugerencia de la IA</strong><span class="nota" data-campo="sugerencia-nota"></span></div>
-      <p class="sugerencia-ia-texto" data-campo="sugerencia-texto"></p>
-      <div class="pregunta-botones">
-        <button type="button" class="boton chico" data-accion="usar-sugerencia"><i data-lucide="check" class="ico"></i><span>Usar esta redacción</span></button>
-        <button type="button" class="boton secundario chico" data-accion="ignorar-sugerencia">Ignorar</button>
-      </div>
-    </div>
+    <div data-campo="ia"></div>
     <label class="responsable">
       <i data-lucide="user-round" class="ico"></i>
       <input type="text" data-campo="responsable" maxlength="120" placeholder="¿Qué puesto la realiza? (si no lo dijiste en el texto)">
     </label>
+    <div class="enlaces" data-campo="enlaces"></div>
     <div class="imagenes" data-campo="imagenes"></div>
     <div class="adjuntar">
       <label class="boton-adjuntar">
-        <i data-lucide="image-plus" class="ico"></i><span>Adjuntar imagen a esta actividad</span>
+        <i data-lucide="image-plus" class="ico"></i><span>Adjuntar imagen</span>
         <input type="file" data-campo="archivo" accept="image/png,image/jpeg,image/webp" multiple hidden>
       </label>
+      <button type="button" class="boton-adjuntar" data-accion="agregar-enlace"><i data-lucide="link" class="ico"></i><span>Agregar enlace</span></button>
       <span class="nota">o pega una captura con Ctrl + V mientras escribes en la actividad</span>
     </div>
   </article>
+</template>
+
+<template id="parte-enlace">
+  <div class="enlace-fila">
+    <i data-lucide="link" class="ico"></i>
+    <input type="text" data-campo="texto" maxlength="200" placeholder="Qué es (ej. Carpeta de contratos)">
+    <input type="text" data-campo="url" maxlength="2000" placeholder="Pega la dirección (ej. drive.google.com/…)" spellcheck="false">
+    <a class="btn-icono chico" data-campo="abrir" target="_blank" rel="noopener noreferrer" title="Abrir en otra pestaña"><i data-lucide="external-link" class="ico"></i></a>
+    <button type="button" class="btn-icono chico" data-accion="quitar" title="Quitar enlace"><i data-lucide="x" class="ico"></i></button>
+    <span class="nota falta" data-campo="error" hidden>No parece una dirección web: así no se guarda.</span>
+  </div>
 </template>
 
 <template id="parte-imagen">

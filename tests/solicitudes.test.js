@@ -194,7 +194,7 @@ test('guardar: actividad nueva, texto editado, reordenar y fin del proceso', fun
   c.actividades = [c.actividades[1], c.actividades[0], { id: '', clave: 'n1', texto: 'Notifica al área', responsable: 'Jefe de compras' }];
   c.actividades[0] = Object.assign({}, c.actividades[0], { texto: 'Captura los datos en SAP' });
   const p = plano(planGuardar(c));
-  assert.deepStrictEqual(p.actividadesNuevas, [{ clave: 'n1', ORDEN: '3', TEXTO_ORIGINAL: 'Notifica al área', PUESTO_TEXTO: 'Jefe de compras' }]);
+  assert.deepStrictEqual(p.actividadesNuevas, [{ clave: 'n1', ORDEN: '3', TEXTO_ORIGINAL: 'Notifica al área', PUESTO_TEXTO: 'Jefe de compras', ENLACES: '' }]);
   assert.deepStrictEqual(p.actividadesCambios, [
     { _fila: 2, cambios: { ORDEN: '1', TEXTO_ORIGINAL: 'Captura los datos en SAP', TEXTO_FINAL: '' } },
     { _fila: 3, cambios: { ORDEN: '2' } }
