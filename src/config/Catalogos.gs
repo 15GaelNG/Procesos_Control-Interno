@@ -209,6 +209,11 @@ const APARTADOS_OBSERVACION = {
   PUESTOS: 'Puestos y responsabilidades', RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones',
   ACTIVIDAD: 'Actividad', FIN: 'Fin del proceso'
 };
+// Historial de cambios de una solicitud (Historial.gs): lo de la bitácora que no es un cambio ni un paso
+// del trámite, y cómo se llama cada campo de una propuesta de la IA.
+const ACCIONES_FUERA_DEL_HISTORIAL = ['DESCARGAR_ARCHIVO', 'VER_ARCHIVO', 'VER_COMO', 'AVISO_CORREO', 'EDITAR_REVISOR', 'ANALIZAR_IA'];
+const NOMBRES_CAMPO_HISTORIAL = { TEXTO: 'Redacción', RESPONSABLE: 'Responsable', OBJETIVO: 'Objetivo', ALCANCE: 'Alcance',
+  RESPONSABILIDADES: 'Responsabilidades', DEFINICIONES: 'Definiciones' };
 // Desde que se juntaron puestos y responsabilidades (decisión 25) ya no se observa aparte; se conserva por las viejas.
 const APARTADOS_RETIRADOS = ['RESPONSABILIDADES'];
 const DECISIONES_PROPUESTA = ['PENDIENTE', 'ACEPTADA', 'EDITADA', 'RECHAZADA', 'REEMPLAZADA'];

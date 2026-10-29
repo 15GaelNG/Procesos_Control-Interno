@@ -94,6 +94,14 @@ catálogo de puestos. Cada corrección:
 
 Si después la devuelve, el colaborador ve los cambios y vuelve a confirmar.
 
+### Historial de cambios
+
+En la revisión y en la vista previa, «Historial de cambios» (`services/Historial.gs`, `apiHistorial`) muestra,
+lo más reciente primero: cada corrección de Procesos y cada propuesta de la IA que el colaborador aceptó
+(cómo estaba y cómo quedó), y los pasos del trámite de la bitácora (creada, confirmada, enviada,
+devuelta, Vo.Bo., CH…). No guarda nada nuevo: se arma con lo que ya existe y se pide al abrirlo. Lo ven
+quien la elaboró, Procesos y Soporte CI.
+
 ### Corregir el código después del Vo.Bo. (decisión 28)
 
 Mientras se encuentra el inventario anterior de códigos, Procesos puede cambiar la numeración después del

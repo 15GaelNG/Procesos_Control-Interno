@@ -475,6 +475,7 @@
           confirmar.querySelector('span').textContent = 'Sí, es correcto: enviar a Procesos';
         });
       });
+      if (d.estado !== 'BORRADOR' || d.observaciones.length) ui.appendChild(historialSolicitud(idSolicitud));
       prepararDocumentos(ui, d, idSolicitud, cargar);
       pintarIconos();
       cargarMiniaturas(ui, d, idSolicitud);

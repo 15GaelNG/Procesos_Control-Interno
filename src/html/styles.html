@@ -884,6 +884,19 @@
     .progreso-nombre { display: none; }
   }
 
+  /* Historial de cambios de una solicitud */
+  .historial summary { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .historial[open] summary { margin-bottom: 8px; }
+  .historial-lista { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .historial-entrada { border-left: 3px solid var(--borde); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .historial-entrada.tipo-procesos { border-left-color: var(--dorado); }
+  .historial-entrada.tipo-ia { border-left-color: var(--primario); }
+  .historial-cabeza { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 13px; }
+  .historial-cabeza .nota { margin: 0 0 0 auto; font-size: 12px; }
+  .historial-detalle { margin: 0; font-size: 12.5px; color: var(--texto-suave); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .historial-texto { white-space: pre-wrap; }
+  .revision-lateral .historial .comparacion { grid-template-columns: 1fr; }
+
   /* Sin acceso */
   .pantalla-completa { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
   .sin-acceso { max-width: 460px; width: 100%; text-align: center; }

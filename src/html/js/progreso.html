@@ -76,6 +76,51 @@
   }
 
   /*
+   * Historial de cambios de la solicitud (apiHistorial): se pide la primera vez que se abre. Correcciones de
+   * Procesos y propuestas de la IA aceptadas con cómo estaba y cómo quedó, y cada paso del trámite.
+   */
+  function historialSolicitud(idSolicitud) {
+    const f = clonar('parte-historial');
+    const caja = f.querySelector('.historial');
+    const lista = caja.querySelector('[data-campo="lista"]');
+    const TIPOS = { PROCESOS: ['Procesos', 'dorado'], IA: ['IA', ''], TRAMITE: ['Trámite', 'neutro'] };
+    let pedido = false;
+    caja.addEventListener('toggle', function () {
+      if (!caja.open || pedido) return;
+      pedido = true;
+      llamar('apiHistorial', idSolicitud).then(function (entradas) {
+        lista.textContent = '';
+        if (!entradas.length) lista.appendChild(elemento('p', 'nota', 'Todavía no hay cambios.'));
+        entradas.forEach(function (e) {
+          const fila = elemento('article', 'historial-entrada tipo-' + e.tipo.toLowerCase());
+          const cabeza = elemento('div', 'historial-cabeza');
+          cabeza.appendChild(elemento('span', 'chip ' + TIPOS[e.tipo][1], TIPOS[e.tipo][0]));
+          cabeza.appendChild(elemento('strong', '', e.titulo));
+          cabeza.appendChild(elemento('span', 'nota', [e.quien, e.fecha].filter(Boolean).join(' · ')));
+          fila.appendChild(cabeza);
+          if (e.detalle) fila.appendChild(elemento('p', 'historial-detalle', e.detalle));
+          if (e.antes || e.despues) {
+            const comparacion = elemento('div', 'comparacion');
+            [['antes', 'Antes', e.antes], ['despues', 'Quedó', e.despues]].forEach(function (x) {
+              const d = elemento('div', x[0]);
+              d.appendChild(elemento('span', '', x[1]));
+              d.appendChild(elemento('div', 'historial-texto', x[2] || '(vacío)'));
+              comparacion.appendChild(d);
+            });
+            fila.appendChild(comparacion);
+          }
+          lista.appendChild(fila);
+        });
+      }).catch(function (e) {
+        pedido = false;
+        lista.textContent = '';
+        lista.appendChild(elemento('p', 'nota falta', 'No se pudo cargar el historial: ' + e.message));
+      });
+    });
+    return caja;
+  }
+
+  /*
    * Lo que Procesos dijo (o corrigió) de una parte, como comentario junto a ella (al estilo de Word).
    * acciones: atender(o, texto, boton) para el colaborador; cerrar/reabrir para el revisor; corregir() para
    * ir a editar esa parte.

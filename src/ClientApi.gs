@@ -266,6 +266,11 @@ function apiObservar(comoUsuario, idSolicitud, datos) {
   return agregarObservacion_(sesion, idSolicitud, datos);
 }
 
+/** Historial de cambios de la solicitud: quien la puede ver (colaborador que la elaboró, Procesos, Soporte CI). */
+function apiHistorial(comoUsuario, idSolicitud) {
+  return historial_(sesionEfectiva_(comoUsuario), idSolicitud);
+}
+
 /** Procesos corrige una parte del contenido. datos: { apartado, idActividad, valor, responsable }. */
 function apiEditarRevisor(comoUsuario, idSolicitud, datos) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
