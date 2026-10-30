@@ -18,6 +18,19 @@ function apiSesion(comoUsuario) {
   return { sesion: sesion, modulos: sesion.registrado ? modulosDe_(sesion.perfiles) : [] };
 }
 
+/** La foto de Google de quien usa la app (o de a quien está viendo con «ver como»). Sin `url` si el directorio falló. */
+function apiMiFoto(comoUsuario) {
+  const sesion = sesionEfectiva_(comoUsuario);
+  if (!sesion.registrado) return {};
+  return { url: fotosDe_([sesion.correo]).fotos[sesion.correo] };
+}
+
+/** Fotos de la pantalla «Usuarios»: los correos salen de la hoja, no del navegador. */
+function apiFotosUsuarios(comoUsuario) {
+  requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);
+  return fotosDe_(leerTabla_('Usuarios').filter(function (u) { return esActivo_(u.ACTIVO); }).map(function (u) { return u.CORREO; }));
+}
+
 /** Pantalla «Catálogos»: departamentos → áreas → subáreas. */
 function apiCatalogoAreas(comoUsuario) {
   requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);

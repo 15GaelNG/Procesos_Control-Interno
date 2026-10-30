@@ -157,6 +157,12 @@ const ENVIOS_CH_RESUELTOS_MAX = 50;
 const ANCHO_IMAGEN_DOCUMENTO = 560;
 const ALTO_IMAGEN_DOCUMENTO = 600;
 
+// Fotos de perfil de Google (Fotos.gs): tamaño, cuánto se recuerdan (6 horas) y cuántas se le piden al
+// directorio en una llamada (las demás, en la siguiente).
+const FOTO_PERFIL_PX = 96;
+const FOTO_CACHE_SEGUNDOS = 21600;
+const FOTOS_POR_LLAMADA = 25;
+
 // El tipo cuya plantilla usan todos los que no tengan la suya (decisión 36): Procedimiento.
 const TIPO_PLANTILLA_GENERAL = 'TD-02';
 

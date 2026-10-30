@@ -53,6 +53,7 @@
 | 37 | **El inventario anterior no se considera por ahora** (Gael, 30/10): no se construye su carga. El inventario se forma con lo que se autorice en el sistema. Importar un Word o PDF sigue disponible en cualquier solicitud. | 30/10/2026 |
 | 38 | **El puesto lo escribe cada usuario** (Gael, 30/10; no hay lista oficial): al crear una solicitud y, el revisor, al dar el Vo.Bo. Se recuerda para la siguiente vez y, si no existía, entra al catálogo de puestos, que se forma solo; el administrador corrige o da de baja lo que haga falta. Sale en «Elaboró» y «Revisó». | 30/10/2026 |
 | 39 | **Diseño nuevo** (Gael, 30/10; «moderno, con animaciones como de Gemini, sencillo desde cualquier módulo y perfil»): la marca sigue siendo azul marino y dorado; el degradado «aurora» (azul, violeta, rosa, dorado) queda como firma de la IA. El inicio es un saludo y los accesos; las listas son filas sueltas; todo es CSS y respeta a quien pidió menos movimiento en su sistema. | 30/10/2026 |
+| 40 | **Foto de perfil de Google** (Gael, 30/10), como en SIVET: sale del directorio de la organización (servicio avanzado People) en la barra de arriba y en «Usuarios». Solo se muestra: se recuerda 6 horas en la caché, no se guarda en la hoja. Sin foto, o si el directorio falla, salen las iniciales. El dueño da el permiso una vez con `autorizarFotos()` en cada ambiente. | 30/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 

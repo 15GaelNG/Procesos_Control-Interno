@@ -4,7 +4,18 @@ Lista viva de lo que falta hacer o revisar **fuera del código**: lo que Gael co
 que Procesos debe entregar o decidir, y lo que hay que validar en pruebas. Se actualiza en cada commit
 que agregue algo aquí; lo hecho se tacha con la fecha.
 
-## 0. Versión 13 en pruebas (30/10/2026)
+## 0. Versión 14 en pruebas (30/10/2026): foto de perfil de Google
+
+Pide un permiso nuevo y, **mientras no se acepte, la app puede marcar error de permisos**:
+
+1. En el editor de **BD Procesos - PRUEBAS**, correr **`autorizarFotos()`** y aceptar el permiso.
+2. El registro debe decir `Listo. Foto de…`. Si dice que el directorio no está compartido, lo activa un
+   administrador de Google Workspace; mientras tanto la app funciona con iniciales.
+3. Recargar la app con Ctrl + F5.
+
+**Al pasar a producción:** correr `autorizarFotos()` también en **BD Procesos**, justo después de subir.
+
+## 0.0 Versión 13 en pruebas (30/10/2026)
 
 Puesto escrito por cada usuario y diseño nuevo (decisiones 38 y 39). **No hay que correr nada**: solo
 recargar la app con Ctrl + F5 y revisar. Lo de la versión 9 y la 12 que siga pendiente está aquí abajo.

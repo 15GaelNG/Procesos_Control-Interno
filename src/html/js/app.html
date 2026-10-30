@@ -52,6 +52,23 @@
     const partes = String(nombre || '').replace(/@.*$/, '').replace(/\(.*\)/, '').split(/[\s._-]+/).filter(Boolean);
     return ((partes[0] || '?').charAt(0) + (partes[1] || '').charAt(0)).toUpperCase();
   }
+  /* Avatar de una persona: sus iniciales y, cuando carga, su foto de Google. Si la foto falla, se quedan las iniciales. */
+  function ponerAvatar(caja, nombre, url) {
+    url = url || '';
+    if (url && caja.dataset.foto === url) return;
+    caja.dataset.foto = url;
+    caja.textContent = iniciales(nombre);
+    if (!url) return;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.onload = function () {
+      if (caja.dataset.foto !== url) return;
+      caja.textContent = '';
+      caja.appendChild(img);
+    };
+    img.src = url;
+  }
   /* Aviso flotante que se quita solo (tipo: 'exito' o 'error'). */
   function avisar(texto, tipo) {
     const aviso = document.createElement('div');
@@ -241,7 +258,7 @@
     const s = estado.sesion;
     $('#usuario-nombre').textContent = s.nombre;
     $('#usuario-perfiles').textContent = nombresPerfiles(s.perfiles) || 'Sin perfil asignado';
-    $('#usuario-iniciales').textContent = iniciales(s.nombre);
+    pintarMiFoto();
     const aviso = $('#aviso-ambiente');
     if (DATOS.ambiente === 'PRODUCCION') return;
     $('#aviso-texto').textContent = s.verComo
@@ -251,6 +268,19 @@
     aviso.classList.toggle('viendo-como', !!s.verComo);
     aviso.hidden = false;
     document.body.classList.add('con-aviso');
+  }
+
+  /* La última foto conocida sale de inmediato y luego se confirma con el servidor (apiMiFoto). */
+  function pintarMiFoto() {
+    const s = estado.sesion;
+    const caja = $('#usuario-iniciales');
+    const clave = 'foto.' + s.correo;
+    ponerAvatar(caja, s.nombre, leer(clave));
+    llamar('apiMiFoto').then(function (r) {
+      if (estado.sesion !== s || typeof r.url !== 'string') return;
+      guardar(clave, r.url);
+      ponerAvatar(caja, s.nombre, r.url);
+    }).catch(function () { /* se queda como está */ });
   }
 
   function prepararVerComo() {

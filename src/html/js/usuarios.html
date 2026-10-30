@@ -3,6 +3,7 @@
    * Pantalla «Usuarios y perfiles» (apiUsuarios, apiGuardarUsuario).
    * El administrador da de alta y edita; Soporte CI solo consulta. Las reglas (nadie cambia sus propios
    * perfiles, siempre queda un administrador…) las valida el servidor; aquí solo se adelantan avisos.
+   * Las fotos de Google llegan aparte (apiFotosUsuarios): mientras tanto, las iniciales.
    */
   function iniciarUsuarios(raiz) {
     const q = function (campo) { return raiz.querySelector('[data-campo="' + campo + '"]'); };
@@ -18,6 +19,9 @@
     let datos = null;
     let editando = null;
     let seleccion = { deptos: [], principal: '' };
+    let fotos = {};
+    try { fotos = JSON.parse(leer('fotos-usuarios') || '{}'); } catch (e) { fotos = {}; }
+    let fotosPedidas = false;
 
     const comparable = function (t) {
       return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
@@ -56,7 +60,11 @@
 
     function filaUsuario(u) {
       const fila = el('div', 'usuario-fila' + (u.activo ? '' : ' inactiva'));
-      fila.appendChild(el('span', 'avatar', iniciales(u.nombre)));
+      const avatar = el('span', 'avatar');
+      avatar.dataset.correo = u.correo;
+      avatar.dataset.nombre = u.nombre;
+      ponerAvatar(avatar, u.nombre, fotos[u.correo]);
+      fila.appendChild(avatar);
       const datosU = el('div', 'usuario-datos-fila');
       const nombre = el('div', 'usuario-nombre', u.nombre);
       if (u.id === datos.yo) nombre.appendChild(el('span', 'chip exito', 'Tú'));
@@ -105,6 +113,17 @@
       pintarIconos();
     }
 
+    /* De a poco: el servidor pide unas cuantas al directorio en cada llamada y dice cuántas faltan. */
+    function pedirFotos(vuelta) {
+      return llamar('apiFotosUsuarios').then(function (r) {
+        if (!contenido.isConnected) return;
+        Object.keys(r.fotos).forEach(function (c) { fotos[c] = r.fotos[c]; });
+        guardar('fotos-usuarios', JSON.stringify(fotos));
+        contenido.querySelectorAll('.avatar[data-correo]').forEach(function (a) { ponerAvatar(a, a.dataset.nombre, fotos[a.dataset.correo]); });
+        if (r.faltan && vuelta < 8) return pedirFotos(vuelta + 1);
+      }).catch(function () { /* se quedan las iniciales */ });
+    }
+
     function cargar() {
       return llamar('apiUsuarios').then(function (r) {
         if (!contenido.isConnected) return;
@@ -115,6 +134,7 @@
           datos.dominios.map(function (d) { return '@' + d; }).join(' o ') + '. No se puede cambiar después.';
         pintarResumen();
         pintarLista();
+        if (!fotosPedidas) { fotosPedidas = true; pedirFotos(0); }
       }).catch(function (e) {
         if (!contenido.isConnected) return;
         contenido.textContent = '';
@@ -219,7 +239,7 @@
       editando = null;
     }
 
-    function guardar() {
+    function guardarUsuario() {
       const perfiles = Array.prototype.slice.call(formulario.querySelectorAll('input[name="perfil"]:checked'))
         .map(function (c) { return c.value; });
       const enviar = {
@@ -251,8 +271,8 @@
     raiz.querySelectorAll('[data-accion="cerrar"]').forEach(function (b) { b.addEventListener('click', cerrarPanel); });
     panel.addEventListener('click', function (e) { if (e.target === panel) cerrarPanel(); });
     panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarPanel(); });
-    botonGuardar.addEventListener('click', guardar);
-    formulario.addEventListener('submit', function (e) { e.preventDefault(); guardar(); });
+    botonGuardar.addEventListener('click', guardarUsuario);
+    formulario.addEventListener('submit', function (e) { e.preventDefault(); guardarUsuario(); });
     q('buscar-depto').addEventListener('input', pintarDeptos);
     buscar.addEventListener('input', function () { if (datos) pintarLista(); });
     filtroPerfil.addEventListener('change', function () { if (datos) pintarLista(); });

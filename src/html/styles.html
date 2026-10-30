@@ -1054,7 +1054,8 @@
   .btn-tema { transition: background-color .25s ease, color .25s ease, transform .25s var(--rebote); }
   .btn-tema:hover { transform: rotate(14deg) scale(1.08); }
   .btn-tema.activo { color: var(--sobre-primario); }
-  .avatar { background: linear-gradient(135deg, #dac891, #B4A169); color: #06263A; }
+  .avatar { background: linear-gradient(135deg, #dac891, #B4A169); color: #06263A; overflow: hidden; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; animation: fundir .3s ease backwards; }
   .btn-icono { transition: background-color .2s ease, border-color .2s ease, transform .2s var(--rebote); }
   .btn-icono:hover:not(:disabled) { background: var(--fondo); transform: translateY(-1px); }
 
