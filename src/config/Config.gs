@@ -157,6 +157,9 @@ const ENVIOS_CH_RESUELTOS_MAX = 50;
 const ANCHO_IMAGEN_DOCUMENTO = 560;
 const ALTO_IMAGEN_DOCUMENTO = 600;
 
+// El tipo cuya plantilla usan todos los que no tengan la suya (decisión 36): Procedimiento.
+const TIPO_PLANTILLA_GENERAL = 'TD-02';
+
 // Contrato entre la plantilla (plantillas/Procedimiento.docx) y el generador (documentos/Llenado.gs).
 // Cada marcador se escribe en la plantilla como {{CLAVE}}. Ver docs/plantillas.md#marcadores.
 const MARCADORES_PLANTILLA = {

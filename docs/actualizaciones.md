@@ -13,8 +13,8 @@ existentes; decisiones 32 y 33. Código: `src/services/Actualizaciones.gs` e `Im
    objetivo, alcance, responsabilidades, definiciones y cada actividad con su responsable, enlaces e
    imágenes (`ID_ACTIVIDAD_BASE` recuerda de qué actividad vigente viene cada una). La versión queda
    «Por asignar».
-3. **Si el documento no está en el sistema** (inventario anterior, cuando Procesos lo entregue) empieza
-   vacía y el paso 3 sugiere **importar su Word o PDF** (abajo).
+3. **Si el documento no tiene contenido en el sistema** (no pasa hoy: el inventario anterior no se
+   considera por ahora, decisión 37) empieza vacía y el paso 3 sugiere **importar su Word o PDF** (abajo).
 4. Se captura y se corrige con IA como cualquier solicitud.
 5. **Control de cambios** (vista previa): el sistema compara con la versión vigente y **sugiere** los
    motivos (`motivosSugeridos_`): cambio de responsable, actividades agregadas o eliminadas. El
@@ -45,8 +45,7 @@ primeros `IMPORTACION_MAX_CARACTERES` caracteres y se avisa.
 
 Sirve también para un documento nuevo cuyo proceso ya estaba escrito en otro lado.
 
-## Pendiente con Procesos
+## Por validar con Procesos
 
-- El **inventario anterior** (pregunta J): al cargarlo, sus documentos entran con `ORIGEN = HISTORICO`
-  y sin contenido en el sistema; su primera actualización se hace importando su Word o PDF.
-- Validar como regla institucional el esquema de versiones (lo dejaron como propuesta).
+El esquema de versiones lo dejaron como propuesta en su respuesta 5 (0.0 inicial, 1.0 mayor, 0.1 menor): el
+sistema lo usa tal cual; si lo cambian, se ajusta `siguienteVersion_`.

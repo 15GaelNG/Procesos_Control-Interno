@@ -2,8 +2,8 @@
  * INVENTARIO DOCUMENTAL (fase 6): los documentos oficiales con su versión vigente y su historial.
  *
  * Un documento entra cuando Procesos registra que CH autorizó su solicitud (AutorizacionCH.gs); su
- * Word y PDF finales (sin marca) se ligan al generarse. El inventario anterior de Procesos (pregunta J)
- * se cargará cuando lo entreguen, con ORIGEN = HISTORICO. Lo puro está probado en tests/autorizacion-ch.test.js.
+ * Word y PDF finales (sin marca) se ligan al generarse. El inventario anterior de Procesos no se
+ * considera por ahora (decisión 37); si llega, entraría con ORIGEN = HISTORICO. Lo puro está probado en tests/autorizacion-ch.test.js.
  */
 
 /** La lista para la pantalla (sin tocar Google), por código. */

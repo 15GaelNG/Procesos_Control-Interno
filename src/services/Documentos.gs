@@ -116,10 +116,21 @@ function nombreArchivo_(det, tipo, sello) {
 // ─────────────────────────────── Plantillas ───────────────────────────────
 
 /**
- * El Google Doc de la plantilla de un tipo de documento: el ID guardado en TiposDocumento o, si no
- * hay, el que se llame «<tipo> - Preliminar / - Final» en la carpeta Plantillas.
+ * El Google Doc de la plantilla de un tipo de documento: la suya si la tiene y, si no, la general
+ * (TIPO_PLANTILLA_GENERAL, decisión 36). El texto del tipo lo pone {{TIPO_DOCUMENTO}} al llenarla.
  */
-function plantillaDeTipo_(tipo, cual) {
+function plantillaDeTipo_(tipo, cual, tipos) {
+  const propia = plantillaPropia_(tipo, cual);
+  if (propia) return propia;
+  const general = (tipos || []).filter(function (x) { return x.ID_TIPO === TIPO_PLANTILLA_GENERAL; })[0];
+  const deGeneral = general ? plantillaPropia_(general, cual) : null;
+  if (deGeneral) return deGeneral;
+  const sufijo = cual === 'FINAL' ? SUFIJO_FINAL : SUFIJO_PRELIMINAR;
+  throw new Error('No está la plantilla «' + String((general || tipo).NOMBRE) + sufijo + '». Súbela a la carpeta Plantillas y corre prepararPlantillas().');
+}
+
+/** La plantilla de ese tipo: el ID guardado en TiposDocumento o la que se llame «<tipo> - Preliminar / - Final»; null si no hay. */
+function plantillaPropia_(tipo, cual) {
   const columna = cual === 'FINAL' ? 'ID_PLANTILLA_FINAL' : 'ID_PLANTILLA_PRELIMINAR';
   const sufijo = cual === 'FINAL' ? SUFIJO_FINAL : SUFIJO_PRELIMINAR;
   const id = String(tipo[columna] || '').trim();
@@ -130,11 +141,7 @@ function plantillaDeTipo_(tipo, cual) {
     } catch (e) { /* el ID ya no sirve: se busca por nombre */ }
   }
   const carpeta = DriveApp.getFolderById(propiedadObligatoria_('ID_CARPETA_PLANTILLAS'));
-  const porNombre = buscarDocPorNombre_(carpeta, String(tipo.NOMBRE) + sufijo);
-  if (!porNombre) {
-    throw new Error('No está la plantilla «' + tipo.NOMBRE + sufijo + '». Súbela a la carpeta Plantillas y corre prepararPlantillas().');
-  }
-  return porNombre;
+  return buscarDocPorNombre_(carpeta, String(tipo.NOMBRE) + sufijo);
 }
 
 // ─────────────────────────────── Generar ───────────────────────────────
@@ -187,7 +194,7 @@ function generarArchivos_(sesion, fila, cual, formatos) {
   try {
     const tipo = t.tipos.filter(function (x) { return x.ID_TIPO === fila.ID_TIPO; })[0];
     if (!tipo) throw new Error('La solicitud no tiene un tipo de documento válido.');
-    const plantilla = plantillaDeTipo_(tipo, cual);
+    const plantilla = plantillaDeTipo_(tipo, cual, t.tipos);
     const ahora = new Date();
     const historial = fila.ID_DOCUMENTO ? leerTabla_('HistorialCambios').filter(function (h) { return h.ID_DOCUMENTO === fila.ID_DOCUMENTO; }) : [];
     const datos = datosDocumento_(det, fila, function (f, p) { return Utilities.formatDate(f, ZONA_HORARIA, p); }, ahora, historial);

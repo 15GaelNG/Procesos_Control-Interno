@@ -43,7 +43,7 @@ test('las hojas retiradas ya no están en el esquema y las correcciones apuntan 
   });
 });
 
-test('prefijos del código documental según Procesos (decisión 11) y solo Procedimiento en el sistema', function () {
+test('prefijos del código documental según Procesos (decisión 11) y todos los tipos en el sistema (decisión 36)', function () {
   const def = hoja('TiposDocumento');
   const col = function (f, c) { return f[def.columnas.indexOf(c)]; };
   const prefijos = {};
@@ -51,7 +51,7 @@ test('prefijos del código documental según Procesos (decisión 11) y solo Proc
   assert.deepStrictEqual(prefijos, { 'Manual': 'M', 'Procedimiento': 'P', 'Protocolo': 'PRO', 'Política': 'PL',
     'Formato': 'F', 'Diagrama de proceso': 'DP' });
   const enSistema = def.semilla.filter(function (f) { return col(f, 'EN_SISTEMA') === 'SI'; }).map(function (f) { return col(f, 'NOMBRE'); });
-  assert.deepStrictEqual(plano(enSistema), ['Procedimiento']);
+  assert.deepStrictEqual(plano(enSistema), ['Manual', 'Procedimiento', 'Protocolo', 'Política', 'Formato', 'Diagrama de proceso']);
 });
 
 test('el código se puede armar: departamentos y áreas tienen su clave', function () {

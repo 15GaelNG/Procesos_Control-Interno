@@ -56,7 +56,7 @@ test('validar: una solicitud completa pasa', function () {
   assert.deepStrictEqual(plano(gs.validarNuevaSolicitud_(valida, opciones())), []);
 });
 
-test('validar: solo los tipos con plantilla (Procedimiento)', function () {
+test('validar: un tipo con EN_SISTEMA = NO no se puede elegir', function () {
   const e = gs.validarNuevaSolicitud_(Object.assign({}, valida, { idTipo: 'TD-01' }), opciones()).join(' ');
   assert.ok(/Manual.*todavía no se documenta/.test(e));
 });

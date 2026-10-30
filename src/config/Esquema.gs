@@ -99,15 +99,15 @@ const ESQUEMA_BD = [
     descripcion: 'Tipos de documento con su prefijo de código y sus dos plantillas. EN_SISTEMA = SI si ya se documenta aquí.',
     columnas: ['ID_TIPO', 'NOMBRE', 'PREFIJO_CODIGO', 'ID_PLANTILLA_PRELIMINAR', 'ID_PLANTILLA_FINAL', 'ACTIVO',
       'EN_SISTEMA'],
-    // Prefijos de la respuesta de Procesos (decisión 11). Solo Procedimiento tiene plantilla validada
-    // (decisión 12); Formato y Diagrama de proceso, hasta que Procesos diga si se documentan aquí.
+    // Prefijos de la respuesta de Procesos (decisión 11). Todos usan la misma plantilla (decisión 36) mientras
+    // un tipo no tenga la suya.
     semilla: [
-      ['TD-01', 'Manual', 'M', '', '', 'SI', 'NO'],
+      ['TD-01', 'Manual', 'M', '', '', 'SI', 'SI'],
       ['TD-02', 'Procedimiento', 'P', '', '', 'SI', 'SI'],
-      ['TD-03', 'Protocolo', 'PRO', '', '', 'SI', 'NO'],
-      ['TD-04', 'Política', 'PL', '', '', 'SI', 'NO'],
-      ['TD-05', 'Formato', 'F', '', '', 'SI', 'NO'],
-      ['TD-06', 'Diagrama de proceso', 'DP', '', '', 'SI', 'NO']
+      ['TD-03', 'Protocolo', 'PRO', '', '', 'SI', 'SI'],
+      ['TD-04', 'Política', 'PL', '', '', 'SI', 'SI'],
+      ['TD-05', 'Formato', 'F', '', '', 'SI', 'SI'],
+      ['TD-06', 'Diagrama de proceso', 'DP', '', '', 'SI', 'SI']
     ]
   },
 
@@ -218,5 +218,10 @@ const HOJAS_RETIRADAS = [
 // alguien ya lo cambió a mano, se respeta.
 const CORRECCIONES_BD = [
   { hoja: 'TiposDocumento', id: 'TD-02', columna: 'PREFIJO_CODIGO', de: 'PRO', a: 'P',
-    motivo: 'Procedimiento es P; PRO es Protocolo (decisión 11).' }
+    motivo: 'Procedimiento es P; PRO es Protocolo (decisión 11).' },
+  { hoja: 'TiposDocumento', id: 'TD-01', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
+  { hoja: 'TiposDocumento', id: 'TD-03', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
+  { hoja: 'TiposDocumento', id: 'TD-04', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
+  { hoja: 'TiposDocumento', id: 'TD-05', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
+  { hoja: 'TiposDocumento', id: 'TD-06', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' }
 ];

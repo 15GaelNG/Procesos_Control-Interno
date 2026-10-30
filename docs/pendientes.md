@@ -12,7 +12,7 @@ Los 22 cambios que pidieron el 28 y 29/10 (decisiones 25 a 31). Después de que 
    correos**. Es lo primero: mientras no se acepte, la app de pruebas puede marcar error de permisos.
    Debe llegarte un correo de prueba.
 2. Correr **`instalarPruebas()`**: agrega `ENLACES` e `ID_ACTIVIDAD_BASE` (Actividades), `HUELLA_REVISOR`
-   (Solicitudes) y `AVISOS_CORREO` (Config). (Si ya lo corriste por la versión 9, córrelo otra vez por la 11.)
+   (Solicitudes) y `AVISOS_CORREO` (Config). Además habilita todos los tipos de documento (decisión 36). Si ya lo corriste antes, córrelo otra vez.
 3. En `Config` de pruebas: `CORREO_PROCESOS` = el correo que debe recibir los avisos de Procesos (para
    probar, el tuyo; en producción, procesos.ci@ciudadmaderas.com).
 4. Recargar la app con Ctrl + F5 y recorrer lo nuevo (ver la respuesta de Claude del 29/10).
@@ -110,11 +110,11 @@ Mandar capturas de lo que se vea raro.
 - [ ] **Catálogo de puestos** por departamento (la IA lo usa para reconocer responsables). También el
   **puesto de cada revisor**: con el Vo.Bo. se guarda en `REVISO_PUESTO` y sale en «Revisó» del documento.
 - [ ] **Lista de usuarios** con su perfil y departamento.
-- [ ] Respuestas D–K del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **D** (qué pasa si
+- [ ] Respuestas D–I del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **D** (qué pasa si
   CH rechaza; hoy regresa al colaborador como observación), **E** (cómo se asigna el revisor), **F**
-  (consecutivo del código), **I** (documentos que no pasan por CH) y **J** (inventario documental actual,
-  para cargarlo, y un documento aprobado de ejemplo).
-- [ ] Plantillas de Manual, Protocolo y Política (cuando quieran incorporarlos).
+  (consecutivo del código) e **I** (documentos que no pasan por CH).
+- [x] ~~Plantillas de los otros tipos~~ → todos usan la misma plantilla (decisión 36).
+- [x] ~~Inventario anterior~~ → no se considera por ahora (decisión 37).
 
 ## 3. Decisiones por confirmar con Gael
 

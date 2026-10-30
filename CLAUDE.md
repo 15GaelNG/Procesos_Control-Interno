@@ -16,7 +16,7 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   director se dan en el **sistema CH** (Capital Humano); aquí no se duplican.
 - La marca «COPIA NO AUTORIZADA» se quita **solo cuando CH reporta «Autorizado»**, nunca con la
   validación de Procesos. El final es un archivo nuevo desde la plantilla sin marca.
-- Se construye primero el tipo **Procedimiento**; los demás tipos, cuando Procesos dé sus plantillas.
+- Todos los tipos de documento usan la **misma plantilla** (la de Procedimiento) mientras un tipo no tenga la suya (decisión 36).
 - La IA **propone y la persona decide**; nunca inventa responsables, actividades, tiempos ni
   requisitos, y nunca reordena actividades por su cuenta (§3.3, §3.4).
 

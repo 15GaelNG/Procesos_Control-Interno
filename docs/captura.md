@@ -20,7 +20,7 @@ El colaborador captura solo lo indispensable; lo demás sale de su perfil y de l
 | Campo | De dónde sale |
 |---|---|
 | Tipo de solicitud | Elige: documento nuevo. **Actualizar un documento vigente llega en la fase 7** (necesita el inventario) |
-| Tipo de documento | Elige entre los de `TiposDocumento` con `EN_SISTEMA = SI` (hoy solo Procedimiento); los demás se ven, pero deshabilitados |
+| Tipo de documento | Elige entre los de `TiposDocumento` con `EN_SISTEMA = SI` (hoy todos: decisión 36); los que tengan `NO` se ven, pero deshabilitados |
 | Nombre del documento | Lo escribe. Mientras escribe, el sistema busca **documentos vigentes y solicitudes en curso con nombre parecido** y los muestra; no impide continuar: Procesos decide si procede (§2.1) |
 | Departamento | Sus departamentos (pantalla de usuarios), el principal primero. Sin departamento asignado no puede crear |
 | Área / subárea | Las activas del departamento. El área es obligatoria (forma el código); la subárea, opcional |

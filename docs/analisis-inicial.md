@@ -25,7 +25,7 @@
 | 9 | **Las respuestas de Procesos precisan el requerimiento.** Donde lo contradicen, mandan las respuestas: vienen del mismo dueño del requerimiento y son más recientes. | 13/10/2026 |
 | 10 | **Este sistema llega hasta el Vo.Bo. de Procesos.** Elaboración, IA, revisión y observaciones se hacen aquí; las autorizaciones formales del responsable y del director **se quedan en el sistema CH** y no se duplican. Sustituye al perfil «Autorizador» (§1) y a la autorización «dentro del sistema» (§4.4). | 13/10/2026 |
 | 11 | **Código documental** `tipo-departamento+área-consecutivo` (ej. `P-CM01-001`). Prefijos: **M** Manual, **P** Procedimiento, **PRO** Protocolo, **PL** Política (además F Formato y DP Diagrama de proceso). Una actualización conserva el código. | 13/10/2026 |
-| 12 | **Se construye primero el tipo Procedimiento.** Manual, Protocolo y Política entran cuando Procesos entregue y valide sus plantillas. | 13/10/2026 |
+| 12 | **Se construye primero el tipo Procedimiento.** Manual, Protocolo y Política entran cuando Procesos entregue y valide sus plantillas. *Reemplazada por la decisión 36.* | 13/10/2026 |
 | 13 | **Plantilla v2 de Procedimiento:** mismo diseño, encabezado y pie reales (no cuadros de texto), y secciones de Responsabilidades (opcional), Definiciones (opcional) y **Control de cambios**. Procesos la valida antes de usarla ([plantillas.md](plantillas.md)). | 13/10/2026 |
 | 14 | **«Autorizado por» muestra solo al autorizador final** (normalmente el director), con nombre, cargo y fecha que vienen de CH. | 13/10/2026 |
 | 15 | **Sin conexión con el sistema CH.** Este sistema solo genera los archivos; Procesos los sube a CH. Cuando CH autoriza, **Procesos registra aquí** quién autorizó y cuándo, y con eso se genera el documento final sin marca (sustituye la pregunta A). | 13/10/2026 |
@@ -49,6 +49,8 @@
 | 33 | **Importar un Word o PDF existente con IA** (propuesta de Procesos): la IA separa el documento en inicio, actividades con responsable y fin, sin inventar; el colaborador lo revisa antes de usarlo. El original se guarda en la carpeta de la solicitud. | 29/10/2026 |
 | 34 | **Catálogo de puestos** en su propia pantalla: el administrador da de alta, corrige, da de baja o pega una lista; Soporte CI consulta. Los sinónimos ayudan a la IA. | 29/10/2026 |
 | 35 | **«Todas las solicitudes»** para Soporte CI: la lista completa con filtro por estado y la solicitud en modo consulta. | 29/10/2026 |
+| 36 | **Todos los tipos de documento usan la misma plantilla** (Gael, 30/10; reemplaza la decisión 12): Manual, Procedimiento, Protocolo, Política, Formato y Diagrama de proceso se pueden elegir y usan la plantilla de Procedimiento, cuyo texto del tipo es el marcador `{{TIPO_DOCUMENTO}}`; cada uno conserva su prefijo de código. Si un tipo llega a tener su plantilla, se usa la suya. | 30/10/2026 |
+| 37 | **El inventario anterior no se considera por ahora** (Gael, 30/10): no se construye su carga. El inventario se forma con lo que se autorice en el sistema. Importar un Word o PDF sigue disponible en cualquier solicitud. | 30/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 

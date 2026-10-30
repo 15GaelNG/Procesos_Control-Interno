@@ -145,16 +145,17 @@ coma: ayudan a la IA a reconocer al responsable) · `ACTIVO`.
 
 ### TiposDocumento
 `ID_TIPO` · `NOMBRE` · `PREFIJO_CODIGO` · `ID_PLANTILLA_PRELIMINAR` · `ID_PLANTILLA_FINAL` · `ACTIVO` ·
-`EN_SISTEMA` (`SI` = ya se documenta en este sistema porque tiene plantilla validada).
+`EN_SISTEMA` (`SI` = se puede elegir al crear una solicitud). Desde la decisión 36 todos están en `SI` y usan
+la plantilla de Procedimiento si no tienen la suya.
 
 | ID | Tipo | Prefijo | En el sistema |
 |---|---|---|---|
-| TD-01 | Manual | M | NO (falta su plantilla) |
-| TD-02 | Procedimiento | P | **SI** (plantilla v2) |
-| TD-03 | Protocolo | PRO | NO (falta su plantilla) |
-| TD-04 | Política | PL | NO (falta su plantilla) |
-| TD-05 | Formato | F | NO (pregunta H) |
-| TD-06 | Diagrama de proceso | DP | NO (pregunta H) |
+| TD-01 | Manual | M | SI |
+| TD-02 | Procedimiento | P | SI (la plantilla v2, la de todos) |
+| TD-03 | Protocolo | PRO | SI |
+| TD-04 | Política | PL | SI |
+| TD-05 | Formato | F | SI |
+| TD-06 | Diagrama de proceso | DP | SI |
 
 Cada tipo tiene **dos** plantillas: la preliminar con «COPIA NO AUTORIZADA» y la final sin marca.
 `prepararPlantillas()` guarda sus IDs aquí (el Word «Procedimiento.docx» se liga al tipo «Procedimiento»);
