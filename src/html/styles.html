@@ -38,17 +38,18 @@
     --sombra: 0 1px 2px rgba(6,38,58,.04), 0 10px 26px -18px rgba(6,38,58,.22);
     --sombra-grande: 0 28px 56px -24px rgba(6,38,58,.45);
 
-    /* La firma de la IA */
-    --ia-azul: #4C8DF6;
-    --ia-violeta: #8B5CF0;
-    --ia-rosa: #E6689F;
-    --ia-dorado: #E0B458;
-    --ia-fondo: #FAF8FF;
-    --aurora: linear-gradient(100deg, var(--ia-azul) 0%, var(--ia-violeta) 36%, var(--ia-rosa) 68%, var(--ia-dorado) 100%);
-    --aurora-boton: linear-gradient(100deg, #2f6fe0 0%, #7a4fe0 35%, #c2407f 65%, #7a4fe0 85%, #2f6fe0 100%);
-    --luz-1: rgba(76,141,246,.13);
-    --luz-2: rgba(224,180,88,.12);
-    --luz-3: rgba(139,92,240,.09);
+    /* La firma de la IA, con los colores de la marca: del azul al dorado */
+    --ia-marino: #06263A;
+    --ia-azul: #1F6FA8;
+    --ia-dorado-claro: #DAC891;
+    --ia-dorado: #A38F56;
+    --ia-fondo: #FBF9F2;
+    --aurora: linear-gradient(100deg, var(--ia-marino) 0%, var(--ia-azul) 45%, var(--ia-dorado) 100%);
+    --aurora-boton: linear-gradient(100deg, #B4A169 0%, #DAC891 35%, #EFE3B8 50%, #DAC891 65%, #B4A169 100%);
+    --sobre-aurora: #06263A;
+    --luz-1: rgba(31,111,168,.12);
+    --luz-2: rgba(180,161,105,.14);
+    --luz-3: rgba(31,111,168,.07);
 
     --suave: cubic-bezier(.22,1,.36,1);
     --rebote: cubic-bezier(.3,1.5,.5,1);
@@ -77,11 +78,14 @@
     --peligro-suave: #3a1d1a;
     --sombra: 0 1px 2px rgba(0,0,0,.25), 0 12px 28px -20px rgba(0,0,0,.8);
     --sombra-grande: 0 28px 56px -24px rgba(0,0,0,.85);
-    --ia-violeta: #A98BF7;
-    --ia-fondo: #181A2E;
-    --luz-1: rgba(76,141,246,.15);
-    --luz-2: rgba(224,180,88,.06);
-    --luz-3: rgba(139,92,240,.14);
+    --ia-marino: #A3D1F2;
+    --ia-azul: #5AA9E0;
+    --ia-dorado-claro: #EBDDB0;
+    --ia-dorado: #D4C393;
+    --ia-fondo: #1A2328;
+    --luz-1: rgba(47,123,176,.16);
+    --luz-2: rgba(180,161,105,.07);
+    --luz-3: rgba(47,123,176,.1);
   }
 
   * { box-sizing: border-box; }
@@ -1001,8 +1005,8 @@
     .barra-logo.logo-claro, .barra-logo.logo-oscuro { display: none !important; }
   }
   /* ═══════════ DISEÑO ═══════════
-     Va al final para ganarle a lo de arriba. La marca (azul marino y dorado) es la base; el degradado
-     «aurora» (azul, violeta, rosa, dorado) es la firma de la IA: si algo brilla así, es la IA trabajando o
+     Va al final para ganarle a lo de arriba. Todo va con la marca, azul marino y dorado (Gael, 30/10). El
+     degradado «aurora» (del azul al dorado) es la firma de la IA: si algo brilla así, es la IA trabajando o
      proponiendo. Las animaciones usan «backwards» para no estorbarle al hover. Sin scripts: solo CSS. */
   @property --giro { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
   @keyframes aparecer { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
@@ -1137,7 +1141,7 @@
   .acceso-icono { background: var(--dorado-suave); color: var(--dorado-hover); transition: transform .3s var(--rebote); }
   .acceso:hover .acceso-icono { transform: scale(1.1) rotate(-4deg); }
   .pasos { gap: 18px; }
-  .paso-num.es-ia { background: var(--aurora); color: #fff; }
+  .paso-num.es-ia { background: var(--aurora-boton); color: var(--sobre-aurora); }
 
   /* ─ La IA ─ */
   .texto-aurora, .sugerencia-ia-cabeza strong {
@@ -1147,45 +1151,45 @@
   .girando-lento { animation: chispa 2.2s ease-in-out infinite; }
   /* Botones que le piden algo a la IA */
   .boton[data-accion="redaccion"], .boton[data-accion="corregir-ia"], .boton[data-accion="aceptar-redaccion"], .boton[data-accion="aceptar-demas"], .boton[data-accion="usar-sugerencia"] {
-    background: var(--aurora-boton); background-size: 240% 100%; color: #fff; animation: flujo 7s ease-in-out infinite alternate;
-    box-shadow: 0 10px 24px -12px rgba(122,79,224,.9);
+    background: var(--aurora-boton); background-size: 240% 100%; color: var(--sobre-aurora); animation: flujo 4s ease-in-out infinite alternate;
+    box-shadow: 0 10px 24px -12px rgba(180,161,105,.9);
   }
   .boton[data-accion="redaccion"]:hover:not(:disabled), .boton[data-accion="corregir-ia"]:hover:not(:disabled), .boton[data-accion="aceptar-redaccion"]:hover:not(:disabled),
   .boton[data-accion="aceptar-demas"]:hover:not(:disabled), .boton[data-accion="usar-sugerencia"]:hover:not(:disabled) {
-    background: var(--aurora-boton); background-size: 240% 100%; box-shadow: 0 14px 30px -10px rgba(122,79,224,.95);
+    background: var(--aurora-boton); background-size: 240% 100%; box-shadow: 0 14px 30px -10px rgba(180,161,105,.95);
   }
   .boton.secundario[data-accion="analizar"], .boton.secundario[data-accion="analizar"]:hover:not(:disabled) {
     background: linear-gradient(var(--superficie), var(--superficie)) padding-box, var(--aurora) border-box;
-    border: 1.5px solid transparent; color: var(--texto); box-shadow: 0 10px 22px -16px rgba(122,79,224,.9);
+    border: 1.5px solid transparent; color: var(--texto); box-shadow: 0 10px 22px -16px rgba(180,161,105,.9);
   }
   /* La IA trabajando: borde de luz girando y texto que brilla. */
   .analizando { position: relative; isolation: isolate; padding: 16px 18px; border: 0; border-radius: var(--radio); background: none; box-shadow: none; }
   .analizando::before, .analizando::after {
     content: ''; position: absolute; border-radius: inherit; animation: dar-vuelta 3s linear infinite;
-    --anillo: conic-gradient(from var(--giro), var(--ia-azul), var(--ia-violeta), var(--ia-rosa), var(--ia-dorado), var(--ia-azul));
+    --anillo: conic-gradient(from var(--giro), var(--ia-marino), var(--ia-azul), var(--ia-dorado-claro), var(--ia-dorado), var(--ia-marino));
   }
   .analizando::before { inset: 0; z-index: -1; border: 1.5px solid transparent; background: linear-gradient(var(--superficie), var(--superficie)) padding-box, var(--anillo) border-box; }
   .analizando::after { inset: -3px; z-index: -2; opacity: .4; filter: blur(14px); background: var(--anillo); }
-  .analizando .vacio-icono { width: 46px; height: 46px; border-radius: 999px; flex-shrink: 0; background: var(--aurora); color: #fff; }
+  .analizando .vacio-icono { width: 46px; height: 46px; border-radius: 999px; flex-shrink: 0; background: var(--aurora-boton); color: var(--sobre-aurora); }
   .analizando .vacio-icono .ico { width: 24px; height: 24px; }
   .analizando strong, .revisando-ia, .vacio:has(.girando) p {
-    background: linear-gradient(90deg, var(--texto) 30%, var(--ia-violeta) 45%, var(--ia-rosa) 55%, var(--texto) 70%); background-size: 300% 100%;
+    background: linear-gradient(90deg, var(--texto) 30%, var(--ia-azul) 45%, var(--ia-dorado) 55%, var(--texto) 70%); background-size: 300% 100%;
     -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
     animation: flujo 1.8s linear infinite alternate;
   }
-  .revisando-ia .ico { color: var(--ia-violeta); }
+  .revisando-ia .ico { color: var(--ia-azul); }
   /* La IA propone */
   .sugerencia-ia {
     border: 1.5px solid transparent; border-radius: 16px; padding: 12px 14px;
     background: linear-gradient(var(--ia-fondo), var(--ia-fondo)) padding-box, var(--aurora) border-box;
     animation: brotar .45s var(--rebote) backwards;
   }
-  .sugerencia-ia-cabeza { color: var(--ia-violeta); }
+  .sugerencia-ia-cabeza { color: var(--ia-azul); }
   .resultado-ia { animation: brotar .45s var(--rebote) backwards; }
   /* Pantalla cargando: un aro de luz, sin relojitos. */
   .vacio-icono:has(.girando) {
     position: relative; border-radius: 999px; width: 46px; height: 46px;
-    background: conic-gradient(from var(--giro), transparent 10%, var(--ia-azul), var(--ia-violeta), var(--ia-rosa), var(--ia-dorado));
+    background: conic-gradient(from var(--giro), transparent 10%, var(--ia-marino), var(--ia-azul), var(--ia-dorado-claro), var(--ia-dorado));
     animation: dar-vuelta 1.1s linear infinite;
   }
   .vacio-icono:has(.girando)::after { content: ''; position: absolute; inset: 4px; border-radius: 999px; background: var(--superficie); }

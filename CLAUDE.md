@@ -77,8 +77,9 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
   código. La llave de la IA jamás va al repo, a la hoja ni al navegador.
 
 ## Diseño (decisión 39)
-- La marca es azul marino y dorado. El degradado «aurora» (`--aurora`, `--aurora-boton`) es solo para la IA
-  y lo que carga: si algo brilla así, es la IA trabajando o proponiendo.
+- Todo va con la marca, azul marino y dorado; ningún otro color de acento. El degradado «aurora» (`--aurora`,
+  `--aurora-boton`, del azul al dorado) es solo para la IA y lo que carga: si algo brilla así, es la IA
+  trabajando o proponiendo. Sobre dorado la letra es marino (`--sobre-aurora`), porque en blanco no se lee.
 - La capa de diseño va al final de `src/html/styles.html`. Las animaciones de entrada usan `backwards`
   (con `both` no funciona el hover) y solo van en lo que se pinta una vez, no en lo que se repinta al escribir.
 - Los colores salen de los tokens de `:root`; en oscuro `--primario` es claro, así que el texto encima
