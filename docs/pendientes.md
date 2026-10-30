@@ -4,7 +4,12 @@ Lista viva de lo que falta hacer o revisar **fuera del código**: lo que Gael co
 que Procesos debe entregar o decidir, y lo que hay que validar en pruebas. Se actualiza en cada commit
 que agregue algo aquí; lo hecho se tacha con la fecha.
 
-## 0. Versión 9 en pruebas (29/10/2026): lo que hay que correr
+## 0. Versión 13 en pruebas (30/10/2026)
+
+Puesto escrito por cada usuario y diseño nuevo (decisiones 38 y 39). **No hay que correr nada**: solo
+recargar la app con Ctrl + F5 y revisar. Lo de la versión 9 y la 12 que siga pendiente está aquí abajo.
+
+## 0.1 Versión 9 en pruebas (29/10/2026): lo que hay que correr
 
 Los 22 cambios que pidieron el 28 y 29/10 (decisiones 25 a 31). Después de que Claude la suba:
 
@@ -43,7 +48,7 @@ en el mismo orden en que la usará la gente.
       `ID_PLANTILLA_PRELIMINAR` e `ID_PLANTILLA_FINAL`.
 4. En la hoja `Config` de pruebas: `IA_ACTIVA = SI`.
 5. En la app de pruebas, pantalla **Usuarios**: asignar departamento a Ana y a Luis (colaboradores de
-   prueba) y, si ya hay puestos, un puesto a Paola y a Carlos (sale en «Revisó» del documento).
+   prueba). El puesto ya no se asigna aquí: cada quien lo escribe (decisión 38).
 
 ### 1.2 Recorrido de prueba (con «Ver como»)
 
@@ -107,8 +112,7 @@ Mandar capturas de lo que se vea raro.
   el código. Quedan por confirmar con Procesos tres cosas ([catalogos.md](catalogos.md#pendientes-para-procesos)):
   si los documentos vigentes conservan su código anterior (52 áreas cambiaron de clave), los 10
   departamentos que ya no vienen y unas posibles erratas.
-- [ ] **Catálogo de puestos** por departamento (la IA lo usa para reconocer responsables). También el
-  **puesto de cada revisor**: con el Vo.Bo. se guarda en `REVISO_PUESTO` y sale en «Revisó» del documento.
+- [x] ~~Catálogo de puestos~~ → no hay lista: cada usuario escribe su puesto y el catálogo se forma solo (decisión 38).
 - [ ] **Lista de usuarios** con su perfil y departamento.
 - [ ] Respuestas D–I del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **D** (qué pasa si
   CH rechaza; hoy regresa al colaborador como observación), **E** (cómo se asigna el revisor), **F**
@@ -117,6 +121,9 @@ Mandar capturas de lo que se vea raro.
 - [x] ~~Inventario anterior~~ → no se considera por ahora (decisión 37).
 
 ## 3. Decisiones por confirmar con Gael
+
+- [ ] **Lunes 2/11/2026 (Gael lo confirma con Procesos):** ¿Formato y Diagrama de proceso se documentan aquí o se
+  vuelven a bloquear? ¿La misma plantilla sirve para Manual, Protocolo y Política, o darán una propia? (decisión 36)
 
 - [ ] Regla «nadie cambia sus propios perfiles ni se da de baja» (agregada el 20/10/2026 junto con la
   decisión 19). Si no se quiere, se quita en `planGuardarUsuario_`.

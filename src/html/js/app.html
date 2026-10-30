@@ -226,8 +226,9 @@
       $('strong', b).textContent = m.nombre;
       $('.acceso-desc', b).textContent = m.descripcion || '';
       const chip = $('.chip', b);
-      chip.classList.add(m.fase ? 'dorado' : 'exito');
-      chip.textContent = m.fase ? 'Llega en ' + m.fase : 'Disponible';
+      chip.classList.add('dorado');
+      chip.textContent = 'Llega en ' + m.fase;
+      chip.hidden = !m.fase;
       b.addEventListener('click', function () { ir(m.id, true); });
       accesos.appendChild(b);
     });

@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const { cargarGs } = require('./cargar-gs');
 
 const gs = cargarGs(['src/config/Config.gs', 'src/config/Catalogos.gs', 'src/utils/Texto.gs', 'src/services/Usuarios.gs',
-  'src/services/Solicitudes.gs', 'src/services/Puestos.gs']);
+  'src/services/Solicitudes.gs', 'src/services/AnalisisSolicitud.gs', 'src/services/Puestos.gs']);
 const plano = function (v) { return JSON.parse(JSON.stringify(v)); };
 
 const DEPTOS = [{ ID_DEPARTAMENTO: 'DEP-001', NOMBRE: 'COMPRAS' }];
@@ -31,6 +31,18 @@ test('pegar una lista: un puesto por renglón, sinónimos después de «|», sin
   const p = plano(gs.planImportarPuestos_('Jefe de Compras | jefe, encargado\nauxiliar de compras\n\nJefe de compras\nContralor', PUESTOS));
   assert.deepStrictEqual(p.nuevos.map(function (x) { return x.NOMBRE + ':' + x.SINONIMOS; }), ['Jefe de Compras:jefe, encargado', 'Contralor:']);
   assert.deepStrictEqual(p.repetidos, ['auxiliar de compras', 'Jefe de compras']);
+});
+
+test('mi puesto: lo escribe la persona; se reconoce el del catálogo, si no es nuevo; sin texto vale el que tiene', function () {
+  const conPuesto = { ID_PUESTO: 'PUE-0001' };
+  const sinPuesto = { ID_PUESTO: '' };
+  assert.ok(/Escribe tu puesto/.test(gs.planMiPuesto_('  ', sinPuesto, PUESTOS).errores.join()));
+  assert.deepStrictEqual(plano(gs.planMiPuesto_('', conPuesto, PUESTOS)), { errores: [], nombre: 'Auxiliar de Compras', idPuesto: 'PUE-0001', nuevo: false, sinCambios: true });
+  assert.ok(gs.planMiPuesto_('auxiliar de compras', conPuesto, PUESTOS).sinCambios);
+  assert.deepStrictEqual(plano(gs.planMiPuesto_(' Aux. Compras ', sinPuesto, PUESTOS)), { errores: [], nombre: 'Auxiliar de Compras', idPuesto: 'PUE-0001', nuevo: false, sinCambios: false }, 'por sinónimo');
+  assert.deepStrictEqual(plano(gs.planMiPuesto_('Especialista  de Datos', sinPuesto, PUESTOS)), { errores: [], nombre: 'Especialista de Datos', idPuesto: '', nuevo: true, sinCambios: false });
+  assert.ok(gs.planMiPuesto_('Puesto viejo', sinPuesto, PUESTOS).nuevo, 'uno dado de baja no cuenta');
+  assert.ok(/entre 3/.test(gs.planMiPuesto_('x', sinPuesto, PUESTOS).errores.join()));
 });
 
 test('todas las solicitudes: la más reciente primero, con su revisor', function () {

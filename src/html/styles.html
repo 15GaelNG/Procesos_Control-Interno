@@ -1,6 +1,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
   /* Colores de SIVET y Control Interno (azul marino y dorado de Ciudad Maderas). El menú lateral es
@@ -13,11 +13,15 @@
     --dorado-hover: #9c8a58;
     --dorado-suave: #EBE5D1;
 
-    --fondo: #F5F6F5;
+    --sobre-primario: #ffffff;
+    --sombra-boton: rgba(6,38,58,.55);
+    --halo: rgba(180,161,105,.24);
+
+    --fondo: #F3F5F8;
     --superficie: #ffffff;
-    --texto: #1c2b33;
+    --texto: #16242c;
     --texto-suave: #5c6b72;
-    --borde: #E7E7E7;
+    --borde: #E4E8ED;
     --exito: #1e7d4f;
     --exito-suave: #dcefe5;
     --aviso: #8a6d3a;
@@ -30,36 +34,61 @@
     --menu-hover: rgba(255,255,255,.08);
     --menu-borde: rgba(255,255,255,.14);
 
-    --radio: 12px;
-    --sombra: 0 1px 3px rgba(6,38,58,.08), 0 1px 2px rgba(6,38,58,.05);
-    --sombra-grande: 0 24px 48px -16px rgba(6,38,58,.35);
+    --radio: 20px;
+    --sombra: 0 1px 2px rgba(6,38,58,.04), 0 10px 26px -18px rgba(6,38,58,.22);
+    --sombra-grande: 0 28px 56px -24px rgba(6,38,58,.45);
+
+    /* La firma de la IA */
+    --ia-azul: #4C8DF6;
+    --ia-violeta: #8B5CF0;
+    --ia-rosa: #E6689F;
+    --ia-dorado: #E0B458;
+    --ia-fondo: #FAF8FF;
+    --aurora: linear-gradient(100deg, var(--ia-azul) 0%, var(--ia-violeta) 36%, var(--ia-rosa) 68%, var(--ia-dorado) 100%);
+    --aurora-boton: linear-gradient(100deg, #2f6fe0 0%, #7a4fe0 35%, #c2407f 65%, #7a4fe0 85%, #2f6fe0 100%);
+    --luz-1: rgba(76,141,246,.13);
+    --luz-2: rgba(224,180,88,.12);
+    --luz-3: rgba(139,92,240,.09);
+
+    --suave: cubic-bezier(.22,1,.36,1);
+    --rebote: cubic-bezier(.3,1.5,.5,1);
   }
 
   :root[data-theme="dark"] {
-    --primario: #2f7bb0;
-    --primario-hover: #3f91cb;
-    --primario-suave: #163041;
+    --primario: #86C1EC;
+    --primario-hover: #A3D1F2;
+    --primario-suave: #15303F;
+    --sobre-primario: #06263A;
+    --sombra-boton: rgba(0,0,0,.7);
+    --halo: rgba(196,178,128,.2);
     --dorado: #c4b280;
     --dorado-hover: #d4c393;
     --dorado-suave: #2a2718;
 
-    --fondo: #0b1a23;
-    --superficie: #142732;
-    --texto: #edf1f3;
+    --fondo: #091219;
+    --superficie: #111E28;
+    --texto: #eef2f4;
     --texto-suave: #9db0b8;
-    --borde: #26404c;
+    --borde: rgba(255,255,255,.09);
     --exito: #5cc08f;
     --exito-suave: #133326;
     --aviso: #d4b77a;
     --peligro: #e58a7f;
     --peligro-suave: #3a1d1a;
+    --sombra: 0 1px 2px rgba(0,0,0,.25), 0 12px 28px -20px rgba(0,0,0,.8);
+    --sombra-grande: 0 28px 56px -24px rgba(0,0,0,.85);
+    --ia-violeta: #A98BF7;
+    --ia-fondo: #181A2E;
+    --luz-1: rgba(76,141,246,.15);
+    --luz-2: rgba(224,180,88,.06);
+    --luz-3: rgba(139,92,240,.14);
   }
 
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; height: 100%;
     background: var(--fondo); color: var(--texto);
-    font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; font-size: 14px;
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; font-size: 14px;
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
   }
   body, .tarjeta, #menu, .opcion, .barra { transition: background-color .3s ease, color .3s ease, border-color .3s ease; }
@@ -205,13 +234,6 @@
   .boton.secundario.peligro:hover { background: var(--peligro-suave); }
 
   /* Inicio */
-  .bienvenida {
-    display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
-    background: linear-gradient(120deg, #06263A 0%, #0c3550 60%, #1d4560 100%); color: #fff; border: 0;
-  }
-  .bienvenida h1 { margin: 0; font-size: 22px; font-weight: 600; }
-  .bienvenida p { margin: 6px 0 0; color: #c9d6dd; max-width: 560px; }
-  .bienvenida .chip { background: rgba(180,161,105,.22); color: #e5d7ad; }
   .pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .paso { position: relative; display: flex; flex-direction: column; gap: 8px; }
   .paso-num {
@@ -953,7 +975,6 @@
     .vista { padding: 18px 16px 32px; }
     .tarjeta { padding: 16px; }
     .pasos { grid-template-columns: 1fr; }
-    .bienvenida h1 { font-size: 19px; }
     .barra-logo.logo-claro, .barra-logo.logo-oscuro { height: 24px; }
     .ver-como { padding: 3px 4px 3px 8px; }
     .ver-como select { max-width: 120px; }
@@ -978,5 +999,245 @@
   }
   @media (max-width: 560px) {
     .barra-logo.logo-claro, .barra-logo.logo-oscuro { display: none !important; }
+  }
+  /* ═══════════ DISEÑO ═══════════
+     Va al final para ganarle a lo de arriba. La marca (azul marino y dorado) es la base; el degradado
+     «aurora» (azul, violeta, rosa, dorado) es la firma de la IA: si algo brilla así, es la IA trabajando o
+     proponiendo. Las animaciones usan «backwards» para no estorbarle al hover. Sin scripts: solo CSS. */
+  @property --giro { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @keyframes aparecer { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fundir { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes brotar { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes flujo { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+  @keyframes dar-vuelta { to { --giro: 360deg; } }
+  @keyframes chispa { 0%, 100% { transform: scale(.82) rotate(0deg); opacity: .75; } 50% { transform: scale(1.08) rotate(90deg); opacity: 1; } }
+  @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(180,161,105,.55); } 70%, 100% { box-shadow: 0 0 0 9px rgba(180,161,105,0); } }
+  @keyframes crecer-x { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes crecer-y { from { transform: scaleY(0); } to { transform: none; } }
+  @keyframes deriva { from { transform: translate3d(-2%, -1%, 0) scale(1); } to { transform: translate3d(2%, 2%, 0) scale(1.06); } }
+
+  /* Fondo: luces muy suaves que se mueven lento detrás de todo. */
+  html { background: var(--fondo); }
+  body { background: transparent; letter-spacing: -.005em; }
+  body::before {
+    content: ''; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(38% 34% at 88% 4%, var(--luz-1), transparent 72%),
+      radial-gradient(30% 30% at 62% 0%, var(--luz-2), transparent 72%),
+      radial-gradient(34% 34% at 100% 44%, var(--luz-3), transparent 72%);
+    animation: deriva 22s ease-in-out infinite alternate;
+  }
+  .vista { scrollbar-width: thin; scrollbar-color: var(--borde) transparent; }
+  :focus-visible { outline: 2px solid var(--dorado); outline-offset: 2px; }
+
+  /* Armazón: el menú flota como una tarjeta; la barra de arriba ya no es una franja. */
+  #app { padding: 12px 0 12px 12px; }
+  body.con-aviso #app { padding-top: 38px; }
+  #menu {
+    border: 0; border-radius: 24px; padding: 18px 12px; box-shadow: var(--sombra-grande);
+    background: linear-gradient(168deg, #0b3753 0%, #06263A 48%, #04192a 100%);
+    transition: width .35s var(--suave), transform .3s var(--suave);
+  }
+  .menu-marca { border-bottom: 0; margin-bottom: 2px; }
+  .menu-seccion { color: rgba(255,255,255,.42); letter-spacing: .9px; }
+  .opcion { border-radius: 14px; transition: background-color .2s ease, color .2s ease, transform .25s var(--suave), box-shadow .25s ease; }
+  .opcion .ico { transition: transform .3s var(--rebote); }
+  .opcion:hover { transform: translateX(2px); }
+  .opcion:hover .ico { transform: scale(1.14); }
+  .opcion.activa { background: linear-gradient(100deg, #dac891, #B4A169); box-shadow: 0 10px 22px -10px rgba(180,161,105,.85); }
+  .opcion.activa:hover { color: #06263A; }
+  .menu-colapsar { border-radius: 14px; }
+  .barra { background: transparent; border-bottom: 0; box-shadow: none; }
+  .barra-fecha { display: none; }
+  .barra-usuario { border-left: 0; padding-left: 0; }
+  .selector-tema { background: var(--superficie); box-shadow: var(--sombra); }
+  .btn-tema { transition: background-color .25s ease, color .25s ease, transform .25s var(--rebote); }
+  .btn-tema:hover { transform: rotate(14deg) scale(1.08); }
+  .btn-tema.activo { color: var(--sobre-primario); }
+  .avatar { background: linear-gradient(135deg, #dac891, #B4A169); color: #06263A; }
+  .btn-icono { transition: background-color .2s ease, border-color .2s ease, transform .2s var(--rebote); }
+  .btn-icono:hover:not(:disabled) { background: var(--fondo); transform: translateY(-1px); }
+
+  /* Entrada de cada pantalla, una pieza tras otra. */
+  .vista-ancho > * { animation: aparecer .5s var(--suave) backwards; }
+  .vista-ancho > :nth-child(2) { animation-delay: .05s; }
+  .vista-ancho > :nth-child(3) { animation-delay: .1s; }
+  .vista-ancho > :nth-child(4) { animation-delay: .15s; }
+  .vista-ancho > :nth-child(n+5) { animation-delay: .2s; }
+  .editor, .analisis, .vista-previa, .revision { animation: fundir .35s ease backwards; }
+
+  /* Piezas de todas las pantallas */
+  .tarjeta { transition: background-color .3s ease, border-color .3s ease, box-shadow .25s ease; }
+  .titulo-vista { font-size: 25px; font-weight: 700; letter-spacing: -.025em; }
+  .titulo-vista .ico { width: 42px; height: 42px; padding: 10px; border-radius: 14px; background: var(--dorado-suave); color: var(--dorado-hover); }
+  .subtitulo { line-height: 1.55; }
+  h2.seccion { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .encabezado-solicitud h1, .analisis-encabezado h1 { font-weight: 700; letter-spacing: -.02em; }
+  .chip { font-weight: 600; }
+  .boton {
+    border-radius: 999px; padding: 10px 20px; color: var(--sobre-primario);
+    box-shadow: 0 8px 18px -10px var(--sombra-boton);
+    transition: transform .2s var(--rebote), box-shadow .2s ease, background-color .2s ease, border-color .2s ease, opacity .2s ease;
+  }
+  .boton:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px -10px var(--sombra-boton); }
+  .boton:active:not(:disabled) { transform: scale(.97); }
+  .boton.chico { border-radius: 999px; padding: 7px 14px; }
+  .boton.secundario { background: transparent; box-shadow: none; }
+  .boton.secundario:hover:not(:disabled) { background: var(--primario-suave); border-color: transparent; box-shadow: none; }
+  .boton.secundario.peligro:hover:not(:disabled) { background: var(--peligro-suave); border-color: var(--peligro); }
+  .catalogo-clave, .imagen.subiendo::after { color: var(--sobre-primario); }
+
+  /* Campos: un halo dorado al escribir. */
+  .campo input, .selector, .buscador, .responsable, .campo textarea, .actividad textarea, .pregunta-formulario textarea, .edicion textarea,
+  .derivado textarea, .observacion-atender textarea, .decision-bloque textarea, .dialogo textarea, .dialogo input, .area-larga, .enlace-fila input, .dato-editable input {
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  .campo input:focus, .selector:focus, .buscador:focus-within, .responsable:focus-within, .campo textarea:focus, .actividad textarea:focus,
+  .pregunta-formulario textarea:focus, .edicion textarea:focus, .derivado textarea:focus, .observacion-atender textarea:focus,
+  .decision-bloque textarea:focus, .dialogo textarea:focus, .dialogo input:focus, .area-larga:focus, .enlace-fila input:focus, .dato-editable input:focus {
+    outline: none; border-color: var(--dorado); box-shadow: 0 0 0 3px var(--halo); background-color: var(--superficie);
+  }
+  .buscador { border-radius: 999px; padding: 0 16px; }
+
+  /* Listas: filas sueltas en lugar de una tabla con líneas. */
+  .solicitudes-lista, .usuarios-lista, .bitacora-lista, .archivos { border: 0; overflow: visible; gap: 8px; }
+  .solicitud-fila, .usuario-fila, .bitacora-fila, .archivo, .solicitud-fila:first-child, .usuario-fila:first-child, .bitacora-fila:first-child, .archivo:first-child {
+    border: 1px solid transparent; border-radius: 14px; background: var(--fondo);
+    transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .25s var(--suave);
+  }
+  .solicitud-fila:hover, .usuario-fila:hover, .archivo:hover { background: var(--superficie); border-color: var(--borde); box-shadow: var(--sombra); transform: translateY(-1px); }
+  .catalogo-depto, .envio, .actividad, .pregunta, .propuesta, .observacion { border-radius: 16px; }
+  .opcion-tarjeta, .opcion-perfil { border-radius: 14px; transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .25s var(--suave); }
+  .opcion-tarjeta:not(.no-disponible):hover, .opcion-perfil:hover { border-color: var(--dorado); transform: translateY(-1px); }
+  .opcion-tarjeta:has(input:checked), .opcion-perfil:has(input:checked) { box-shadow: 0 0 0 3px var(--halo); }
+  .boton-agregar { border-radius: 14px; transition: border-color .2s ease, background-color .2s ease; }
+  .aviso-consulta, .aviso-estado, .aviso-confirmada, .resultado-ia, .aviso-conflicto, .coincidencias { border-radius: 14px; }
+  .pestanas { border-bottom: 0; background: var(--fondo); border-radius: 16px; padding: 4px; width: fit-content; max-width: 100%; }
+  .pestana { border-bottom: 0; margin-bottom: 0; border-radius: 12px; padding: 8px 14px; transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; }
+  .pestana.activa { background: var(--superficie); color: var(--texto); box-shadow: var(--sombra); }
+  .resaltado { animation: pulso 1.4s ease-out 2; }
+
+  /* Inicio: un saludo grande y a lo que vienes. */
+  .saludo { display: flex; flex-direction: column; gap: 4px; padding: 14px 2px 6px; }
+  .saludo h1 { margin: 0; font-size: clamp(32px, 5vw, 46px); font-weight: 700; line-height: 1.18; letter-spacing: -.035em; }
+  .saludo p { margin: 0; font-size: clamp(17px, 2.4vw, 22px); font-weight: 500; color: var(--texto-suave); letter-spacing: -.015em; }
+  .saludo .chips { margin-top: 12px; }
+  .accesos { gap: 12px; }
+  .acceso {
+    border-radius: 18px; padding: 18px; border-color: transparent; animation: aparecer .5s var(--suave) backwards;
+    transition: transform .25s var(--suave), box-shadow .25s ease, border-color .2s ease;
+  }
+  .acceso:nth-child(2) { animation-delay: .06s; }
+  .acceso:nth-child(3) { animation-delay: .12s; }
+  .acceso:nth-child(4) { animation-delay: .18s; }
+  .acceso:nth-child(n+5) { animation-delay: .24s; }
+  .acceso:hover { transform: translateY(-3px); box-shadow: 0 20px 36px -22px var(--sombra-boton); border-color: var(--dorado); }
+  .acceso-icono, .paso-num { border-radius: 14px; }
+  .acceso-icono { background: var(--dorado-suave); color: var(--dorado-hover); transition: transform .3s var(--rebote); }
+  .acceso:hover .acceso-icono { transform: scale(1.1) rotate(-4deg); }
+  .pasos { gap: 18px; }
+  .paso-num.es-ia { background: var(--aurora); color: #fff; }
+
+  /* ─ La IA ─ */
+  .texto-aurora, .sugerencia-ia-cabeza strong {
+    background: var(--aurora); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent; animation: flujo 5s ease-in-out infinite alternate;
+  }
+  .girando-lento { animation: chispa 2.2s ease-in-out infinite; }
+  /* Botones que le piden algo a la IA */
+  .boton[data-accion="redaccion"], .boton[data-accion="corregir-ia"], .boton[data-accion="aceptar-redaccion"], .boton[data-accion="aceptar-demas"], .boton[data-accion="usar-sugerencia"] {
+    background: var(--aurora-boton); background-size: 240% 100%; color: #fff; animation: flujo 7s ease-in-out infinite alternate;
+    box-shadow: 0 10px 24px -12px rgba(122,79,224,.9);
+  }
+  .boton[data-accion="redaccion"]:hover:not(:disabled), .boton[data-accion="corregir-ia"]:hover:not(:disabled), .boton[data-accion="aceptar-redaccion"]:hover:not(:disabled),
+  .boton[data-accion="aceptar-demas"]:hover:not(:disabled), .boton[data-accion="usar-sugerencia"]:hover:not(:disabled) {
+    background: var(--aurora-boton); background-size: 240% 100%; box-shadow: 0 14px 30px -10px rgba(122,79,224,.95);
+  }
+  .boton.secundario[data-accion="analizar"], .boton.secundario[data-accion="analizar"]:hover:not(:disabled) {
+    background: linear-gradient(var(--superficie), var(--superficie)) padding-box, var(--aurora) border-box;
+    border: 1.5px solid transparent; color: var(--texto); box-shadow: 0 10px 22px -16px rgba(122,79,224,.9);
+  }
+  /* La IA trabajando: borde de luz girando y texto que brilla. */
+  .analizando { position: relative; isolation: isolate; padding: 16px 18px; border: 0; border-radius: var(--radio); background: none; box-shadow: none; }
+  .analizando::before, .analizando::after {
+    content: ''; position: absolute; border-radius: inherit; animation: dar-vuelta 3s linear infinite;
+    --anillo: conic-gradient(from var(--giro), var(--ia-azul), var(--ia-violeta), var(--ia-rosa), var(--ia-dorado), var(--ia-azul));
+  }
+  .analizando::before { inset: 0; z-index: -1; border: 1.5px solid transparent; background: linear-gradient(var(--superficie), var(--superficie)) padding-box, var(--anillo) border-box; }
+  .analizando::after { inset: -3px; z-index: -2; opacity: .4; filter: blur(14px); background: var(--anillo); }
+  .analizando .vacio-icono { width: 46px; height: 46px; border-radius: 999px; flex-shrink: 0; background: var(--aurora); color: #fff; }
+  .analizando .vacio-icono .ico { width: 24px; height: 24px; }
+  .analizando strong, .revisando-ia, .vacio:has(.girando) p {
+    background: linear-gradient(90deg, var(--texto) 30%, var(--ia-violeta) 45%, var(--ia-rosa) 55%, var(--texto) 70%); background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    animation: flujo 1.8s linear infinite alternate;
+  }
+  .revisando-ia .ico { color: var(--ia-violeta); }
+  /* La IA propone */
+  .sugerencia-ia {
+    border: 1.5px solid transparent; border-radius: 16px; padding: 12px 14px;
+    background: linear-gradient(var(--ia-fondo), var(--ia-fondo)) padding-box, var(--aurora) border-box;
+    animation: brotar .45s var(--rebote) backwards;
+  }
+  .sugerencia-ia-cabeza { color: var(--ia-violeta); }
+  .resultado-ia { animation: brotar .45s var(--rebote) backwards; }
+  /* Pantalla cargando: un aro de luz, sin relojitos. */
+  .vacio-icono:has(.girando) {
+    position: relative; border-radius: 999px; width: 46px; height: 46px;
+    background: conic-gradient(from var(--giro), transparent 10%, var(--ia-azul), var(--ia-violeta), var(--ia-rosa), var(--ia-dorado));
+    animation: dar-vuelta 1.1s linear infinite;
+  }
+  .vacio-icono:has(.girando)::after { content: ''; position: absolute; inset: 4px; border-radius: 999px; background: var(--superficie); }
+  .vacio-icono .girando { display: none; }
+
+  /* Barra de progreso de la solicitud */
+  .progreso { box-shadow: var(--sombra); }
+  .progreso-pasos li.actual .progreso-punto { animation: pulso 2.2s ease-out infinite; }
+  .progreso-pasos li.hecho::before, .progreso-pasos li.actual::before { background: linear-gradient(90deg, var(--exito), var(--exito)); }
+  .progreso.compacto { box-shadow: none; }
+  .progreso.compacto .progreso-pasos li.actual .progreso-punto { animation: none; }
+  .paso-captura { transition: border-color .2s ease, background-color .2s ease, transform .2s var(--suave); }
+  button.paso-captura:hover { transform: translateY(-1px); }
+  .paso-captura.actual { box-shadow: 0 0 0 3px var(--halo); }
+
+  /* Tablero: las cifras y las barras entran creciendo. */
+  .cifra { transition: transform .25s var(--suave), box-shadow .25s ease; animation: aparecer .5s var(--suave) backwards; }
+  .cifra:nth-child(2) { animation-delay: .05s; }
+  .cifra:nth-child(3) { animation-delay: .1s; }
+  .cifra:nth-child(4) { animation-delay: .15s; }
+  .cifra:nth-child(n+5) { animation-delay: .2s; }
+  .cifra:hover { transform: translateY(-2px); box-shadow: 0 18px 32px -22px var(--sombra-boton); }
+  .cifra-valor { font-size: 30px; letter-spacing: -.03em; }
+  .barra-pista { height: 12px; border-radius: 999px; background: var(--fondo); overflow: hidden; }
+  .barra-valor { border-radius: 999px; background: linear-gradient(90deg, var(--primario), var(--dorado)); transform-origin: left; animation: crecer-x .9s var(--suave) backwards .15s; }
+  .mes-barra { border-radius: 6px 6px 0 0; transform-origin: bottom; animation: crecer-y .8s var(--suave) backwards .15s; }
+
+  /* Ventanas y avisos */
+  .dialogo-fondo, .panel-fondo, .menu-fondo { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fundir .2s ease backwards; }
+  .dialogo { border-radius: 22px; animation: brotar .35s var(--rebote) backwards; }
+  .panel { border-radius: 24px 0 0 24px; animation: entrar .35s var(--suave); }
+  .visor { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: fundir .2s ease backwards; }
+  .aviso-flotante { border-radius: 14px; color: var(--sobre-primario); animation: brotar .4s var(--rebote) backwards; }
+  .aviso-flotante.exito { color: #fff; }
+  .aviso-flotante.error { background: #a1362b; color: #fff; }
+
+  /* Lo que la persona captura dentro de los datos automáticos (su puesto) */
+  .dato-editable { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .dato-editable input { border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie); color: var(--texto); padding: 8px 11px; font: inherit; font-size: 13px; font-weight: 600; width: 100%; }
+
+  @media (max-width: 860px) {
+    #app { padding: 0; }
+    body.con-aviso #app { padding-top: 26px; }
+    #menu { height: auto; border-radius: 0 24px 24px 0; }
+  }
+  @media (max-width: 640px) {
+    .titulo-vista { font-size: 21px; }
+    .titulo-vista .ico { width: 36px; height: 36px; padding: 8px; }
+    .panel { border-radius: 0; }
+    .pestanas { width: auto; }
+  }
+  /* Quien pidió menos movimiento en su sistema no ve animaciones. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   }
 </style>

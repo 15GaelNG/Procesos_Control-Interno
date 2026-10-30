@@ -33,7 +33,7 @@
         return !filtro || textoComparable(p.nombre + ' ' + p.sinonimos + ' ' + p.departamento).indexOf(filtro) !== -1;
       });
       if (!datos.puestos.length) contenido.appendChild(estadoVacio('id-card', 'Todavía no hay puestos',
-        datos.puedeEditar ? 'Agrégalos uno por uno o pega la lista que entregue Procesos.' : 'El administrador los da de alta.'));
+        'Se van agregando solos cuando cada persona escribe su puesto.'));
       else if (!visibles.length) contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con el filtro.'));
       visibles.forEach(function (p) {
         const fila = elemento('div', 'solicitud-fila' + (p.activo ? '' : ' inactiva'));

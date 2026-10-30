@@ -87,7 +87,8 @@
     primeraDisponible('idTipo');
 
     q('elaborador').textContent = o.elaborador.nombre;
-    q('puesto').textContent = o.elaborador.puesto || 'Sin puesto registrado';
+    form.puesto.value = o.elaborador.puesto || '';
+    (o.puestos || []).forEach(function (p) { const op = elemento('option'); op.value = p; q('lista-puestos').appendChild(op); });
     q('fecha').textContent = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 
     const depto = form.departamento, area = form.area, subarea = form.subarea;
@@ -173,7 +174,7 @@
       e.preventDefault();
       const elegido = function (n) { const r = form.querySelector('input[name="' + n + '"]:checked'); return r ? r.value : ''; };
       const datos = { tipoSolicitud: elegido('tipoSolicitud'), idTipo: elegido('idTipo'), nombre: form.nombre.value,
-        idDepartamento: depto.value, idArea: area.value, idSubarea: subarea.value, idDocumento: documentoElegido };
+        idDepartamento: depto.value, idArea: area.value, idSubarea: subarea.value, idDocumento: documentoElegido, puesto: form.puesto.value };
       if (datos.tipoSolicitud === 'ACTUALIZACION' && !documentoElegido) { errores.textContent = 'Elige el documento que vas a actualizar.'; errores.hidden = false; return; }
       errores.hidden = true;
       boton.disabled = true;

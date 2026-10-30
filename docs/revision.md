@@ -31,7 +31,7 @@ CONFIRMADO ──enviar──▶ EN_REVISION ──Vo.Bo.───────�
    - **Devolver**: necesita al menos una observación por atender. Pasa a `DEVUELTO`.
    - **No procedente**: con motivo, que ve el colaborador. Se cierra sin código (§2.1).
    - **Vo.Bo.**: sin observaciones por atender y con el contenido que confirmó el colaborador. Asigna
-     el **código** y la **versión 0.0**, guarda quién revisó (nombre y puesto, §4.1), cierra las
+     el **código** y la **versión 0.0**, guarda quién revisó (nombre y el puesto que escribe ahí mismo, §4.1 y decisión 38), cierra las
      observaciones atendidas, guarda otra instantánea y pasa a `EN_AUTORIZACION_CH`.
 5. **Corregir** (colaborador). Con la solicitud devuelta corrige en el paso 3 o 4, marca cada
    observación como **atendida** (con una respuesta opcional), **confirma** otra vez y la **reenvía**.

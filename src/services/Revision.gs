@@ -389,9 +389,10 @@ function propuestaCodigo_(fila, det) {
   return siguienteCodigo_(det.prefijo, det.cuerpo, codigosUsados_(leerTabla_('Solicitudes'), leerTabla_('Documentos'), fila.ID_SOLICITUD), serie ? serie.ULTIMO : 0);
 }
 
-function darVoBo_(sesion, idSolicitud, codigo, tipoCambio) {
+function darVoBo_(sesion, idSolicitud, codigo, tipoCambio, textoPuesto) {
+  // Su puesto sale en «Revisó» (decisión 38): lo escribe aquí si todavía no lo tiene.
+  const puesto = asegurarMiPuesto_(sesion, textoPuesto);
   const t = tablasSolicitud_();
-  const puesto = puestoDeUsuario_(sesion.idUsuario, t.usuarios, t.puestos);
   let fila, det, huella, plan;
   conCandado_(20000, function () {
     fila = filaSolicitud_(idSolicitud);
@@ -445,6 +446,7 @@ function detalleRevision_(sesion, idSolicitud) {
   det.contenidoConfirmado = contenidoAprobado_(fila, det.huella);
   det.corregidoPorProcesos = !!String(fila.HUELLA_REVISOR || '') && det.huella === String(fila.HUELLA_REVISOR);
   det.codigoPropuesto = det.puedeDecidir ? propuestaCodigo_(fila, det) : '';
+  det.miPuesto = puestoDeUsuario_(sesion.idUsuario, t.usuarios, t.puestos);
   det.apartados = {};
   Object.keys(APARTADOS_OBSERVACION).forEach(function (k) { if (APARTADOS_RETIRADOS.indexOf(k) === -1) det.apartados[k] = APARTADOS_OBSERVACION[k]; });
   det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_);

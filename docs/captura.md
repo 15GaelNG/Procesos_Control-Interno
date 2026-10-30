@@ -24,7 +24,8 @@ El colaborador captura solo lo indispensable; lo demás sale de su perfil y de l
 | Nombre del documento | Lo escribe. Mientras escribe, el sistema busca **documentos vigentes y solicitudes en curso con nombre parecido** y los muestra; no impide continuar: Procesos decide si procede (§2.1) |
 | Departamento | Sus departamentos (pantalla de usuarios), el principal primero. Sin departamento asignado no puede crear |
 | Área / subárea | Las activas del departamento. El área es obligatoria (forma el código); la subárea, opcional |
-| Elabora, puesto y fecha | Automáticos (se fijan al crear) |
+| Elabora y fecha | Automáticos (se fijan al crear) |
+| Tu puesto | Lo escribe la persona, con sugerencias de los que ya existen. Se recuerda para la siguiente y, si es nuevo, entra al catálogo (decisión 38) |
 | Código y versión | «Lo asigna Procesos» / «Se asigna al autorizarse». Se muestra cómo empezará: `P-CI04-___` |
 
 Al crear: folio `SOL-2026-0001`, estado `BORRADOR`, una carpeta en Drive (`Solicitudes/SOL-2026-0001 · nombre`)

@@ -352,9 +352,9 @@ function apiNoProcedente(comoUsuario, idSolicitud, motivo) {
 }
 
 /** Vo.Bo. de Procesos con el código que confirma el revisor (y, en una actualización, si es mayor o menor). */
-function apiVoBo(comoUsuario, idSolicitud, codigo, tipoCambio) {
+function apiVoBo(comoUsuario, idSolicitud, codigo, tipoCambio, puesto) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
-  return darVoBo_(sesion, idSolicitud, codigo, tipoCambio);
+  return darVoBo_(sesion, idSolicitud, codigo, tipoCambio, puesto);
 }
 
 // ─────────────────────────────── CH e inventario (fase 6) ───────────────────────────────

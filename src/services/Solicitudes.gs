@@ -58,7 +58,10 @@ function opcionesNuevaSolicitud_(sesion, t) {
           .sort(function (x, y) { return x.clave.localeCompare(y.clave) || x.nombre.localeCompare(y.nombre, 'es'); })
       };
     }).filter(Boolean).sort(function (a, b) { return (b.principal - a.principal) || a.nombre.localeCompare(b.nombre, 'es'); }),
-    elaborador: { nombre: sesion.nombre, puesto: puesto ? texto(puesto.NOMBRE) : '' }
+    elaborador: { nombre: sesion.nombre, puesto: puesto ? texto(puesto.NOMBRE) : '' },
+    // Para sugerir mientras escribe su puesto (decisión 38).
+    puestos: t.puestos.filter(function (p) { return String(p.ACTIVO).trim().toUpperCase() !== 'NO'; })
+      .map(function (p) { return texto(p.NOMBRE); }).sort(function (a, b) { return a.localeCompare(b, 'es'); })
   };
 }
 
@@ -74,6 +77,7 @@ function validarNuevaSolicitud_(datos, opciones) {
   else if (!tipo.disponible) e.push('El tipo «' + tipo.nombre + '» todavía no se documenta en el sistema.');
   if (nombre.length < LIMITES_CAPTURA.NOMBRE_MIN) e.push('Escribe el nombre del documento.');
   if (nombre.length > LIMITES_CAPTURA.NOMBRE_MAX) e.push('El nombre es demasiado largo (máximo ' + LIMITES_CAPTURA.NOMBRE_MAX + ' caracteres).');
+  if (!String(datos.puesto || opciones.elaborador.puesto || '').trim()) e.push('Escribe tu puesto: sale en el documento.');
   if (!opciones.departamentos.length) {
     e.push('No tienes departamentos asignados: pide a un administrador que te asigne el tuyo.');
     return e;
@@ -132,11 +136,12 @@ function coincidenciasNombre_(nombre, documentos, solicitudes, excluir) {
 function crearSolicitud_(sesion, datos) {
   requierePerfil_(sesion, ['COLABORADOR']);
   // Una actualización parte del documento vigente que se eligió (fase 7, Actualizaciones.gs).
-  if (datos && datos.tipoSolicitud === TIPOS_SOLICITUD.ACTUALIZACION) return crearActualizacion_(sesion, String(datos.idDocumento || ''));
+  if (datos && datos.tipoSolicitud === TIPOS_SOLICITUD.ACTUALIZACION) return crearActualizacion_(sesion, String(datos.idDocumento || ''), datos.puesto);
   const t = tablasSolicitud_();
   const opciones = opcionesNuevaSolicitud_(sesion, t);
   const errores = validarNuevaSolicitud_(datos, opciones);
   if (errores.length) throw new Error(errores.join(' '));
+  const puesto = asegurarMiPuesto_(sesion, datos.puesto);
 
   const ahora = new Date();
   const nombre = String(datos.nombre).replace(/\s+/g, ' ').trim();
@@ -148,7 +153,7 @@ function crearSolicitud_(sesion, datos) {
     ID_SOLICITUD: id, TIPO_SOLICITUD: datos.tipoSolicitud, ID_TIPO: datos.idTipo, ID_DOCUMENTO: '', NOMBRE_DOCUMENTO: nombre,
     ID_DEPARTAMENTO: datos.idDepartamento, ID_AREA: datos.idArea, ID_SUBAREA: datos.idSubarea || '',
     ESTADO: ESTADOS.BORRADOR, REVISION: '0', INICIO_PROCESO: '', FIN_PROCESO: '',
-    ELABORO_ID: sesion.idUsuario, ELABORO_NOMBRE: opciones.elaborador.nombre, ELABORO_PUESTO: opciones.elaborador.puesto,
+    ELABORO_ID: sesion.idUsuario, ELABORO_NOMBRE: opciones.elaborador.nombre, ELABORO_PUESTO: puesto,
     FECHA_ELABORACION: ahora, ID_CARPETA: carpeta.getId(), FECHA_ACTUALIZACION: marcaDeTiempo_(ahora)
   });
   registrarBitacora_(sesion, 'CREAR_SOLICITUD', nombre, id, '', ESTADOS.BORRADOR);

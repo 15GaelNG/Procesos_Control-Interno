@@ -190,6 +190,7 @@
         const codigo = q('codigo');
         codigo.value = d.codigoPropuesto;
         codigo.readOnly = !d.codigoEditable;
+        q('mi-puesto').value = d.miPuesto || '';
         q('codigo-ayuda').textContent = d.codigoEditable
           ? 'Formato ' + d.prefijo + '-' + d.cuerpo + '-NNN. El sistema propone el siguiente libre; puedes corregirlo.'
           : 'Ya tiene código y se conserva (una actualización, o una solicitud que volvió de CH).';
@@ -215,9 +216,10 @@
           if (!c) { avisar('Escribe el código.', 'error'); codigo.focus(); return; }
           const tipo = ui.querySelector('input[name="tipoCambio"]:checked');
           if (d.actualizacion && !tipo) { avisar('Elige si es una actualización mayor o menor.', 'error'); return; }
+          if (!q('mi-puesto').value.trim()) { avisar('Escribe tu puesto: sale en «Revisó» del documento.', 'error'); q('mi-puesto').focus(); return; }
           if (!confirm('¿Dar el Vo.Bo. de Procesos a «' + d.nombre + '» con el código ' + c + '? Quedará lista para la autorización en el sistema CH.')) return;
           const listo = ocupar(vobo, 'Registrando…');
-          llamar('apiVoBo', idSolicitud, c, tipo ? tipo.value : '').then(function (r) {
+          llamar('apiVoBo', idSolicitud, c, tipo ? tipo.value : '', q('mi-puesto').value).then(function (r) {
             avisar('Vo.Bo. registrado: ' + r.codigo + '.', 'exito');
             volverABandeja();
           }).catch(function (e) { avisar(e.message, 'error'); listo(); });

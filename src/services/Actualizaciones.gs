@@ -78,13 +78,14 @@ function planActualizacion_(doc, base, actividadesBase, imagenesBase) {
   return plan;
 }
 
-function crearActualizacion_(sesion, idDocumento) {
+function crearActualizacion_(sesion, idDocumento, textoPuesto) {
   const t = tablasSolicitud_();
   const doc = leerTabla_('Documentos').filter(function (d) { return d.ID_DOCUMENTO === idDocumento; })[0];
   const deptos = departamentosDe_(sesion.idUsuario, t.usuarioDeptos).map(function (d) { return d.id; });
   const item = documentosActualizables_(doc ? [doc] : [], leerTabla_('Solicitudes'), deptos, t)[0];
   const errores = erroresActualizacion_(doc, item);
   if (errores.length) throw new Error(errores.join(' '));
+  const puesto = asegurarMiPuesto_(sesion, textoPuesto);
   const base = doc.ID_SOLICITUD_VIGENTE ? leerTabla_('Solicitudes').filter(function (s) { return s.ID_SOLICITUD === doc.ID_SOLICITUD_VIGENTE; })[0] : null;
   const plan = planActualizacion_(doc, base || null, leerTabla_('Actividades'), leerTabla_('Imagenes'));
 
@@ -111,7 +112,7 @@ function crearActualizacion_(sesion, idDocumento) {
   }));
   agregarFila_('Solicitudes', Object.assign({
     ID_SOLICITUD: id, ESTADO: ESTADOS.BORRADOR, REVISION: '0',
-    ELABORO_ID: sesion.idUsuario, ELABORO_NOMBRE: opciones.elaborador.nombre, ELABORO_PUESTO: opciones.elaborador.puesto,
+    ELABORO_ID: sesion.idUsuario, ELABORO_NOMBRE: opciones.elaborador.nombre, ELABORO_PUESTO: puesto,
     FECHA_ELABORACION: ahora, ID_CARPETA: carpeta.getId(), FECHA_ACTUALIZACION: marca
   }, plan.solicitud));
   registrarBitacora_(sesion, 'CREAR_SOLICITUD', 'Actualización de ' + plan.solicitud.CODIGO + ' «' + plan.solicitud.NOMBRE_DOCUMENTO + '» (versión vigente ' +

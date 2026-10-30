@@ -4,9 +4,58 @@
  *
  * El administrador da de alta, corrige y da de baja (nada se borra: ACTIVO = NO); Soporte CI consulta.
  * Los sinónimos (otras formas de llamarlo, separadas por coma) ayudan a la IA a reconocer el puesto.
- * También se puede pegar una lista (un puesto por renglón) cuando Procesos entregue el catálogo.
+ * También se puede pegar una lista (un puesto por renglón) si algún día hay un catálogo.
+ *
+ * No hay lista oficial (decisión 38): cada persona escribe su puesto al crear una solicitud o al dar el
+ * Vo.Bo. Se recuerda para la siguiente vez y, si no existía, entra al catálogo; así se va formando solo y
+ * el administrador corrige o une lo que haga falta.
  * Lo puro está probado en tests/puestos.test.js.
  */
+
+/**
+ * Qué hacer con el puesto que escribió la persona (sin tocar Google). usuario: su renglón de Usuarios.
+ * Sin texto vale el que ya tiene. Si coincide con uno del catálogo (nombre o sinónimo), se usa ese; si no,
+ * es nuevo. Devuelve { errores, nombre, idPuesto, nuevo, sinCambios }.
+ */
+function planMiPuesto_(texto, usuario, puestos) {
+  const plan = { errores: [], nombre: '', idPuesto: '', nuevo: false, sinCambios: false };
+  const nombre = String(texto || '').replace(/\s+/g, ' ').trim();
+  const actual = puestos.filter(function (p) { return p.ID_PUESTO && p.ID_PUESTO === usuario.ID_PUESTO; })[0];
+  if (!nombre && !actual) { plan.errores.push('Escribe tu puesto: sale en el documento.'); return plan; }
+  if (!nombre || (actual && normalizar_(actual.NOMBRE) === normalizar_(nombre))) {
+    plan.nombre = String(actual.NOMBRE);
+    plan.idPuesto = actual.ID_PUESTO;
+    plan.sinCambios = true;
+    return plan;
+  }
+  if (nombre.length < 3 || nombre.length > LIMITES_CAPTURA.RESPONSABLE_MAX) { plan.errores.push('Revisa tu puesto: debe tener entre 3 y ' + LIMITES_CAPTURA.RESPONSABLE_MAX + ' caracteres.'); return plan; }
+  const existente = puestoDelCatalogo_(nombre, puestos);
+  plan.nombre = existente ? String(existente.NOMBRE) : nombre;
+  plan.idPuesto = existente ? existente.ID_PUESTO : '';
+  plan.nuevo = !existente;
+  return plan;
+}
+
+/** Deja `texto` como el puesto de quien usa el sistema y devuelve su nombre (ver planMiPuesto_). */
+function asegurarMiPuesto_(sesion, texto) {
+  const yo = function (lista) { return lista.filter(function (u) { return u.ID_USUARIO === sesion.idUsuario; })[0] || {}; };
+  // Lo normal es que no cambie: se revisa sin ir a la hoja.
+  const rapido = planMiPuesto_(texto, yo(leerTabla_('Usuarios')), leerTabla_('Puestos'));
+  if (rapido.errores.length) throw new Error(rapido.errores.join(' '));
+  if (rapido.sinCambios) return rapido.nombre;
+  const usuario = yo(leerTablaFresca_('Usuarios'));
+  const plan = planMiPuesto_(texto, usuario, leerTablaFresca_('Puestos'));
+  if (plan.errores.length) throw new Error(plan.errores.join(' '));
+  if (plan.sinCambios) return plan.nombre;
+  let id = plan.idPuesto;
+  if (plan.nuevo) {
+    id = siguienteId_('PUE', 4);
+    agregarFila_('Puestos', { ID_PUESTO: id, NOMBRE: plan.nombre, ID_DEPARTAMENTO: '', SINONIMOS: '', ACTIVO: 'SI' });
+    registrarBitacora_(sesion, 'ALTA_PUESTO', plan.nombre + ' (lo escribió ' + sesion.nombre + ').');
+  }
+  actualizarFila_('Usuarios', usuario._fila, { ID_PUESTO: id, ACTUALIZADO_POR: correoReal_(sesion), FECHA_ACTUALIZACION: new Date() });
+  return plan.nombre;
+}
 
 /** La lista para la pantalla (sin tocar Google), por nombre. */
 function listaPuestos_(puestos, departamentos) {

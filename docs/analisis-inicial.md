@@ -51,6 +51,8 @@
 | 35 | **«Todas las solicitudes»** para Soporte CI: la lista completa con filtro por estado y la solicitud en modo consulta. | 29/10/2026 |
 | 36 | **Todos los tipos de documento usan la misma plantilla** (Gael, 30/10; reemplaza la decisión 12): Manual, Procedimiento, Protocolo, Política, Formato y Diagrama de proceso se pueden elegir y usan la plantilla de Procedimiento, cuyo texto del tipo es el marcador `{{TIPO_DOCUMENTO}}`; cada uno conserva su prefijo de código. Si un tipo llega a tener su plantilla, se usa la suya. | 30/10/2026 |
 | 37 | **El inventario anterior no se considera por ahora** (Gael, 30/10): no se construye su carga. El inventario se forma con lo que se autorice en el sistema. Importar un Word o PDF sigue disponible en cualquier solicitud. | 30/10/2026 |
+| 38 | **El puesto lo escribe cada usuario** (Gael, 30/10; no hay lista oficial): al crear una solicitud y, el revisor, al dar el Vo.Bo. Se recuerda para la siguiente vez y, si no existía, entra al catálogo de puestos, que se forma solo; el administrador corrige o da de baja lo que haga falta. Sale en «Elaboró» y «Revisó». | 30/10/2026 |
+| 39 | **Diseño nuevo** (Gael, 30/10; «moderno, con animaciones como de Gemini, sencillo desde cualquier módulo y perfil»): la marca sigue siendo azul marino y dorado; el degradado «aurora» (azul, violeta, rosa, dorado) queda como firma de la IA. El inicio es un saludo y los accesos; las listas son filas sueltas; todo es CSS y respeta a quien pidió menos movimiento en su sistema. | 30/10/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 

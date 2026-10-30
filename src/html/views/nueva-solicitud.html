@@ -62,7 +62,10 @@
     </div>
     <div class="datos-automaticos">
       <div><span>Elabora</span><strong data-campo="elaborador"></strong></div>
-      <div><span>Puesto</span><strong data-campo="puesto"></strong></div>
+      <label class="dato-editable"><span>Tu puesto</span>
+        <input type="text" name="puesto" list="lista-puestos" maxlength="120" autocomplete="off" placeholder="Escribe tu puesto">
+        <datalist id="lista-puestos" data-campo="lista-puestos"></datalist>
+      </label>
       <div><span>Fecha de elaboración</span><strong data-campo="fecha"></strong></div>
       <div><span>Código</span><strong data-campo="codigo">Lo asigna Procesos</strong></div>
       <div><span>Versión</span><strong data-campo="version">Se asigna al autorizarse</strong></div>
