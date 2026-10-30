@@ -11,8 +11,8 @@ Los 22 cambios que pidieron el 28 y 29/10 (decisiones 25 a 31). Después de que 
 1. En el editor de **BD Procesos - PRUEBAS**, correr **`probarAvisos()`** y **aceptar el permiso de enviar
    correos**. Es lo primero: mientras no se acepte, la app de pruebas puede marcar error de permisos.
    Debe llegarte un correo de prueba.
-2. Correr **`instalarPruebas()`**: agrega `ENLACES` (Actividades), `HUELLA_REVISOR` (Solicitudes) y
-   `AVISOS_CORREO` (Config).
+2. Correr **`instalarPruebas()`**: agrega `ENLACES` e `ID_ACTIVIDAD_BASE` (Actividades), `HUELLA_REVISOR`
+   (Solicitudes) y `AVISOS_CORREO` (Config). (Si ya lo corriste por la versión 9, córrelo otra vez por la 11.)
 3. En `Config` de pruebas: `CORREO_PROCESOS` = el correo que debe recibir los avisos de Procesos (para
    probar, el tuyo; en producción, procesos.ci@ciudadmaderas.com).
 4. Recargar la app con Ctrl + F5 y recorrer lo nuevo (ver la respuesta de Claude del 29/10).

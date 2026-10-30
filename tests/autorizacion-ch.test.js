@@ -99,7 +99,6 @@ test('autorizado: pide nombre, puesto y una fecha entre el envío y hoy', functi
   assert.ok(/futura/.test(error({ fecha: '2026-11-02' })));
   assert.ok(/Primero registra que la subiste/.test(gs.planResultadoCH_(fila(), PAOLA, null, { resultado: 'AUTORIZADO' }, AHORA, 'p').errores.join()));
   assert.ok(/Elige si CH/.test(gs.planResultadoCH_(fila(), PAOLA, envio(), { resultado: '' }, AHORA, 'p').errores.join()));
-  assert.ok(/fase 7/.test(gs.planResultadoCH_(fila({ TIPO_SOLICITUD: 'ACTUALIZACION' }), PAOLA, envio(), { resultado: 'AUTORIZADO' }, AHORA, 'p').errores.join()));
 });
 
 test('rechazado: regresa al colaborador como observación, sin el Vo.Bo. pero con su código', function () {

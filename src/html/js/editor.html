@@ -13,6 +13,8 @@
    * sola: «Usar esta redacción» (o «Usarla y editarla») pone el texto sugerido y se guarda como cualquier
    * cambio; «Ignorar» la descarta. Cada actividad puede llevar enlaces (páginas, carpetas, sistemas).
    * Las observaciones de Procesos van junto a la parte a la que se refieren.
+   * «Importar Word o PDF» (apiImportarDocumento): la IA separa un documento existente en inicio,
+   * actividades y fin; se revisa en una ventana y, si se usa, entra como si se hubiera escrito.
    *
    * Al volver a esta pantalla se pinta lo último que se vio (memoria de pantallas, api.html) sin dejar
    * editar hasta que el servidor confirma que no cambió (misma marca).
@@ -277,6 +279,90 @@
       const poner = function (url) { if (visor.isConnected && url) img.src = url; };
       if (completas[imagen.id]) poner(completas[imagen.id]);
       else llamar('apiImagen', imagen.id).then(function (url) { completas[imagen.id] = url; poner(url); }).catch(function () { /* se queda la miniatura */ });
+    }
+
+    /* ─────────── Importar un Word o PDF existente ─────────── */
+    function leerArchivo(archivo) {
+      return new Promise(function (resolver, rechazar) {
+        const lector = new FileReader();
+        lector.onload = function () { resolver(String(lector.result).split(',')[1] || ''); };
+        lector.onerror = function () { rechazar(new Error('No se pudo leer el archivo.')); };
+        lector.readAsDataURL(archivo);
+      });
+    }
+
+    function importar(archivo) {
+      if (!archivo || !sol.puedeEditar || detenido || esperandoServidor) return;
+      const tipos = { docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', doc: 'application/msword', pdf: 'application/pdf' };
+      const extension = String(archivo.name.split('.').pop() || '').toLowerCase();
+      if (!tipos[extension]) { avisar('Sube el documento en Word (.docx o .doc) o en PDF.', 'error'); return; }
+      const f = clonar('parte-importacion');
+      const fondo = f.querySelector('.dialogo-fondo');
+      const q = function (c) { return fondo.querySelector('[data-campo="' + c + '"]'); };
+      const cerrar = function () { fondo.remove(); };
+      fondo.querySelector('[data-accion="cancelar"]').addEventListener('click', cerrar);
+      document.body.appendChild(f);
+      pintarIconos();
+      leerArchivo(archivo).then(function (base64) {
+        return llamar('apiImportarDocumento', idSolicitud, { base64: base64, tipo: tipos[extension], nombre: archivo.name });
+      }).then(function (r) {
+        if (!fondo.isConnected) return;
+        q('titulo').textContent = 'La IA encontró ' + r.actividades.length + (r.actividades.length === 1 ? ' actividad' : ' actividades');
+        q('nota').textContent = 'Solo separó lo que dice tu documento. Revísalo; después lo puedes corregir como cualquier captura.' +
+          (r.recortado ? ' El documento era muy largo: se leyó solo la primera parte.' : '');
+        const caja = q('resultado');
+        caja.hidden = false;
+        if (r.inicio) caja.appendChild(elemento('p', 'documento-contexto', 'Inicia: ' + r.inicio));
+        const lista = elemento('ol', 'importacion-actividades');
+        r.actividades.forEach(function (a) {
+          const li = elemento('li', '', a.texto);
+          if (a.responsable) li.appendChild(elemento('span', 'chip', a.responsable));
+          lista.appendChild(li);
+        });
+        caja.appendChild(lista);
+        if (r.fin) caja.appendChild(elemento('p', 'documento-contexto', 'Termina: ' + r.fin));
+        const hayCaptura = sol.actividades.some(function (a) { return a.texto.trim() || a.imagenes.length; });
+        const usar = fondo.querySelector('[data-accion="usar"]');
+        const agregar = fondo.querySelector('[data-accion="agregar"]');
+        usar.hidden = false;
+        usar.querySelector('span').textContent = hayCaptura ? 'Reemplazar mis actividades' : 'Usar estas actividades';
+        agregar.hidden = !hayCaptura;
+        usar.addEventListener('click', function () {
+          if (hayCaptura && !confirm('¿Reemplazar tus actividades actuales (con sus imágenes) por las del documento?')) return;
+          cerrar();
+          usarImportacion(r, true);
+        });
+        agregar.addEventListener('click', function () { cerrar(); usarImportacion(r, false); });
+      }).catch(function (e) {
+        if (!fondo.isConnected) return;
+        q('titulo').textContent = 'No se pudo importar';
+        q('nota').textContent = e.message;
+      });
+    }
+
+    /* Lo importado entra como si se hubiera escrito: inicio y fin (si estaban vacíos o se reemplaza), actividades y,
+       si estaban vacíos, objetivo, alcance, responsabilidades y definiciones. */
+    function usarImportacion(r, reemplazar) {
+      const nuevas = r.actividades.map(function (a) { return Object.assign(nuevaActividad(), { texto: a.texto, responsable: a.responsable }); });
+      const vacias = !sol.actividades.some(function (a) { return a.texto.trim() || a.imagenes.length; });
+      sol.actividades = reemplazar || vacias ? nuevas : sol.actividades.concat(nuevas);
+      if (r.inicio && (reemplazar || !sol.inicio.trim())) sol.inicio = r.inicio;
+      if (r.fin && (reemplazar || !sol.fin.trim())) sol.fin = r.fin;
+      const derivados = {};
+      ['objetivo', 'alcance'].forEach(function (k) { if (r[k] && !String(sol[k] || '').trim()) derivados[k] = r[k]; });
+      ['responsabilidades', 'definiciones'].forEach(function (k) { if (r[k].length && !(sol[k] || []).length) derivados[k] = r[k].join('\n'); });
+      /* Primero los derivados (cambian la marca), luego el borrador: van en la misma fila. */
+      if (Object.keys(derivados).length) {
+        encolar(function () {
+          return llamar('apiGuardarDerivados', idSolicitud, derivados).then(function (x) {
+            sol.marca = x.marca;
+            Object.keys(derivados).forEach(function (k) { sol[k] = k === 'objetivo' || k === 'alcance' ? derivados[k] : r[k]; });
+          });
+        }).catch(function (e) { avisar('No se guardaron el objetivo y el alcance importados: ' + e.message, 'error'); });
+      }
+      pintar();
+      marcarCambio();
+      avisar('Listo: revisa las actividades importadas y corrige lo necesario.', 'exito');
     }
 
     /* ─────────── Observaciones de Procesos ─────────── */
@@ -572,6 +658,18 @@
       } else {
         mostrarGuardado('guardado');
       }
+      /* Importar un Word o PDF existente (fase 7). */
+      const importarB = editor.querySelector('[data-campo="importar"]');
+      importarB.hidden = !sol.importar;
+      const archivoImportar = editor.querySelector('[data-campo="archivo-importar"]');
+      archivoImportar.addEventListener('change', function () {
+        const archivo = archivoImportar.files && archivoImportar.files[0];
+        archivoImportar.value = '';
+        importar(archivo);
+      });
+      const vacia = !sol.actividades.some(function (a) { return a.texto.trim(); });
+      editor.querySelector('[data-campo="sugerir-importar"]').hidden = !(sol.importar && sol.esActualizacion && vacia);
+      editor.querySelector('[data-accion="importar-aviso"]').addEventListener('click', function () { archivoImportar.click(); });
       if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
       pintarActividades();
       pintarComentarios();

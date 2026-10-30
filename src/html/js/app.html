@@ -24,6 +24,8 @@
   /* Pantallas que piden datos al servidor al abrirse: id del módulo → función(contenedor, parámetro). */
   const PANTALLAS = {
     tablero: iniciarTablero,
+    puestos: iniciarPuestos,
+    solicitudes: iniciarTodasSolicitudes,
     'mis-solicitudes': iniciarMisSolicitudes,
     nueva: iniciarNuevaSolicitud,
     revision: iniciarBandeja,
@@ -158,7 +160,8 @@
     estado.parametro = idSolicitud + ':' + paso;
     /* La revisión de Procesos sale de la bandeja; los pasos del colaborador, de «Mis solicitudes». */
     const deProcesos = paso === 'revision';
-    const origen = deProcesos ? 'revision' : 'mis-solicitudes';
+    /* Soporte CI no tiene bandeja: regresa a «Todas las solicitudes». */
+    const origen = deProcesos ? (modulo('revision') || !modulo('solicitudes') ? 'revision' : 'solicitudes') : 'mis-solicitudes';
     document.querySelectorAll('.opcion').forEach(function (b) { b.classList.toggle('activa', b.dataset.vista === origen); });
     const vista = $('#vista');
     vista.textContent = '';

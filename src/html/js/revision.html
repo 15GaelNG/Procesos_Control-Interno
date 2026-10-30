@@ -181,6 +181,9 @@
         cerrar: cambiar('CERRAR', 'Observación cerrada.'), reabrir: cambiar('REABRIR', 'Observación reabierta.')
       } : null);
 
+      /* Actualización (fase 7): control de cambios, que el revisor también puede ajustar. */
+      if (d.actualizacion) q('lugar-control-cambios').appendChild(tarjetaControlCambios(idSolicitud, d.actualizacion, d.puedeDecidir, cargar, false));
+
       /* Decisión */
       if (d.puedeDecidir) {
         q('decision').hidden = false;
@@ -195,14 +198,26 @@
         if (!d.contenidoConfirmado) impedimentos.push('El contenido no es el que confirmó el colaborador.');
         q('vobo-impedimento').hidden = !impedimentos.length;
         q('vobo-impedimento').textContent = impedimentos.join(' ');
+        if (d.actualizacion) {
+          q('tipo-cambio').hidden = false;
+          q('texto-mayor').textContent = 'Mayor: cambian actividades, responsables, controles o la estructura → versión ' + d.actualizacion.versiones.MAYOR;
+          q('texto-menor').textContent = 'Menor: redacción, aclaraciones o correcciones puntuales → versión ' + d.actualizacion.versiones.MENOR;
+          q('nota-vobo').textContent = 'El documento queda listo para la autorización en CH con su mismo código (' + d.codigo + ') y la versión que elijas. La vigente (' +
+            (d.actualizacion.versionVigente || '—') + ') no cambia hasta que CH la autorice. Las observaciones atendidas se cierran solas.';
+          if (!d.actualizacion.motivos.length || !d.actualizacion.descripcion.trim()) impedimentos.push('Falta el control de cambios (motivo y descripción).');
+          q('vobo-impedimento').hidden = !impedimentos.length;
+          q('vobo-impedimento').textContent = impedimentos.join(' ');
+        }
         const vobo = accion('vobo');
         vobo.disabled = impedimentos.length > 0;
         vobo.addEventListener('click', function () {
           const c = codigo.value.trim().toUpperCase();
           if (!c) { avisar('Escribe el código.', 'error'); codigo.focus(); return; }
+          const tipo = ui.querySelector('input[name="tipoCambio"]:checked');
+          if (d.actualizacion && !tipo) { avisar('Elige si es una actualización mayor o menor.', 'error'); return; }
           if (!confirm('¿Dar el Vo.Bo. de Procesos a «' + d.nombre + '» con el código ' + c + '? Quedará lista para la autorización en el sistema CH.')) return;
           const listo = ocupar(vobo, 'Registrando…');
-          llamar('apiVoBo', idSolicitud, c).then(function (r) {
+          llamar('apiVoBo', idSolicitud, c, tipo ? tipo.value : '').then(function (r) {
             avisar('Vo.Bo. registrado: ' + r.codigo + '.', 'exito');
             volverABandeja();
           }).catch(function (e) { avisar(e.message, 'error'); listo(); });

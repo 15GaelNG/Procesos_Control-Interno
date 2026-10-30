@@ -9,6 +9,8 @@
  * @param {Object} datos
  * @param {Object<string,string>} datos.simples        { CODIGO: 'P-CM01-001', … }
  * @param {Object<string,string[]>} datos.listas        { PUESTOS: ['…'], RESPONSABILIDADES: ['Puesto: …'] }
+ * @param {Object<string,string>[]} [datos.cambios]    Renglones del control de cambios ({ CAMBIO_VERSION, … }): el
+ *                                                    renglón de la tabla con esos marcadores se repite uno por cambio
  * @param {Object<string,string>} [datos.titulos]       { PUESTOS: 'Puestos y responsabilidades' }: nuevo título de su sección
  * @param {{responsable: string, descripcion: string, enlaces: {url: string, texto: string}[],
  *          imagenes: {blob: Blob, pie: string}[]}[]} datos.actividades
@@ -32,6 +34,7 @@ function llenarPlantilla_(doc, datos) {
   renumerarSecciones_(cuerpo);
   if (encontrados[MARCADORES_PLANTILLA.desarrollo]) insertarDesarrollo_(cuerpo, datos.actividades || []);
 
+  if (datos.cambios && datos.cambios.length) repetirFilaDeTabla_(cuerpo, 'CAMBIO_VERSION', datos.cambios);
   const simples = datos.simples || {};
   Object.keys(simples).forEach(function (clave) {
     secciones.forEach(function (s) { reemplazarMarcador_(s.elemento, clave, simples[clave]); });
@@ -171,6 +174,25 @@ function quitarSeccion_(cuerpo, clave) {
   p.parrafo.removeFromParent();
   if (titulo && titulo.getType() === DocumentApp.ElementType.PARAGRAPH &&
       /^\s*\d+\.\s/.test(titulo.asParagraph().getText())) titulo.removeFromParent();
+}
+
+/**
+ * Repite el renglón de tabla que tiene el marcador {{clave}}: uno por elemento de `filas` ({ MARCADOR: valor }),
+ * en orden, con el formato del renglón de la plantilla.
+ */
+function repetirFilaDeTabla_(cuerpo, clave, filas) {
+  const encontrado = cuerpo.findText(patronMarcador_(clave));
+  if (!encontrado) return;
+  let renglon = encontrado.getElement();
+  while (renglon && renglon.getType() !== DocumentApp.ElementType.TABLE_ROW) renglon = renglon.getParent();
+  if (!renglon) return;
+  const tabla = renglon.getParentTable();
+  const indice = tabla.getChildIndex(renglon);
+  const modelo = renglon.copy();
+  filas.forEach(function (f, i) {
+    const r = i === 0 ? renglon : tabla.insertTableRow(indice + i, modelo.copy());
+    Object.keys(f).forEach(function (k) { reemplazarMarcador_(r, k, f[k]); });
+  });
 }
 
 /** Cambia el título de la sección de un marcador («3. Puestos involucrados» → «3. Puestos y responsabilidades»). */

@@ -27,6 +27,8 @@
 
     <div data-campo="documento"></div>
 
+    <div data-campo="lugar-control-cambios"></div>
+
     <section class="tarjeta faltantes" data-campo="faltantes" hidden>
       <h2><i data-lucide="list-todo" class="ico"></i>Antes de confirmar falta:</h2>
       <ul data-campo="lista-faltantes"></ul>
@@ -51,6 +53,22 @@
       <div class="lista-observaciones" data-campo="lista-observaciones"></div>
     </details>
   </div>
+</template>
+
+<template id="parte-control-cambios">
+  <section class="tarjeta seccion-analisis control-cambios">
+    <h2><i data-lucide="git-compare-arrows" class="ico"></i>Control de cambios</h2>
+    <p class="nota" data-campo="ayuda"></p>
+    <fieldset class="campo">
+      <legend>Motivo del cambio</legend>
+      <div class="motivos" data-campo="motivos"></div>
+    </fieldset>
+    <label class="campo">
+      <span>¿Qué cambió?</span>
+      <textarea rows="3" maxlength="2000" data-campo="descripcion" placeholder="Ej. Se agregó la validación del jefe de Compras antes del alta en SAP."></textarea>
+    </label>
+    <span class="estado-guardado" data-campo="guardado"></span>
+  </section>
 </template>
 
 <template id="parte-historial">

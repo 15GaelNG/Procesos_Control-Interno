@@ -129,13 +129,52 @@
       }, 600);
     });
 
+    /* Actualización (fase 7): en lugar de tipo, nombre y área, se elige el documento vigente. */
+    let documentos = null;
+    let documentoElegido = '';
+    function pintarDocumentos() {
+      const caja = q('documentos');
+      caja.textContent = '';
+      const filtro = textoComparable(q('buscar-documento').value);
+      const visibles = documentos.filter(function (d) { return !filtro || textoComparable(d.codigo + ' ' + d.nombre).indexOf(filtro) !== -1; });
+      if (!documentos.length) caja.appendChild(elemento('p', 'nota', 'No hay documentos vigentes de tus departamentos en el inventario. Cuando Procesos cargue su inventario anterior aparecerán aquí.'));
+      else if (!visibles.length) caja.appendChild(elemento('p', 'nota', 'Nada coincide con la búsqueda.'));
+      visibles.forEach(function (d) {
+        const nota = d.enCurso ? 'Ya hay una actualización en curso (' + d.enCurso + ').' : (!d.disponible ? 'Su tipo todavía no se documenta en el sistema.'
+          : (d.estructurado ? 'Se copia su contenido para que lo modifiques.' : 'No tiene contenido en el sistema: lo capturas o importas su Word o PDF.'));
+        const l = opcionTarjeta('idDocumento', d.id, d.codigo + ' · ' + d.nombre, 'Versión ' + (d.version || '—') + ' · ' + d.departamento + (d.area ? ' / ' + d.area : '') + '. ' + nota,
+          d.disponible && !d.enCurso);
+        const r = l.querySelector('input');
+        r.checked = d.id === documentoElegido;
+        r.addEventListener('change', function () {
+          documentoElegido = d.id;
+          q('codigo').textContent = d.codigo + ' (se conserva)';
+          q('version').textContent = 'Vigente ' + (d.version || '—') + '; la nueva la asigna Procesos';
+        });
+        caja.appendChild(l);
+      });
+    }
+    function alCambiarTipoSolicitud() {
+      const actualizar = (form.querySelector('input[name="tipoSolicitud"]:checked') || {}).value === 'ACTUALIZACION';
+      q('bloque-actualizacion').hidden = !actualizar;
+      q('bloque-nuevo').hidden = actualizar;
+      if (!actualizar) { q('version').textContent = 'Se asigna al autorizarse'; alCambiarArea(); return; }
+      q('codigo').textContent = 'El del documento que elijas';
+      if (documentos) { pintarDocumentos(); return; }
+      llamar('apiDocumentosActualizables').then(function (r) { documentos = r; pintarDocumentos(); pintarIconos(); })
+        .catch(function (e) { q('documentos').textContent = e.message; });
+    }
+    form.querySelectorAll('input[name="tipoSolicitud"]').forEach(function (r) { r.addEventListener('change', alCambiarTipoSolicitud); });
+    q('buscar-documento').addEventListener('input', function () { if (documentos) pintarDocumentos(); });
+
     const errores = q('errores');
     const boton = form.querySelector('[data-accion="crear"]');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       const elegido = function (n) { const r = form.querySelector('input[name="' + n + '"]:checked'); return r ? r.value : ''; };
       const datos = { tipoSolicitud: elegido('tipoSolicitud'), idTipo: elegido('idTipo'), nombre: form.nombre.value,
-        idDepartamento: depto.value, idArea: area.value, idSubarea: subarea.value };
+        idDepartamento: depto.value, idArea: area.value, idSubarea: subarea.value, idDocumento: documentoElegido };
+      if (datos.tipoSolicitud === 'ACTUALIZACION' && !documentoElegido) { errores.textContent = 'Elige el documento que vas a actualizar.'; errores.hidden = false; return; }
       errores.hidden = true;
       boton.disabled = true;
       boton.querySelector('span').textContent = 'Creando…';

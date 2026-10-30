@@ -549,6 +549,10 @@ function faltantesConfirmacion_(det, preguntas) {
     if (!a.texto.trim()) f.push('La actividad ' + (i + 1) + ' está vacía: escríbela o elimínala.');
     else if (!a.responsable.trim()) f.push('Falta quién realiza la actividad ' + (i + 1) + '.');
   });
+  if (det.actualizacion) {
+    if (!det.actualizacion.motivos.length) f.push('Marca el motivo del cambio (control de cambios).');
+    if (!det.actualizacion.descripcion.trim()) f.push('Describe qué cambió en esta actualización (control de cambios).');
+  }
   if (!det.objetivo.trim()) f.push('Falta el objetivo.');
   if (!det.alcance.trim()) f.push('Falta el alcance.');
   const pendientes = preguntas.filter(function (q) { return q.ESTADO === 'PENDIENTE'; }).length;
@@ -601,6 +605,7 @@ function vistaPrevia_(sesion, idSolicitud) {
   const preguntas = leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; });
   det.puestos = puestosInvolucrados_(det);
   det.puestosYResponsabilidades = puestosYResponsabilidades_(det);
+  det.actualizacion = datosActualizacion_(fila, det, leerTabla_('Documentos'), leerTabla_('Actividades'));
   det.faltantes = permiso.editar ? faltantesConfirmacion_(det, preguntas) : [];
   det.huella = huellaDeDetalle_(det);
   det.confirmada = fila.ESTADO === ESTADOS.CONFIRMADO && det.huella === String(fila.HUELLA_CONFIRMADA);
@@ -655,6 +660,7 @@ function confirmarSolicitud_(sesion, idSolicitud, huellaVista) {
     throw new Error(fila.ESTADO === ESTADOS.CONFIRMADO ? 'Ya está confirmada.' : 'En este estado no se puede confirmar.');
   }
   const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: true }, formatoFecha_);
+  det.actualizacion = datosActualizacion_(fila, det, leerTabla_('Documentos'), leerTabla_('Actividades'));
   const faltantes = faltantesConfirmacion_(det, leerTabla_('Aclaraciones').filter(function (q) { return q.ID_SOLICITUD === idSolicitud; }));
   if (faltantes.length) throw new Error(faltantes.join(' '));
   const huella = huellaDeDetalle_(det);

@@ -20,10 +20,11 @@
  *   formatear(fecha, patron) → texto;  ahora: fecha de generación.
  * Las imágenes van como { idImagen, pie }: quien genera las cambia por su archivo JPG.
  */
-function datosDocumento_(det, fila, formatear, ahora) {
+function datosDocumento_(det, fila, formatear, ahora, historial) {
   const fecha = function (v) { return marcaDe_(v) ? formatear(new Date(marcaDe_(v)), 'dd/MM/yyyy') : ''; };
   const nuevo = fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.NUEVO;
-  const version = String(fila.VERSION || '').trim() || (nuevo ? '0.0' : '');
+  // Una actualización recibe su versión con el Vo.Bo. de Procesos; antes, «Por asignar».
+  const version = String(fila.VERSION || '').trim() || (nuevo ? '0.0' : 'Por asignar');
   // Ya autorizado, la fecha del documento es la de CH (respuestas de Procesos); antes, la de generación.
   const mesAnio = formatear(marcaDe_(fila.FECHA_AUTORIZACION) ? new Date(marcaDe_(fila.FECHA_AUTORIZACION)) : ahora, 'MM/yyyy');
   return {
@@ -50,6 +51,17 @@ function datosDocumento_(det, fila, formatear, ahora) {
       CAMBIO_DESCRIPCION: nuevo ? 'Emisión inicial del documento.' : String(fila.DESCRIPCION_CAMBIO || ''),
       CAMBIO_RESPONSABLE: String(fila.ELABORO_NOMBRE || '')
     },
+    // Control de cambios completo (§4.2): las versiones anteriores autorizadas y, al final, esta.
+    cambios: (historial || []).filter(function (h) { return h.ID_SOLICITUD !== fila.ID_SOLICITUD; })
+      .sort(function (a, b) { return marcaDe_(a.FECHA) - marcaDe_(b.FECHA); })
+      .map(function (h) {
+        return { CAMBIO_VERSION: String(h.VERSION || ''), CAMBIO_FECHA: marcaDe_(h.FECHA) ? formatear(new Date(marcaDe_(h.FECHA)), 'MM/yyyy') : '',
+          CAMBIO_DESCRIPCION: String(h.DESCRIPCION || '') + (h.MOTIVOS ? ' (' + h.MOTIVOS + ')' : ''), CAMBIO_RESPONSABLE: String(h.RESPONSABLE || '') };
+      })
+      .concat([{ CAMBIO_VERSION: version, CAMBIO_FECHA: mesAnio,
+        CAMBIO_DESCRIPCION: nuevo ? 'Emisión inicial del documento.' : String(fila.DESCRIPCION_CAMBIO || '') +
+          (listaJson_(fila.MOTIVOS_CAMBIO).length ? ' (' + listaJson_(fila.MOTIVOS_CAMBIO).map(function (m) { return MOTIVOS_CAMBIO[m] || m; }).join('; ') + ')' : ''),
+        CAMBIO_RESPONSABLE: String(fila.ELABORO_NOMBRE || '') }]),
     // Puestos y responsabilidades van juntos (decisión 25): la sección «Responsabilidades» de la
     // plantilla queda vacía y se quita, y la de puestos cambia de título.
     listas: {
@@ -177,7 +189,8 @@ function generarArchivos_(sesion, fila, cual, formatos) {
     if (!tipo) throw new Error('La solicitud no tiene un tipo de documento válido.');
     const plantilla = plantillaDeTipo_(tipo, cual);
     const ahora = new Date();
-    const datos = datosDocumento_(det, fila, function (f, p) { return Utilities.formatDate(f, ZONA_HORARIA, p); }, ahora);
+    const historial = fila.ID_DOCUMENTO ? leerTabla_('HistorialCambios').filter(function (h) { return h.ID_DOCUMENTO === fila.ID_DOCUMENTO; }) : [];
+    const datos = datosDocumento_(det, fila, function (f, p) { return Utilities.formatDate(f, ZONA_HORARIA, p); }, ahora, historial);
     const archivoDe = {};
     imagenes.forEach(function (i) { archivoDe[i.ID_IMAGEN] = i.ID_ARCHIVO_DOCUMENTO || i.ID_ARCHIVO; });
     datos.actividades.forEach(function (a) {

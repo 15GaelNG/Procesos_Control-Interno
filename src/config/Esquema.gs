@@ -136,7 +136,7 @@ const ESQUEMA_BD = [
     hoja: 'Actividades', grupo: 'OPERACION',
     descripcion: 'Pasos del proceso de cada solicitud, en el orden que definió el colaborador.',
     columnas: ['ID_ACTIVIDAD', 'ID_SOLICITUD', 'ORDEN', 'TEXTO_ORIGINAL', 'TEXTO_FINAL', 'ID_PUESTO',
-      'PUESTO_TEXTO', 'RESPONSABLE_CONFIRMADO', 'ELIMINADA', 'FECHA_ACTUALIZACION', 'ENLACES']
+      'PUESTO_TEXTO', 'RESPONSABLE_CONFIRMADO', 'ELIMINADA', 'FECHA_ACTUALIZACION', 'ENLACES', 'ID_ACTIVIDAD_BASE']
   },
   {
     hoja: 'Imagenes', grupo: 'OPERACION',

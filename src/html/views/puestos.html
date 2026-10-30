@@ -1,0 +1,81 @@
+<template id="vista-puestos">
+  <div class="vista-ancho">
+    <div class="encabezado-vista">
+      <div>
+        <h1 class="titulo-vista"><i data-lucide="id-card" class="ico"></i>Puestos</h1>
+        <p class="subtitulo">La IA los usa para reconocer quién realiza cada actividad, y el de cada usuario sale en «Elaboró» y «Revisó». Los sinónimos (otras formas de llamarlo) la ayudan a reconocerlos.</p>
+      </div>
+      <div class="pregunta-botones" data-campo="botones" hidden>
+        <button type="button" class="boton secundario" data-accion="pegar"><i data-lucide="clipboard-paste" class="ico"></i>Pegar una lista</button>
+        <button type="button" class="boton" data-accion="nuevo"><i data-lucide="plus" class="ico"></i>Nuevo puesto</button>
+      </div>
+    </div>
+
+    <form class="tarjeta formulario-puesto" data-campo="formulario" hidden novalidate>
+      <h2 data-campo="titulo-formulario">Nuevo puesto</h2>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Nombre del puesto</span>
+          <input type="text" name="nombre" maxlength="120" autocomplete="off" placeholder="Ej. Auxiliar de Compras">
+        </label>
+        <label class="campo">
+          <span>Departamento <em class="opcional">(opcional)</em></span>
+          <select class="selector" name="departamento"></select>
+        </label>
+      </div>
+      <label class="campo">
+        <span>Sinónimos <em class="opcional">(opcional, separados por coma)</em></span>
+        <input type="text" name="sinonimos" maxlength="500" autocomplete="off" placeholder="Ej. aux. compras, auxiliar de adquisiciones">
+      </label>
+      <label class="interruptor"><input type="checkbox" name="activo" checked><span>Activo</span></label>
+      <div class="acciones-formulario">
+        <button type="button" class="boton secundario" data-accion="cancelar">Cancelar</button>
+        <button type="submit" class="boton" data-accion="guardar"><i data-lucide="check" class="ico"></i><span>Guardar</span></button>
+      </div>
+    </form>
+
+    <div class="tarjeta" data-campo="pegado" hidden>
+      <h2>Pegar una lista de puestos</h2>
+      <p class="nota">Un puesto por renglón. Si tiene sinónimos, después de «|»: <code>Auxiliar de Compras | aux. compras, auxiliar</code>. Los que ya existen no se repiten.</p>
+      <textarea rows="8" data-campo="lista" class="area-larga"></textarea>
+      <div class="acciones-formulario">
+        <button type="button" class="boton secundario" data-accion="cancelar-pegado">Cancelar</button>
+        <button type="button" class="boton" data-accion="importar"><i data-lucide="upload" class="ico"></i><span>Agregar</span></button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por nombre o sinónimo">
+        </label>
+        <label class="interruptor"><input type="checkbox" data-campo="bajas"><span>Mostrar dados de baja</span></label>
+      </div>
+      <div data-campo="contenido" class="solicitudes-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando…</p></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="vista-solicitudes">
+  <div class="vista-ancho">
+    <div>
+      <h1 class="titulo-vista"><i data-lucide="folder-search" class="ico"></i>Todas las solicitudes</h1>
+      <p class="subtitulo">Todas las solicitudes del sistema y en qué etapa va cada una. Solo consulta.</p>
+    </div>
+    <div class="tarjeta">
+      <div class="barra-filtros">
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar" placeholder="Buscar por nombre, folio, código, departamento o quién la elaboró">
+        </label>
+        <select class="selector selector-chico" data-campo="estado"></select>
+      </div>
+      <div data-campo="contenido" class="solicitudes-lista">
+        <div class="vacio"><span class="vacio-icono"><i data-lucide="loader" class="ico girando"></i></span><p>Cargando…</p></div>
+      </div>
+    </div>
+  </div>
+</template>

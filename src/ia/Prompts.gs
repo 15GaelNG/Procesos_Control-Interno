@@ -131,3 +131,33 @@ function construirPromptAnalisis_(e) {
 
   return { sistema: sistema, usuario: usuario };
 }
+
+/**
+ * Importar un documento existente (Word o PDF ya convertido a texto): separarlo en la estructura del
+ * sistema SIN inventar (decisión 33). nombre: el del documento; texto: ya sin datos sensibles.
+ */
+function construirPromptImportacion_(nombre, texto) {
+  const sistema = [
+    'Eres analista del área de Procesos de una empresa inmobiliaria mexicana. Te doy el texto de un documento de',
+    'procedimiento que ya existe. Sepáralo en la estructura del nuevo sistema de documentación, en español de México.',
+    '',
+    'REGLAS OBLIGATORIAS:',
+    '1. Usa SOLO lo que dice el documento. No inventes ni agregues pasos, responsables, sistemas, plazos ni requisitos.',
+    '2. «actividades»: los pasos del procedimiento en el MISMO orden en que aparecen, uno por paso, en tercera persona',
+    '   y presente. Corrige solo ortografía y puntuación; no juntes ni dividas pasos sin necesidad.',
+    '3. «responsable» de cada actividad: el puesto que la realiza SOLO si el documento lo dice; si no, cadena vacía.',
+    '4. «inicio» (qué hace que inicie el proceso), «fin» (cómo termina), «objetivo» y «alcance»: solo si el documento',
+    '   los trae o se leen claramente en él; si no, cadena vacía.',
+    '5. «responsabilidades» («Puesto: lo que le toca») y «definiciones» («Término: qué significa»): solo si el',
+    '   documento las trae; si no, listas vacías.',
+    '6. Ignora la portada, encabezados, pies de página, índice, control de cambios, firmas y la marca de agua.',
+    '7. El texto puede traer marcas como [CORREO 1] o [MONTO 2] en lugar de datos privados: déjalas tal cual.',
+    '',
+    'Responde SOLO con un objeto JSON con esta forma exacta (sin texto adicional):',
+    '{ "inicio": "", "fin": "", "objetivo": "", "alcance": "",',
+    '  "actividades": [ { "texto": "", "responsable": "" } ],',
+    '  "responsabilidades": [ "Puesto: …" ], "definiciones": [ "Término: …" ] }'
+  ].join('\n');
+  const usuario = ['Documento: ' + (nombre || ''), '', 'Texto del documento:', texto].join('\n');
+  return { sistema: sistema, usuario: usuario };
+}

@@ -38,6 +38,11 @@
     <i data-lucide="pencil" class="ico"></i>
     <span>Corrige lo que necesites aquí. Cuando termines da clic en «Siguiente: corregir con IA» (abajo) y después confirma en la vista previa.</span>
   </div>
+  <div class="aviso-consulta dorado" data-campo="sugerir-importar" hidden>
+    <i data-lucide="file-up" class="ico"></i>
+    <span>Esta actualización no tiene contenido en el sistema. Si tienes el documento vigente en Word o PDF, impórtalo: la IA lo separa en actividades y tú lo revisas.</span>
+    <button type="button" class="enlace" data-accion="importar-aviso">Importar Word o PDF</button>
+  </div>
   <div class="aviso-conflicto" data-campo="conflicto" hidden>
     <i data-lucide="triangle-alert" class="ico"></i>
     <span>Esta solicitud cambió en otra ventana o pestaña. Para no perder nada, recarga la página antes de seguir.</span>
@@ -51,6 +56,10 @@
       </div>
       <div class="desarrollo-acciones">
         <span class="estado-guardado" data-campo="guardado"></span>
+        <label class="boton secundario chico" data-campo="importar" title="La IA separa tu documento en actividades; tú lo revisas antes de usarlo">
+          <i data-lucide="file-up" class="ico"></i><span>Importar Word o PDF</span>
+          <input type="file" data-campo="archivo-importar" accept=".docx,.doc,.pdf" hidden>
+        </label>
       </div>
     </div>
 
@@ -89,6 +98,21 @@
     </div>
     <div class="pregunta-botones">
       <button type="button" class="boton" data-accion="corregir-ia"><i data-lucide="arrow-right" class="ico"></i><span>Siguiente: corregir con IA</span></button>
+    </div>
+  </div>
+</template>
+
+<template id="parte-importacion">
+  <div class="dialogo-fondo" role="dialog" aria-modal="true">
+    <div class="tarjeta dialogo">
+      <h2 data-campo="titulo">Leyendo tu documento…</h2>
+      <p class="nota" data-campo="nota">Google lo convierte a texto y la IA lo separa en actividades. Puede tardar un minuto.</p>
+      <div class="importacion" data-campo="resultado" hidden></div>
+      <div class="pregunta-botones">
+        <button type="button" class="boton" data-accion="usar" hidden><i data-lucide="check" class="ico"></i><span>Usar estas actividades</span></button>
+        <button type="button" class="boton secundario" data-accion="agregar" hidden>Agregarlas al final</button>
+        <button type="button" class="boton secundario" data-accion="cancelar">Cancelar</button>
+      </div>
     </div>
   </div>
 </template>

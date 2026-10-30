@@ -229,3 +229,22 @@ function aparece_(fragmento, texto) {
   const f = normalizar_(fragmento);
   return !!f && normalizar_(texto).indexOf(f) !== -1;
 }
+
+/**
+ * Lo que regresa la IA al importar un documento existente, limpio y con los límites de la captura (sin
+ * tocar Google). Sin actividades es un error: no hay nada que usar.
+ */
+function validarImportacion_(salida) {
+  const d = salida && typeof salida === 'object' ? salida : {};
+  const L = LIMITES_CAPTURA;
+  const texto = function (v, max) { return String(v === null || v === undefined ? '' : v).replace(/\r\n/g, '\n').trim().slice(0, max); };
+  const lista = function (v) {
+    return (Array.isArray(v) ? v : []).map(function (x) { return texto(x, L.LINEA_MAX).replace(/\s+/g, ' '); }).filter(Boolean).slice(0, L.LINEAS_MAX);
+  };
+  const actividades = (Array.isArray(d.actividades) ? d.actividades : []).map(function (a) {
+    return { texto: texto(a && a.texto, L.ACTIVIDAD_MAX), responsable: texto(a && a.responsable, L.RESPONSABLE_MAX).replace(/\s+/g, ' ') };
+  }).filter(function (a) { return a.texto; }).slice(0, L.ACTIVIDADES_MAX);
+  if (!actividades.length) throw new Error('La IA no encontró actividades en el documento. Revisa que sea el procedimiento correcto o captúralas a mano.');
+  return { inicio: texto(d.inicio, L.PREGUNTA_MAX), fin: texto(d.fin, L.PREGUNTA_MAX), objetivo: texto(d.objetivo, L.DERIVADO_MAX),
+    alcance: texto(d.alcance, L.DERIVADO_MAX), actividades: actividades, responsabilidades: lista(d.responsabilidades), definiciones: lista(d.definiciones) };
+}

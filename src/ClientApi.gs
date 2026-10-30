@@ -45,6 +45,37 @@ function apiGuardarUsuario(comoUsuario, datos) {
   return guardarUsuario_(sesion, datos || {});
 }
 
+/** Pantalla «Puestos»: el catálogo y los departamentos que se pueden asignar. */
+function apiPuestos(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);
+  const departamentos = leerTabla_('Departamentos');
+  return {
+    puestos: listaPuestos_(leerTabla_('Puestos'), departamentos),
+    departamentos: departamentos.filter(function (d) { return esActivo_(d.ACTIVO); })
+      .map(function (d) { return { id: d.ID_DEPARTAMENTO, nombre: String(d.NOMBRE) }; })
+      .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); }),
+    puedeEditar: sesion.perfiles.indexOf('ADMINISTRADOR') !== -1
+  };
+}
+
+/** Alta o cambio de un puesto. datos: { id, nombre, idDepartamento, sinonimos, activo }. */
+function apiGuardarPuesto(comoUsuario, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  return guardarPuesto_(sesion, datos);
+}
+
+/** Varios puestos de una lista pegada (un renglón por puesto; sinónimos después de «|»). */
+function apiImportarPuestos(comoUsuario, texto) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  return importarPuestos_(sesion, texto);
+}
+
+/** «Todas las solicitudes» (Soporte CI, solo consulta). */
+function apiTodasSolicitudes(comoUsuario) {
+  requierePerfil_(sesionEfectiva_(comoUsuario), ['SOPORTE_CI']);
+  return todasLasSolicitudes_(leerTabla_('Solicitudes'), tablasSolicitud_(), formatoFecha_);
+}
+
 /** Pantalla «Bitácora»: los renglones más recientes. */
 function apiBitacora(comoUsuario) {
   requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);
@@ -63,6 +94,19 @@ function apiOpcionesSolicitud(comoUsuario) {
 function apiBuscarCoincidencias(comoUsuario, nombre, excluir) {
   requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR', 'REVISOR']);
   return coincidenciasNombre_(String(nombre || ''), leerTabla_('Documentos'), leerTabla_('Solicitudes'), excluir || '');
+}
+
+/** Los documentos vigentes que la persona puede actualizar (fase 7). */
+function apiDocumentosActualizables(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  const deptos = departamentosDe_(sesion.idUsuario, leerTabla_('UsuarioDepartamentos')).map(function (d) { return d.id; });
+  return documentosActualizables_(leerTabla_('Documentos'), leerTabla_('Solicitudes'), deptos, tablasSolicitud_());
+}
+
+/** Control de cambios de una actualización. datos: { motivos: [MOTIVOS_CAMBIO], descripcion }. */
+function apiGuardarControlCambios(comoUsuario, idSolicitud, datos) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR', 'REVISOR']);
+  return guardarControlCambios_(sesion, idSolicitud, datos);
 }
 
 function apiCrearSolicitud(comoUsuario, datos) {
@@ -88,6 +132,8 @@ function apiSolicitud(comoUsuario, idSolicitud) {
   // Sugerencias de la IA mientras se escribe (paso 3).
   detalle.sugerirRedaccion = permiso.editar && sugerenciasActivas_();
   detalle.sugerencia = { minCaracteres: IA_SUGERENCIA_MIN_CARACTERES, esperaMs: IA_SUGERENCIA_ESPERA_MS };
+  // Importar un Word o PDF existente con la IA (fase 7).
+  detalle.importar = permiso.editar && obtenerConfig_('IA_ACTIVA', 'NO') === 'SI';
   // Lo que Procesos observó (o corrigió) y no está cerrado: se muestra junto a cada parte.
   detalle.observaciones = observacionesDe_(leerTabla_('Observaciones'), idSolicitud, detalle, formatoFecha_)
     .filter(function (o) { return o.estado !== 'CERRADA'; });
@@ -106,6 +152,12 @@ function apiSugerirRedaccion(comoUsuario, idSolicitud, texto) {
 function apiGuardarBorrador(comoUsuario, idSolicitud, contenido) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
   return guardarBorrador_(sesion, idSolicitud, contenido);
+}
+
+/** Un Word o PDF existente que la IA separa en inicio, actividades y fin (no guarda nada: el colaborador decide). */
+function apiImportarDocumento(comoUsuario, idSolicitud, archivo) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['COLABORADOR']);
+  return importarDocumento_(sesion, idSolicitud, archivo);
 }
 
 /** Imagen ya optimizada por el navegador (WebP, JPG/PNG para el documento y miniatura). */
@@ -299,10 +351,10 @@ function apiNoProcedente(comoUsuario, idSolicitud, motivo) {
   return noProcedente_(sesion, idSolicitud, motivo);
 }
 
-/** Vo.Bo. de Procesos con el código que confirma el revisor. */
-function apiVoBo(comoUsuario, idSolicitud, codigo) {
+/** Vo.Bo. de Procesos con el código que confirma el revisor (y, en una actualización, si es mayor o menor). */
+function apiVoBo(comoUsuario, idSolicitud, codigo, tipoCambio) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
-  return darVoBo_(sesion, idSolicitud, codigo);
+  return darVoBo_(sesion, idSolicitud, codigo, tipoCambio);
 }
 
 // ─────────────────────────────── CH e inventario (fase 6) ───────────────────────────────

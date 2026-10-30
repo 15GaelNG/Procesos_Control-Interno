@@ -99,7 +99,7 @@ function registrarEnvioCH_(sesion, idSolicitud, datos) {
  * su historial; con RECHAZADO, la observación para el colaborador.
  */
 function planResultadoCH_(fila, sesion, envio, datos, ahora, quien) {
-  const plan = { errores: [], solicitud: {}, envio: {}, documento: null, historial: null, observacion: null };
+  const plan = { errores: [], solicitud: {}, envio: {}, documento: null, documentoCambios: null, historial: null, observacion: null };
   const e = plan.errores;
   const d = datos || {};
   if (!puedeOperarCH_(sesion, fila)) { e.push('Solo Procesos registra el resultado de CH (y nunca de una solicitud que elaboró).'); return plan; }
@@ -110,7 +110,6 @@ function planResultadoCH_(fila, sesion, envio, datos, ahora, quien) {
   const registro = { REGISTRADO_POR: quien, FECHA_REGISTRO: ahora };
 
   if (d.resultado === 'AUTORIZADO') {
-    if (fila.TIPO_SOLICITUD !== TIPOS_SOLICITUD.NUEVO) { e.push('Las actualizaciones de documentos llegan en la fase 7.'); return plan; }
     const nombre = texto(d.nombre);
     const puesto = texto(d.puesto);
     if (!nombre) e.push('Escribe quién autorizó en CH (el autorizador final).');
@@ -125,12 +124,20 @@ function planResultadoCH_(fila, sesion, envio, datos, ahora, quien) {
       VERSION: version, FECHA_ACTUALIZACION: ahora };
     plan.envio = Object.assign({ RESULTADO: 'AUTORIZADO', AUTORIZO_NOMBRE: nombre, AUTORIZO_PUESTO: puesto, FECHA_AUTORIZACION: f.fecha,
       COMENTARIO: comentario }, registro);
-    plan.documento = { CODIGO: String(fila.CODIGO), NOMBRE: String(fila.NOMBRE_DOCUMENTO), ID_TIPO: fila.ID_TIPO,
-      ID_DEPARTAMENTO: fila.ID_DEPARTAMENTO, ID_AREA: fila.ID_AREA, ID_SUBAREA: String(fila.ID_SUBAREA || ''),
-      VERSION_VIGENTE: version, FECHA_VIGENCIA: f.fecha, ESTATUS: ESTATUS_DOCUMENTO.VIGENTE, ID_SOLICITUD_VIGENTE: fila.ID_SOLICITUD,
-      ID_ARCHIVO_WORD: '', ID_ARCHIVO_PDF: '', CONTENIDO_ESTRUCTURADO: 'SI', ORIGEN: ORIGENES_DOCUMENTO.SISTEMA, FECHA_REGISTRO: ahora };
-    // El historial oficial de versiones (§4.2): la emisión inicial, con quien autorizó.
-    plan.historial = { VERSION: version, FECHA: f.fecha, MOTIVOS: '', DESCRIPCION: 'Emisión inicial del documento.',
+    if (fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.ACTUALIZACION) {
+      // Una actualización: el mismo renglón del inventario pasa a la versión nueva (hasta aquí no cambió).
+      plan.documentoCambios = { NOMBRE: String(fila.NOMBRE_DOCUMENTO), VERSION_VIGENTE: version, FECHA_VIGENCIA: f.fecha,
+        ID_SOLICITUD_VIGENTE: fila.ID_SOLICITUD, ID_ARCHIVO_WORD: '', ID_ARCHIVO_PDF: '', CONTENIDO_ESTRUCTURADO: 'SI' };
+    } else {
+      plan.documento = { CODIGO: String(fila.CODIGO), NOMBRE: String(fila.NOMBRE_DOCUMENTO), ID_TIPO: fila.ID_TIPO,
+        ID_DEPARTAMENTO: fila.ID_DEPARTAMENTO, ID_AREA: fila.ID_AREA, ID_SUBAREA: String(fila.ID_SUBAREA || ''),
+        VERSION_VIGENTE: version, FECHA_VIGENCIA: f.fecha, ESTATUS: ESTATUS_DOCUMENTO.VIGENTE, ID_SOLICITUD_VIGENTE: fila.ID_SOLICITUD,
+        ID_ARCHIVO_WORD: '', ID_ARCHIVO_PDF: '', CONTENIDO_ESTRUCTURADO: 'SI', ORIGEN: ORIGENES_DOCUMENTO.SISTEMA, FECHA_REGISTRO: ahora };
+    }
+    // El historial oficial de versiones (§4.2): la emisión inicial o la actualización, con quien autorizó.
+    const motivos = listaJson_(fila.MOTIVOS_CAMBIO).map(function (m) { return MOTIVOS_CAMBIO[m] || m; }).join('; ');
+    plan.historial = { VERSION: version, FECHA: f.fecha, MOTIVOS: motivos,
+      DESCRIPCION: plan.documentoCambios ? String(fila.DESCRIPCION_CAMBIO || '') : 'Emisión inicial del documento.',
       RESPONSABLE: String(fila.ELABORO_NOMBRE || ''), AUTORIZO_NOMBRE: nombre, AUTORIZO_PUESTO: puesto, ID_SOLICITUD: fila.ID_SOLICITUD };
     return plan;
   }
@@ -164,8 +171,15 @@ function registrarResultadoCH_(sesion, idSolicitud, datos) {
     if (plan.solicitud.ESTADO === ESTADOS.AUTORIZADO) {
       const det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), tablasSolicitud_(), { editar: false }, formatoFecha_);
       if (!contenidoAprobado_(fila, huellaDeDetalle_(det))) throw new Error('El contenido no es el que se confirmó: revisa la solicitud antes de registrar la autorización.');
-      const idDocumento = siguienteId_('DOC', 4);
-      agregarFila_('Documentos', Object.assign({ ID_DOCUMENTO: idDocumento }, plan.documento));
+      let idDocumento = fila.ID_DOCUMENTO;
+      if (plan.documentoCambios) {
+        const doc = leerTabla_('Documentos').filter(function (x) { return x.ID_DOCUMENTO === fila.ID_DOCUMENTO; })[0];
+        if (!doc) throw new Error('No está en el inventario el documento que se actualiza (' + fila.ID_DOCUMENTO + ').');
+        actualizarFila_('Documentos', doc._fila, plan.documentoCambios);
+      } else {
+        idDocumento = siguienteId_('DOC', 4);
+        agregarFila_('Documentos', Object.assign({ ID_DOCUMENTO: idDocumento }, plan.documento));
+      }
       agregarFila_('HistorialCambios', Object.assign({ ID_CAMBIO: siguienteId_('CAM', 6), ID_DOCUMENTO: idDocumento }, plan.historial));
       plan.solicitud.ID_DOCUMENTO = idDocumento;
     } else {

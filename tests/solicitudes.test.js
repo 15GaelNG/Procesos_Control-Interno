@@ -49,16 +49,16 @@ test('opciones: sus departamentos (el principal primero) con áreas activas y su
   assert.deepStrictEqual(o.departamentos[0].areas[1].subareas, [{ id: 'SUB-0001', nombre: 'PROCESOS' }]);
   assert.deepStrictEqual(o.elaborador, { nombre: 'Ana López', puesto: 'Analista de Procesos' });
   assert.deepStrictEqual(o.tiposDocumento.map(function (t) { return t.nombre + ':' + t.disponible; }), ['Manual:false', 'Procedimiento:true']);
-  assert.deepStrictEqual(o.tiposSolicitud.map(function (t) { return t.id + ':' + t.disponible; }), ['NUEVO:true', 'ACTUALIZACION:false']);
+  assert.deepStrictEqual(o.tiposSolicitud.map(function (t) { return t.id + ':' + t.disponible; }), ['NUEVO:true', 'ACTUALIZACION:true']);
 });
 
 test('validar: una solicitud completa pasa', function () {
   assert.deepStrictEqual(plano(gs.validarNuevaSolicitud_(valida, opciones())), []);
 });
 
-test('validar: solo Procedimiento y solo documentos nuevos por ahora', function () {
-  const e = gs.validarNuevaSolicitud_(Object.assign({}, valida, { idTipo: 'TD-01', tipoSolicitud: 'ACTUALIZACION' }), opciones()).join(' ');
-  assert.ok(/fase 7/.test(e) && /Manual.*todavía no se documenta/.test(e));
+test('validar: solo los tipos con plantilla (Procedimiento)', function () {
+  const e = gs.validarNuevaSolicitud_(Object.assign({}, valida, { idTipo: 'TD-01' }), opciones()).join(' ');
+  assert.ok(/Manual.*todavía no se documenta/.test(e));
 });
 
 test('validar: nombre, departamento propio, área de ese departamento y subárea de esa área', function () {

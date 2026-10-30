@@ -23,6 +23,18 @@
       <legend>¿Qué quieres hacer?</legend>
       <div class="opciones-tarjeta" data-campo="tipos-solicitud"></div>
     </fieldset>
+    <div class="bloque-actualizacion" data-campo="bloque-actualizacion" hidden>
+      <fieldset class="campo">
+        <legend>¿Qué documento vas a actualizar?</legend>
+        <label class="buscador">
+          <i data-lucide="search" class="ico"></i>
+          <input type="search" data-campo="buscar-documento" placeholder="Buscar por nombre o código">
+        </label>
+        <small>Los documentos vigentes de tus departamentos. Se conserva su código; la versión nueva la asigna Procesos y la vigente no cambia hasta que se autorice.</small>
+        <div class="opciones-documento" data-campo="documentos"><p class="nota">Cargando…</p></div>
+      </fieldset>
+    </div>
+    <div data-campo="bloque-nuevo">
     <fieldset class="campo">
       <legend>Tipo de documento</legend>
       <div class="opciones-tarjeta" data-campo="tipos-documento"></div>
@@ -47,12 +59,13 @@
         <select class="selector" name="subarea"></select>
       </label>
     </div>
+    </div>
     <div class="datos-automaticos">
       <div><span>Elabora</span><strong data-campo="elaborador"></strong></div>
       <div><span>Puesto</span><strong data-campo="puesto"></strong></div>
       <div><span>Fecha de elaboración</span><strong data-campo="fecha"></strong></div>
       <div><span>Código</span><strong data-campo="codigo">Lo asigna Procesos</strong></div>
-      <div><span>Versión</span><strong>Se asigna al autorizarse</strong></div>
+      <div><span>Versión</span><strong data-campo="version">Se asigna al autorizarse</strong></div>
     </div>
     <div class="errores" data-campo="errores" hidden></div>
     <div class="acciones-formulario">

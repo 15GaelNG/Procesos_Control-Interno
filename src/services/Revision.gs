@@ -343,8 +343,11 @@ function validarCodigo_(codigo, prefijo, cuerpo, usados) {
   return e;
 }
 
-/** Qué cambia con el Vo.Bo. (sin tocar Google). */
-function planVoBo_(fila, sesion, det, huellaActual, observaciones, codigo, usados, puestoRevisor, ahora) {
+/**
+ * Qué cambia con el Vo.Bo. (sin tocar Google). actualizacion (solo actualizaciones): { tipoCambio
+ * (MAYOR / MENOR, lo decide Procesos), versionVigente }.
+ */
+function planVoBo_(fila, sesion, det, huellaActual, observaciones, codigo, usados, puestoRevisor, ahora, actualizacion) {
   const plan = { errores: [], cambios: {}, cerrarObservaciones: [], codigo: '' };
   const e = plan.errores;
   if (!esRevisorAsignado_(sesion, fila) || fila.ESTADO !== ESTADOS.EN_REVISION) { e.push('Solo el revisor asignado da el Vo.Bo., mientras está en revisión.'); return plan; }
@@ -358,9 +361,18 @@ function planVoBo_(fila, sesion, det, huellaActual, observaciones, codigo, usado
   const asigna = codigoEditable_(fila);
   plan.codigo = asigna ? String(codigo || '').trim().toUpperCase() : String(fila.CODIGO || '');
   if (asigna) validarCodigo_(plan.codigo, det.prefijo, det.cuerpo, usados).forEach(function (x) { e.push(x); });
+  // Una actualización: Procesos decide si es mayor o menor (respuesta 5) y el control de cambios va completo.
+  const a = actualizacion || {};
+  if (!nuevo) {
+    if (!TIPOS_CAMBIO[a.tipoCambio]) e.push('Elige si es una actualización mayor o menor.');
+    if (!listaJson_(fila.MOTIVOS_CAMBIO).length || !String(fila.DESCRIPCION_CAMBIO || '').trim()) {
+      e.push('Falta el control de cambios (motivo y descripción): complétalo o devuélvela al colaborador.');
+    }
+  }
   if (e.length) return plan;
-  plan.cambios = { ESTADO: ESTADOS.EN_AUTORIZACION_CH, CODIGO: plan.codigo, VERSION: nuevo ? '0.0' : String(fila.VERSION || ''),
+  plan.cambios = { ESTADO: ESTADOS.EN_AUTORIZACION_CH, CODIGO: plan.codigo, VERSION: nuevo ? '0.0' : siguienteVersion_(a.versionVigente, a.tipoCambio),
     REVISO_ID: sesion.idUsuario, REVISO_NOMBRE: sesion.nombre, REVISO_PUESTO: puestoRevisor, FECHA_REVISION: ahora, FECHA_ACTUALIZACION: ahora };
+  if (!nuevo) plan.cambios.TIPO_CAMBIO = a.tipoCambio;
   plan.cerrarObservaciones = propias.filter(function (o) { return o.ESTADO === 'ATENDIDA'; }).map(function (o) { return o._fila; });
   return plan;
 }
@@ -377,7 +389,7 @@ function propuestaCodigo_(fila, det) {
   return siguienteCodigo_(det.prefijo, det.cuerpo, codigosUsados_(leerTabla_('Solicitudes'), leerTabla_('Documentos'), fila.ID_SOLICITUD), serie ? serie.ULTIMO : 0);
 }
 
-function darVoBo_(sesion, idSolicitud, codigo) {
+function darVoBo_(sesion, idSolicitud, codigo, tipoCambio) {
   const t = tablasSolicitud_();
   const puesto = puestoDeUsuario_(sesion.idUsuario, t.usuarios, t.puestos);
   let fila, det, huella, plan;
@@ -386,7 +398,9 @@ function darVoBo_(sesion, idSolicitud, codigo) {
     det = detalleSolicitud_(fila, leerTabla_('Actividades'), leerTabla_('Imagenes'), t, { editar: false }, formatoFecha_);
     huella = huellaDeDetalle_(det);
     const usados = codigosUsados_(leerTabla_('Solicitudes'), leerTabla_('Documentos'), idSolicitud);
-    plan = planVoBo_(fila, sesion, det, huella, leerTabla_('Observaciones'), codigo, usados, puesto, marcaDeTiempo_(new Date()));
+    const doc = leerTabla_('Documentos').filter(function (x) { return x.ID_DOCUMENTO === fila.ID_DOCUMENTO; })[0];
+    plan = planVoBo_(fila, sesion, det, huella, leerTabla_('Observaciones'), codigo, usados, puesto, marcaDeTiempo_(new Date()),
+      { tipoCambio: String(tipoCambio || ''), versionVigente: doc ? String(doc.VERSION_VIGENTE || '') : '' });
     if (plan.errores.length) throw new Error(plan.errores.join(' '));
     actualizarFila_('Solicitudes', fila._fila, plan.cambios);
     plan.cerrarObservaciones.forEach(function (f) { actualizarFila_('Observaciones', f, { ESTADO: 'CERRADA' }); });
@@ -435,6 +449,12 @@ function detalleRevision_(sesion, idSolicitud) {
   Object.keys(APARTADOS_OBSERVACION).forEach(function (k) { if (APARTADOS_RETIRADOS.indexOf(k) === -1) det.apartados[k] = APARTADOS_OBSERVACION[k]; });
   det.archivos = archivosSolicitud_(leerTabla_('Archivos'), idSolicitud, det.huella, formatoFecha_);
   det.puedeGenerar = puedeGenerarPreliminar_(sesion, fila);
+  // Actualización (fase 7): versión vigente, control de cambios y las versiones que siguen.
+  det.actualizacion = datosActualizacion_(fila, det, leerTabla_('Documentos'), leerTabla_('Actividades'));
+  if (det.actualizacion) {
+    det.actualizacion.versiones = { MAYOR: siguienteVersion_(det.actualizacion.versionVigente, TIPOS_CAMBIO.MAYOR),
+      MENOR: siguienteVersion_(det.actualizacion.versionVigente, TIPOS_CAMBIO.MENOR) };
+  }
   // Después del Vo.Bo. Procesos todavía puede corregir el código (decisión 28).
   det.puedeCambiarCodigo = puedeOperarCH_(sesion, fila) && [ESTADOS.EN_AUTORIZACION_CH, ESTADOS.AUTORIZADO].indexOf(fila.ESTADO) !== -1;
   return det;

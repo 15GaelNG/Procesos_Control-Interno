@@ -1,0 +1,172 @@
+<script>
+  /*
+   * «Puestos» (apiPuestos, apiGuardarPuesto, apiImportarPuestos; decisión 34): el administrador da de alta,
+   * corrige o da de baja; Soporte CI consulta. «Pegar una lista» agrega varios de una vez.
+   * Y «Todas las solicitudes» (apiTodasSolicitudes) para Soporte CI: la lista completa, en consulta.
+   */
+  function iniciarPuestos(raiz) {
+    const q = function (c) { return raiz.querySelector('[data-campo="' + c + '"]'); };
+    const accion = function (a) { return raiz.querySelector('[data-accion="' + a + '"]'); };
+    const contenido = q('contenido');
+    const form = q('formulario');
+    let datos = null;
+    let editando = '';
+
+    function abrirFormulario(p) {
+      editando = p ? p.id : '';
+      q('titulo-formulario').textContent = p ? 'Editar puesto' : 'Nuevo puesto';
+      form.nombre.value = p ? p.nombre : '';
+      form.departamento.value = p ? p.idDepartamento : '';
+      form.sinonimos.value = p ? p.sinonimos : '';
+      form.activo.checked = p ? p.activo : true;
+      form.hidden = false;
+      q('pegado').hidden = true;
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      form.nombre.focus();
+    }
+
+    function pintar() {
+      contenido.textContent = '';
+      const filtro = textoComparable(q('buscar').value);
+      const visibles = datos.puestos.filter(function (p) {
+        if (!p.activo && !q('bajas').checked) return false;
+        return !filtro || textoComparable(p.nombre + ' ' + p.sinonimos + ' ' + p.departamento).indexOf(filtro) !== -1;
+      });
+      if (!datos.puestos.length) contenido.appendChild(estadoVacio('id-card', 'Todavía no hay puestos',
+        datos.puedeEditar ? 'Agrégalos uno por uno o pega la lista que entregue Procesos.' : 'El administrador los da de alta.'));
+      else if (!visibles.length) contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con el filtro.'));
+      visibles.forEach(function (p) {
+        const fila = elemento('div', 'solicitud-fila' + (p.activo ? '' : ' inactiva'));
+        const info = elemento('div', 'solicitud-datos');
+        const cabeza = elemento('div', 'solicitud-cabeza');
+        cabeza.appendChild(elemento('span', 'folio', p.id));
+        if (!p.activo) cabeza.appendChild(elemento('span', 'chip neutro', 'Dado de baja'));
+        if (p.departamento) cabeza.appendChild(elemento('span', 'chip', p.departamento));
+        info.appendChild(cabeza);
+        info.appendChild(elemento('div', 'solicitud-nombre', p.nombre));
+        if (p.sinonimos) info.appendChild(elemento('div', 'nota', 'También: ' + p.sinonimos));
+        fila.appendChild(info);
+        if (datos.puedeEditar) {
+          const botones = elemento('div', 'solicitud-botones');
+          const b = elemento('button', 'boton secundario', 'Editar');
+          b.type = 'button';
+          b.addEventListener('click', function () { abrirFormulario(p); });
+          botones.appendChild(b);
+          fila.appendChild(botones);
+        }
+        contenido.appendChild(fila);
+      });
+      pintarIconos();
+    }
+
+    function cargar() {
+      return cargarConMemoria('puestos', function () { return llamar('apiPuestos'); }, function (r, memoria, igual) {
+        if (!contenido.isConnected || igual) return;
+        datos = r;
+        q('botones').hidden = !r.puedeEditar;
+        form.departamento.textContent = '';
+        [{ id: '', nombre: 'Cualquiera' }].concat(r.departamentos).forEach(function (d) {
+          const o = elemento('option', '', d.nombre);
+          o.value = d.id;
+          form.departamento.appendChild(o);
+        });
+        pintar();
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        contenido.appendChild(estadoVacio('triangle-alert', 'No se pudieron cargar los puestos', e.message));
+        pintarIconos();
+      });
+    }
+
+    accion('nuevo').addEventListener('click', function () { abrirFormulario(null); });
+    accion('cancelar').addEventListener('click', function () { form.hidden = true; });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const boton = accion('guardar');
+      boton.disabled = true;
+      llamar('apiGuardarPuesto', { id: editando, nombre: form.nombre.value, idDepartamento: form.departamento.value,
+        sinonimos: form.sinonimos.value, activo: form.activo.checked }).then(function (r) {
+        avisar(r.sinCambios ? 'No cambiaste nada.' : 'Puesto guardado.', r.sinCambios ? '' : 'exito');
+        form.hidden = true;
+        return cargar();
+      }).catch(function (err) { avisar(err.message, 'error'); }).then(function () { boton.disabled = false; });
+    });
+    accion('pegar').addEventListener('click', function () { q('pegado').hidden = false; form.hidden = true; q('lista').focus(); });
+    accion('cancelar-pegado').addEventListener('click', function () { q('pegado').hidden = true; });
+    accion('importar').addEventListener('click', function () {
+      const boton = accion('importar');
+      if (!q('lista').value.trim()) { avisar('Pega al menos un puesto.', 'error'); return; }
+      boton.disabled = true;
+      llamar('apiImportarPuestos', q('lista').value).then(function (r) {
+        avisar('Se agregaron ' + r.creados + (r.creados === 1 ? ' puesto.' : ' puestos.') +
+          (r.repetidos.length ? ' Ya existían: ' + r.repetidos.join(', ') + '.' : ''), 'exito');
+        q('lista').value = '';
+        q('pegado').hidden = true;
+        return cargar();
+      }).catch(function (err) { avisar(err.message, 'error'); }).then(function () { boton.disabled = false; });
+    });
+    q('buscar').addEventListener('input', function () { if (datos) pintar(); });
+    q('bajas').addEventListener('change', function () { if (datos) pintar(); });
+    cargar();
+  }
+
+  function iniciarTodasSolicitudes(raiz) {
+    const q = function (c) { return raiz.querySelector('[data-campo="' + c + '"]'); };
+    const contenido = q('contenido');
+    const estadoSel = q('estado');
+    let lista = null;
+    [['', 'Todos los estados']].concat(Object.keys(DATOS.nombresEstado).map(function (k) { return [k, DATOS.nombresEstado[k]]; })).forEach(function (x) {
+      const o = elemento('option', '', x[1]);
+      o.value = x[0];
+      estadoSel.appendChild(o);
+    });
+
+    function pintar() {
+      contenido.textContent = '';
+      const filtro = textoComparable(q('buscar').value);
+      const visibles = lista.filter(function (s) {
+        if (estadoSel.value && s.estado !== estadoSel.value) return false;
+        return !filtro || textoComparable([s.id, s.nombre, s.codigo, s.departamento, s.area, s.elaborador, s.revisor].join(' ')).indexOf(filtro) !== -1;
+      });
+      if (!lista.length) contenido.appendChild(estadoVacio('inbox', 'Todavía no hay solicitudes', 'Aparecerán aquí en cuanto alguien empiece a documentar.'));
+      else if (!visibles.length) contenido.appendChild(estadoVacio('search-x', 'Sin resultados', 'Nada coincide con el filtro.'));
+      visibles.forEach(function (s) {
+        const fila = elemento('div', 'solicitud-fila');
+        const info = elemento('div', 'solicitud-datos');
+        const cabeza = elemento('div', 'solicitud-cabeza');
+        cabeza.appendChild(elemento('span', 'folio', s.id));
+        cabeza.appendChild(elemento('span', 'chip estado-' + s.estado.toLowerCase(), s.nombreEstado));
+        if (s.codigo) cabeza.appendChild(elemento('span', 'chip', s.codigo + (s.version ? ' · v' + s.version : '')));
+        info.appendChild(cabeza);
+        info.appendChild(elemento('div', 'solicitud-nombre', s.nombre));
+        info.appendChild(elemento('div', 'nota', [s.tipoSolicitud, s.tipoDocumento, s.departamento + (s.area ? ' / ' + s.area : ''),
+          s.elaborador ? 'Elaboró ' + s.elaborador : '', s.revisor ? 'Revisa ' + s.revisor : '', s.actualizada ? 'Actualizada ' + s.actualizada : '']
+          .filter(Boolean).join(' · ')));
+        info.appendChild(barraProgreso(s.estado, true));
+        fila.appendChild(info);
+        const botones = elemento('div', 'solicitud-botones');
+        const b = elemento('button', 'boton secundario', 'Ver');
+        b.type = 'button';
+        b.addEventListener('click', function () { ir('solicitud', true, s.id + ':revision'); });
+        botones.appendChild(b);
+        fila.appendChild(botones);
+        contenido.appendChild(fila);
+      });
+      pintarIconos();
+    }
+
+    cargarConMemoria('todas-solicitudes', function () { return llamar('apiTodasSolicitudes'); }, function (r, memoria, igual) {
+      if (!contenido.isConnected || igual) return;
+      lista = r;
+      pintar();
+    }).catch(function (e) {
+      if (!contenido.isConnected) return;
+      contenido.textContent = '';
+      contenido.appendChild(estadoVacio('triangle-alert', 'No se pudieron cargar las solicitudes', e.message));
+      pintarIconos();
+    });
+    q('buscar').addEventListener('input', function () { if (lista) pintar(); });
+    estadoSel.addEventListener('change', function () { if (lista) pintar(); });
+  }
+</script>

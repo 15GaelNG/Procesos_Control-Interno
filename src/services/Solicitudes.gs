@@ -37,8 +37,8 @@ function opcionesNuevaSolicitud_(sesion, t) {
   const texto = function (v) { return String(v === null || v === undefined ? '' : v).trim(); };
   return {
     tiposSolicitud: Object.keys(TIPOS_SOLICITUD).map(function (k) {
-      return { id: k, nombre: NOMBRES_TIPO_SOLICITUD[k], disponible: k === 'NUEVO',
-        nota: k === 'NUEVO' ? '' : 'Llega con las actualizaciones (fase 7).' };
+      return { id: k, nombre: NOMBRES_TIPO_SOLICITUD[k], disponible: true,
+        nota: k === 'NUEVO' ? '' : 'Elige el documento vigente y modifícalo; conserva su código.' };
     }),
     tiposDocumento: t.tipos.filter(function (x) { return esActivo_(x.ACTIVO); }).map(function (x) {
       return { id: x.ID_TIPO, nombre: texto(x.NOMBRE), prefijo: texto(x.PREFIJO_CODIGO), disponible: esActivo_(x.EN_SISTEMA) };
@@ -131,6 +131,8 @@ function coincidenciasNombre_(nombre, documentos, solicitudes, excluir) {
 
 function crearSolicitud_(sesion, datos) {
   requierePerfil_(sesion, ['COLABORADOR']);
+  // Una actualización parte del documento vigente que se eligió (fase 7, Actualizaciones.gs).
+  if (datos && datos.tipoSolicitud === TIPOS_SOLICITUD.ACTUALIZACION) return crearActualizacion_(sesion, String(datos.idDocumento || ''));
   const t = tablasSolicitud_();
   const opciones = opcionesNuevaSolicitud_(sesion, t);
   const errores = validarNuevaSolicitud_(datos, opciones);
@@ -223,6 +225,19 @@ function planEnlaces_(lista, numero) {
   return r;
 }
 
+/** «Todas las solicitudes» para Soporte CI (sin tocar Google): la que cambió más recientemente primero. */
+function todasLasSolicitudes_(filas, t, formatear) {
+  const nombreDe = function (lista, campoId, id) { const x = lista.filter(function (r) { return r[campoId] === id; })[0]; return x ? String(x.NOMBRE) : ''; };
+  return filas.slice().sort(function (a, b) { return marcaDe_(b.FECHA_ACTUALIZACION) - marcaDe_(a.FECHA_ACTUALIZACION); }).map(function (s) {
+    return { id: s.ID_SOLICITUD, nombre: String(s.NOMBRE_DOCUMENTO), estado: s.ESTADO, nombreEstado: NOMBRES_ESTADO[s.ESTADO] || s.ESTADO,
+      tipoSolicitud: NOMBRES_TIPO_SOLICITUD[s.TIPO_SOLICITUD] || s.TIPO_SOLICITUD, tipoDocumento: nombreDe(t.tipos, 'ID_TIPO', s.ID_TIPO),
+      departamento: nombreDe(t.departamentos, 'ID_DEPARTAMENTO', s.ID_DEPARTAMENTO), area: nombreDe(t.areas, 'ID_AREA', s.ID_AREA),
+      codigo: String(s.CODIGO || ''), version: String(s.VERSION || ''), elaborador: String(s.ELABORO_NOMBRE || ''),
+      revisor: s.REVISOR_ASIGNADO_ID ? nombreDe(t.usuarios || [], 'ID_USUARIO', s.REVISOR_ASIGNADO_ID) : '',
+      actualizada: marcaDe_(s.FECHA_ACTUALIZACION) ? formatear(new Date(marcaDe_(s.FECHA_ACTUALIZACION))) : '' };
+  });
+}
+
 /** Lista guardada como JSON en una celda (responsabilidades, definiciones); [] si está vacía o dañada. */
 function listaJson_(v) {
   try {
@@ -247,6 +262,7 @@ function detalleSolicitud_(fila, actividades, imagenes, t, permiso, formatear) {
   return {
     id: fila.ID_SOLICITUD, nombre: texto(fila.NOMBRE_DOCUMENTO), estado: fila.ESTADO, nombreEstado: NOMBRES_ESTADO[fila.ESTADO] || fila.ESTADO,
     tipoSolicitud: NOMBRES_TIPO_SOLICITUD[fila.TIPO_SOLICITUD] || fila.TIPO_SOLICITUD,
+    esActualizacion: fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.ACTUALIZACION,
     tipoDocumento: texto(tipo.NOMBRE), prefijo: texto(tipo.PREFIJO_CODIGO),
     departamento: texto(depto.NOMBRE), area: texto(area.NOMBRE), cuerpo: texto(depto.CLAVE_CODIGO) + texto(area.CLAVE_CODIGO),
     subarea: texto(subarea.NOMBRE), elaborador: texto(fila.ELABORO_NOMBRE), puesto: texto(fila.ELABORO_PUESTO),
@@ -261,7 +277,7 @@ function detalleSolicitud_(fila, actividades, imagenes, t, permiso, formatear) {
       return {
         id: a.ID_ACTIVIDAD, texto: texto(a.TEXTO_FINAL).trim() ? texto(a.TEXTO_FINAL) : texto(a.TEXTO_ORIGINAL),
         responsable: texto(a.PUESTO_TEXTO), idPuesto: texto(a.ID_PUESTO), responsableConfirmado: esActivo_(a.RESPONSABLE_CONFIRMADO),
-        enlaces: enlacesDe_(a.ENLACES),
+        enlaces: enlacesDe_(a.ENLACES), idBase: texto(a.ID_ACTIVIDAD_BASE),
         imagenes: imagenes.filter(function (i) { return vivas(i) && i.ID_ACTIVIDAD === a.ID_ACTIVIDAD; })
           .sort(function (x, y) { return Number(x.ORDEN) - Number(y.ORDEN); })
           .map(function (i) { return { id: i.ID_IMAGEN, pie: texto(i.PIE), ancho: Number(i.ANCHO) || 0, alto: Number(i.ALTO) || 0 }; })

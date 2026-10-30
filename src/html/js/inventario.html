@@ -53,8 +53,14 @@
       f.appendChild(info);
 
       const botones = elemento('div', 'solicitud-botones');
-      if (d.pdf) botones.appendChild(botonDescarga(d.pdf, 'PDF'));
-      if (d.docx) botones.appendChild(botonDescarga(d.docx, 'Word'));
+      if (d.pdf) {
+        botones.appendChild(botonDescarga(d.pdf, 'PDF'));
+        botones.appendChild(botonIcono('eye', 'Ver el PDF', function () { verArchivo({ id: d.pdf, nombre: d.codigo + ' ' + d.nombre, formato: 'PDF' }); }));
+      }
+      if (d.docx) {
+        botones.appendChild(botonDescarga(d.docx, 'Word'));
+        botones.appendChild(botonIcono('eye', 'Ver el Word', function () { verArchivo({ id: d.docx, nombre: d.codigo + ' ' + d.nombre, formato: 'DOCX' }); }));
+      }
       if (!d.pdf && !d.docx) botones.appendChild(elemento('span', 'nota', 'Sin archivo final'));
       const h = historial(d);
       const ver = elemento('button', 'btn-icono');

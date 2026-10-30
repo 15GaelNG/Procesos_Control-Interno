@@ -222,7 +222,7 @@
     encabezado.appendChild(bloque(cabeza('h1', 'documento-cabeza-nombre', d.nombre, 'NOMBRE'), 'NOMBRE'));
     const datos = elemento('div', 'datos-automaticos');
     [['Código', d.codigo || (d.prefijo + '-' + d.cuerpo + '-___ (lo asigna Procesos)')], ['Departamento', d.departamento + ' / ' + d.area],
-      ['Versión', d.version || 'Se asigna al autorizarse'], ['Elabora', d.elaborador + (d.puesto ? ' · ' + d.puesto : '')]].forEach(function (x) {
+      ['Versión', d.version || (d.actualizacion ? 'Por asignar (la vigente es ' + (d.actualizacion.versionVigente || '—') + ')' : 'Se asigna al autorizarse')], ['Elabora', d.elaborador + (d.puesto ? ' · ' + d.puesto : '')]].forEach(function (x) {
       const div = elemento('div');
       div.appendChild(elemento('span', '', x[0]));
       div.appendChild(elemento('strong', '', x[1]));
@@ -374,6 +374,60 @@
     return null;
   }
 
+  /*
+   * Control de cambios de una actualización (fase 7, §4.2): el motivo (los sugeridos al comparar con la
+   * versión vigente vienen marcados) y qué cambió. Lo edita el colaborador o el revisor asignado; se guarda
+   * al cambiar (apiGuardarControlCambios) y luego alGuardar() refresca la pantalla. guardarSugeridos: si
+   * todavía no hay motivos, los sugeridos se guardan solos (solo con datos del servidor, no recordados).
+   */
+  function tarjetaControlCambios(idSolicitud, a, editable, alGuardar, guardarSugeridos) {
+    const t = clonar('parte-control-cambios').querySelector('.control-cambios');
+    const q = function (c) { return t.querySelector('[data-campo="' + c + '"]'); };
+    const sinMotivos = !a.motivos.length;
+    const marcados = sinMotivos ? a.sugeridos.slice() : a.motivos.slice();
+    q('ayuda').textContent = 'Actualiza la versión vigente ' + (a.versionVigente || '—') + '. ' + (a.estructurado
+      ? (a.sugeridos.length ? 'Al comparar con la versión vigente sugerimos los motivos marcados; confírmalos o cámbialos.' : 'Al comparar con la versión vigente no encontramos cambios de actividades o responsables; elige el motivo.')
+      : 'La versión vigente no está en el sistema: elige el motivo.') + ' Procesos decide si es una actualización mayor o menor.';
+    const descripcion = q('descripcion');
+    descripcion.value = a.descripcion;
+    descripcion.readOnly = !editable;
+    const casillas = [];
+    Object.keys(a.nombresMotivos).forEach(function (k) {
+      const l = elemento('label', 'interruptor motivo');
+      const c = elemento('input');
+      c.type = 'checkbox';
+      c.value = k;
+      c.checked = marcados.indexOf(k) !== -1;
+      c.disabled = !editable;
+      l.appendChild(c);
+      l.appendChild(elemento('span', '', a.nombresMotivos[k] + (k === 'COMPLETA' ? ' (excluye a los demás)' : '')));
+      if (a.sugeridos.indexOf(k) !== -1) l.appendChild(elemento('span', 'chip dorado', 'Sugerido'));
+      casillas.push(c);
+      q('motivos').appendChild(l);
+    });
+    function guardar() {
+      const motivos = casillas.filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+      q('guardado').textContent = 'Guardando…';
+      llamar('apiGuardarControlCambios', idSolicitud, { motivos: motivos, descripcion: descripcion.value }).then(function () {
+        q('guardado').textContent = 'Guardado';
+        if (alGuardar) alGuardar();
+      }).catch(function (e) { q('guardado').textContent = 'No se pudo guardar'; avisar(e.message, 'error'); });
+    }
+    if (editable) {
+      casillas.forEach(function (c) {
+        c.addEventListener('change', function () {
+          if (c.checked && c.value === 'COMPLETA') casillas.forEach(function (x) { if (x !== c) x.checked = false; });
+          if (c.checked && c.value !== 'COMPLETA') casillas.forEach(function (x) { if (x.value === 'COMPLETA') x.checked = false; });
+          guardar();
+        });
+      });
+      descripcion.addEventListener('change', guardar);
+      /* Lo sugerido queda guardado la primera vez, para que cuente como elegido. */
+      if (guardarSugeridos && sinMotivos && marcados.length) guardar();
+    }
+    return t;
+  }
+
   function iniciarVistaPrevia(raiz, idSolicitud) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
     let d = null;
@@ -443,6 +497,7 @@
         pintarObservaciones(q('lista-observaciones'), d.observaciones, atiende ? acciones : null);
       }
 
+      if (d.actualizacion) q('lugar-control-cambios').appendChild(tarjetaControlCambios(idSolicitud, d.actualizacion, atiende, cargar, !deMemoria));
       if (d.puedeEditar && d.faltantes.length) {
         q('faltantes').hidden = false;
         d.faltantes.forEach(function (f) { q('lista-faltantes').appendChild(elemento('li', '', f)); });

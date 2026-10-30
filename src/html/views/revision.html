@@ -56,16 +56,23 @@
           <div class="lista-observaciones" data-campo="lista-observaciones"></div>
         </section>
 
+        <div data-campo="lugar-control-cambios"></div>
+
         <section class="tarjeta seccion-analisis decision" data-campo="decision" hidden>
           <h2><i data-lucide="gavel" class="ico"></i>Decisión</h2>
           <div class="decision-bloque">
             <h3>Vo.Bo. de Procesos</h3>
-            <p class="nota">El documento queda listo para la autorización en el sistema CH, con su código y la versión 0.0. Las observaciones atendidas se cierran solas.</p>
+            <p class="nota" data-campo="nota-vobo">El documento queda listo para la autorización en el sistema CH, con su código y la versión 0.0. Las observaciones atendidas se cierran solas.</p>
             <label class="campo">
               <span>Código</span>
               <input type="text" data-campo="codigo" maxlength="40" autocomplete="off" spellcheck="false">
               <small data-campo="codigo-ayuda"></small>
             </label>
+            <fieldset class="campo" data-campo="tipo-cambio" hidden>
+              <legend>Tipo de actualización</legend>
+              <label class="interruptor"><input type="radio" name="tipoCambio" value="MAYOR"><span data-campo="texto-mayor"></span></label>
+              <label class="interruptor"><input type="radio" name="tipoCambio" value="MENOR"><span data-campo="texto-menor"></span></label>
+            </fieldset>
             <p class="nota falta" data-campo="vobo-impedimento" hidden></p>
             <div class="pregunta-botones">
               <button type="button" class="boton" data-accion="vobo"><i data-lucide="stamp" class="ico"></i><span>Dar Vo.Bo.</span></button>

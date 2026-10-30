@@ -897,6 +897,20 @@
   .historial-texto { white-space: pre-wrap; }
   .revision-lateral .historial .comparacion { grid-template-columns: 1fr; }
 
+  /* Fase 7: documento a actualizar, control de cambios e importación; puestos */
+  .opciones-documento { display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; margin-top: 10px; }
+  .motivos { display: flex; flex-direction: column; gap: 8px; }
+  .motivo .chip { margin-left: 4px; }
+  .control-cambios textarea, .area-larga { width: 100%; border: 1px solid var(--borde); border-radius: 10px; padding: 9px 11px; font: inherit; font-size: 13.5px; background: var(--superficie); color: var(--texto); resize: vertical; }
+  .control-cambios { display: flex; flex-direction: column; gap: 10px; }
+  .importacion { max-height: 50vh; overflow-y: auto; border: 1px solid var(--borde); border-radius: 10px; padding: 10px 14px; }
+  .importacion-actividades { margin: 6px 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.5; }
+  .importacion-actividades .chip { margin-left: 6px; }
+  .desarrollo-acciones label.boton { cursor: pointer; }
+  .formulario-puesto { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .formulario-puesto h2, [data-campo="pegado"] h2 { margin: 0; font-size: 16px; }
+  [data-campo="pegado"] { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
   /* Sin acceso */
   .pantalla-completa { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
   .sin-acceso { max-width: 460px; width: 100%; text-align: center; }

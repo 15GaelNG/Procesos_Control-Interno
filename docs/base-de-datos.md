@@ -189,7 +189,7 @@ Cada trámite, de borrador hasta el resultado de CH.
 | `ESTADO` · `REVISOR_ASIGNADO_ID` | Dónde va ([estados](analisis-inicial.md#32-estados-de-una-solicitud-actualizados-con-las-respuestas-de-procesos)) y qué revisor de Procesos la tiene |
 | `INICIO_PROCESO` · `FIN_PROCESO` | Respuestas a «¿Qué sucede para que inicie?» y «¿Cómo finaliza?» |
 | `OBJETIVO` · `ALCANCE` · `RESPONSABILIDADES` · `DEFINICIONES` | Textos derivados. Los dos últimos son listas JSON de renglones «Puesto: …» / «Término: …» (en el documento el texto antes de los dos puntos va en negritas) |
-| `MOTIVOS_CAMBIO` · `DESCRIPCION_CAMBIO` | Solo actualizaciones: motivos (§4.2) y qué cambió, como lo dice el colaborador |
+| `MOTIVOS_CAMBIO` · `DESCRIPCION_CAMBIO` | Solo actualizaciones: motivos (§4.2; lista JSON de claves de `MOTIVOS_CAMBIO`: `CAMBIO_RESPONSABLE`, `ACTIVIDADES_AGREGADAS`, `ACTIVIDADES_ELIMINADAS` o `COMPLETA`) y qué cambió. Ver [actualizaciones.md](actualizaciones.md) |
 | `TIPO_CAMBIO` | `MAYOR` o `MENOR`; lo decide Procesos al dar el Vo.Bo. de una actualización |
 | `CODIGO` · `VERSION` | Se asignan con el Vo.Bo. de Procesos; la versión se vuelve oficial cuando CH autoriza |
 | `REVISION` | Vueltas de revisión (1, 2, 3…); no es la versión oficial |
@@ -209,7 +209,9 @@ editó; si está vacío, al documento va `TEXTO_ORIGINAL`. Si después edita el 
 responsable como quedó: escrito por el colaborador, aceptado de la IA o respondido a la pregunta) ·
 `RESPONSABLE_CONFIRMADO` (`SI` cuando lo aceptó o respondió en el análisis; cambiarlo a mano lo regresa
 a `NO`) · `ELIMINADA` · `FECHA_ACTUALIZACION` · `ENLACES` (lista JSON de `{ url, texto }`: páginas,
-carpetas o sistemas que usa la actividad; solo http/https. Columna nueva del 29/10/2026, al final; decisión 31).
+carpetas o sistemas que usa la actividad; solo http/https. Columna nueva del 29/10/2026, al final; decisión 31) ·
+`ID_ACTIVIDAD_BASE` (en una actualización, la actividad de la versión vigente de la que se copió; sirve para
+sugerir los motivos del control de cambios. Columna nueva del 29/10/2026, al final; fase 7).
 Cuando Procesos corrige el texto de una actividad, va a `TEXTO_FINAL` y `TEXTO_ORIGINAL` conserva el del colaborador.
 
 ### Imagenes

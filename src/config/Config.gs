@@ -140,6 +140,11 @@ const CARPETA_DOCUMENTOS_SOLICITUD = 'Documentos';
 const GENERACION_BLOQUEO_SEGUNDOS = 300;
 // Subcarpeta de cada solicitud con la foto (JSON) de cada envío a revisión y del Vo.Bo.
 const CARPETA_INSTANTANEAS_SOLICITUD = 'Instantáneas';
+// Documentos existentes (Word o PDF) que se importaron con la IA (Importacion.gs).
+const CARPETA_IMPORTADOS_SOLICITUD = 'Importados';
+const IMPORTACION_MB_MAX = 10;
+// Lo que se le manda a la IA del texto del documento (lo demás se recorta y se avisa).
+const IMPORTACION_MAX_CARACTERES = 40000;
 // Revisión (fase 5): tope de una observación o motivo, y dígitos del consecutivo del código (P-CI04-001).
 const OBSERVACION_MAX = 2000;
 const CONSECUTIVO_DIGITOS = 3;
