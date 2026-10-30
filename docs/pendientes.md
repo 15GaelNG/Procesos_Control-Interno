@@ -6,11 +6,12 @@ que agregue algo aquí; lo hecho se tacha con la fecha.
 
 ## 0. Versión 14 en pruebas (30/10/2026): foto de perfil de Google
 
-Pide un permiso nuevo y, **mientras no se acepte, la app puede marcar error de permisos**:
+Pide un permiso nuevo. Mientras no se acepte, la app funciona, pero todos salen con iniciales:
 
-1. En el editor de **BD Procesos - PRUEBAS**, correr **`autorizarFotos()`** y aceptar el permiso.
-2. El registro debe decir `Listo. Foto de…`. Si dice que el directorio no está compartido, lo activa un
-   administrador de Google Workspace; mientras tanto la app funciona con iniciales.
+1. En el editor de **BD Procesos - PRUEBAS**, correr **`autorizarFotos()`**. En la ventana de Google,
+   **marcar todas las casillas** («Seleccionar todo»): Google deja aceptar los permisos por separado.
+2. Correrla **otra vez**, porque la primera se detiene al pedir el permiso. El registro debe decir `Listo. Foto de…`.
+   Si dice que el directorio no está compartido, lo activa un administrador de Google Workspace.
 3. Recargar la app con Ctrl + F5.
 
 **Al pasar a producción:** correr `autorizarFotos()` también en **BD Procesos**, justo después de subir.

@@ -69,13 +69,16 @@ function fotosDe_(correos) {
 /** Correr una vez en el editor (en cada ambiente): pide el permiso de leer el directorio y lo comprueba. */
 function autorizarFotos() {
   soloEditor_();
+  // Google deja aceptar los permisos por casilla: si falta alguno, aquí termina y abre la ventana para aceptarlo.
+  ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
   const correo = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
   try {
     const url = fotoDirectorio_(correo);
     Logger.log(url ? 'Listo. Foto de ' + correo + ': ' + url
       : 'Listo, pero ' + correo + ' no tiene foto propia en su cuenta de Google (sale con sus iniciales).');
   } catch (e) {
-    Logger.log('No se pudo leer el directorio: ' + e.message + '\nSi dice que el directorio no está compartido, un ' +
-      'administrador de Google Workspace debe activar «Compartir contactos» (Directorio › Configuración del directorio › Compartir).');
+    Logger.log('No se pudo leer el directorio: ' + e.message + (/directory\.readonly/.test(e.message)
+      ? '\nGoogle no le dio este permiso al proyecto aunque ya se pidieron todos: manda esta captura a quien da soporte al sistema.'
+      : '\nSi dice que el directorio no está compartido, un administrador de Google Workspace debe activar «Compartir contactos» (Directorio › Configuración del directorio › Compartir).'));
   }
 }
