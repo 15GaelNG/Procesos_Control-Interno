@@ -46,7 +46,8 @@ const ESQUEMA_BD = [
       ['IA_MAX_SUGERENCIAS_DIA', '800', 'Tope diario de sugerencias de redacción mientras se escribe (aparte del de análisis).'],
       ['PREFIJO_SOLICITUD', 'SOL', 'Prefijo del identificador interno de solicitudes (SOL-2026-0001).'],
       ['CORREO_PROCESOS', '', 'Buzón del área de Procesos para avisos.'],
-      ['AVISOS_CORREO', 'SI', 'SI / NO. Avisos por correo: a Procesos cuando llega una solicitud y al colaborador cuando se la devuelven, recibe el Vo.Bo., se autoriza o se cierra.']
+      ['AVISOS_CORREO', 'SI', 'SI / NO. Avisos por correo: a Procesos cuando llega una solicitud y al colaborador cuando se la devuelven, recibe el Vo.Bo., se autoriza o se cierra.'],
+      ['REGISTRO_ABIERTO', 'SI', 'SI / NO. Quien entra con su correo de la empresa y no está dado de alta se registra solo como colaborador (nombre, puesto y departamento). Con NO lo da de alta el administrador.']
     ]
   },
   {
@@ -107,7 +108,7 @@ const ESQUEMA_BD = [
       ['TD-03', 'Protocolo', 'PRO', '', '', 'SI', 'SI'],
       ['TD-04', 'Política', 'PL', '', '', 'SI', 'SI'],
       ['TD-05', 'Formato', 'F', '', '', 'SI', 'SI'],
-      ['TD-06', 'Diagrama de proceso', 'DP', '', '', 'SI', 'SI']
+      ['TD-06', 'Diagrama de proceso', 'DP', '', '', 'SI', 'NO']
     ]
   },
 
@@ -223,5 +224,5 @@ const CORRECCIONES_BD = [
   { hoja: 'TiposDocumento', id: 'TD-03', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
   { hoja: 'TiposDocumento', id: 'TD-04', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
   { hoja: 'TiposDocumento', id: 'TD-05', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' },
-  { hoja: 'TiposDocumento', id: 'TD-06', columna: 'EN_SISTEMA', de: 'NO', a: 'SI', motivo: 'Todos usan la misma plantilla (decisión 36).' }
+  { hoja: 'TiposDocumento', id: 'TD-06', columna: 'EN_SISTEMA', de: 'SI', a: 'NO', motivo: 'El diagrama de proceso lleva otro formato y no se elabora en el sistema por ahora (Procesos, 03/11/2026; decisión 41).' }
 ];

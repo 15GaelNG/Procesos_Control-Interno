@@ -21,7 +21,7 @@ function tablero_(solicitudes, t, ahora, formatear) {
     const v = lista.filter(function (x) { return x !== null; });
     return v.length ? Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length * 10) / 10 : null;
   };
-  const cerradas = [ESTADOS.AUTORIZADO, ESTADOS.NO_PROCEDENTE];
+  const cerradas = [ESTADOS.AUTORIZADO, ESTADOS.RESGUARDADO, ESTADOS.NO_PROCEDENTE];
   // Una solicitud que se envió más de una vez, o que está devuelta, tuvo al menos una devolución.
   const devuelta = function (s) { return s.ESTADO === ESTADOS.DEVUELTO || Number(s.REVISION) > 1; };
   const enviadas = vivas.filter(function (s) { return Number(s.REVISION) >= 1; });
@@ -84,11 +84,14 @@ function tablero_(solicitudes, t, ahora, formatear) {
       enRevision: cuenta(vivas, [ESTADOS.EN_REVISION]),
       sinAsignar: vivas.filter(function (s) { return s.ESTADO === ESTADOS.EN_REVISION && !s.REVISOR_ASIGNADO_ID; }).length,
       enCH: cuenta(vivas, [ESTADOS.EN_AUTORIZACION_CH]),
+      rechazadasCH: cuenta(vivas, [ESTADOS.RECHAZADO_CH]),
       autorizadas: cuenta(vivas, [ESTADOS.AUTORIZADO]),
+      resguardadas: cuenta(vivas, [ESTADOS.RESGUARDADO]),
       noProcedentes: cuenta(vivas, [ESTADOS.NO_PROCEDENTE]),
       canceladas: solicitudes.length - vivas.length
     },
-    etapas: [ESTADOS.BORRADOR, ESTADOS.CONFIRMADO, ESTADOS.EN_REVISION, ESTADOS.DEVUELTO, ESTADOS.EN_AUTORIZACION_CH, ESTADOS.AUTORIZADO, ESTADOS.NO_PROCEDENTE]
+    etapas: [ESTADOS.BORRADOR, ESTADOS.CONFIRMADO, ESTADOS.EN_REVISION, ESTADOS.DEVUELTO, ESTADOS.EN_AUTORIZACION_CH, ESTADOS.RECHAZADO_CH,
+      ESTADOS.AUTORIZADO, ESTADOS.RESGUARDADO, ESTADOS.NO_PROCEDENTE]
       .map(function (e) { return { estado: e, nombre: NOMBRES_ESTADO[e], n: cuenta(vivas, [e]) }; }),
     tiempos: {
       revision: promedio(vivas.map(function (s) { return dias(s.FECHA_ENVIO_REVISION, s.FECHA_REVISION); })),

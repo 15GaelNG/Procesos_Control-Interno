@@ -116,6 +116,11 @@ const NOMBRES_ACCION = {
   ENVIO_CH: 'Subida a CH',
   AUTORIZADO_CH: 'Autorizada en CH',
   RECHAZADO_CH: 'Rechazada en CH',
+  RETOMAR_RECHAZADA: 'Retomada para ajustar',
+  RESGUARDO_INTERNO: 'Resguardo interno (sin CH)',
+  ASIGNACION_AUTOMATICA: 'Asignación automática',
+  REGISTRO_PROPIO: 'Se registró solo',
+  DATOS_PROPIOS: 'Completó sus datos',
   GENERAR_FINAL: 'Documento final generado',
   EDITAR_REVISOR: 'Corrección de Procesos',
   CAMBIAR_CODIGO: 'Cambio de código',
@@ -150,19 +155,24 @@ const ESTADOS = {
   DEVUELTO: 'DEVUELTO',                      // Con observaciones, de vuelta con el colaborador
   EN_AUTORIZACION_CH: 'EN_AUTORIZACION_CH',  // Con Vo.Bo. de Procesos; se firma en el sistema CH
   AUTORIZADO: 'AUTORIZADO',                  // CH autorizó: se genera el archivo sin marca de agua
+  RECHAZADO_CH: 'RECHAZADO_CH',              // CH no lo autorizó: regresa al panel de Procesos para ajustarlo y reenviarlo
+  RESGUARDADO: 'RESGUARDADO',                // No pasa por CH: queda en el histórico del sistema (resguardo interno)
   NO_PROCEDENTE: 'NO_PROCEDENTE',            // Cerrada por Procesos con motivo; no consume código
   CANCELADO: 'CANCELADO'                     // El colaborador desistió de su borrador
 };
 
 // Qué estado puede pasar a cuál. Cualquier cambio de estado se valida contra esta tabla.
-// Si CH rechaza, por ahora regresa al colaborador (DEVUELTO); falta que Procesos lo confirme (pregunta D).
+// Si CH rechaza regresa a Procesos como RECHAZADO_CH; un revisor la retoma (EN_REVISION) para ajustarla o
+// devolverla al colaborador, y le da otro Vo.Bo. con el mismo código (respuesta de Procesos del 03/11/2026).
 const TRANSICIONES = {
   BORRADOR: ['CONFIRMADO', 'CANCELADO'],
   CONFIRMADO: ['BORRADOR', 'EN_REVISION', 'CANCELADO'],
   EN_REVISION: ['DEVUELTO', 'EN_AUTORIZACION_CH', 'NO_PROCEDENTE'],
   DEVUELTO: ['CONFIRMADO', 'CANCELADO'],
-  EN_AUTORIZACION_CH: ['AUTORIZADO', 'DEVUELTO'],
+  EN_AUTORIZACION_CH: ['AUTORIZADO', 'RECHAZADO_CH', 'RESGUARDADO'],
+  RECHAZADO_CH: ['EN_REVISION'],
   AUTORIZADO: [],
+  RESGUARDADO: [],
   NO_PROCEDENTE: [],
   CANCELADO: []
 };
@@ -175,6 +185,8 @@ const NOMBRES_ESTADO = {
   DEVUELTO: 'Con observaciones',
   EN_AUTORIZACION_CH: 'En autorización (CH)',
   AUTORIZADO: 'Autorizado',
+  RECHAZADO_CH: 'Rechazado en CH',
+  RESGUARDADO: 'Resguardo interno',
   NO_PROCEDENTE: 'No procedente',
   CANCELADO: 'Cancelado'
 };
@@ -187,6 +199,7 @@ const TIPOS_CAMBIO = {
 
 const ESTATUS_DOCUMENTO = {
   VIGENTE: 'VIGENTE',
+  RESGUARDO: 'RESGUARDO',   // Con Vo.Bo. de Procesos, sin pasar por CH: en el histórico del sistema
   OBSOLETO: 'OBSOLETO'
 };
 // De dónde viene un documento del inventario: elaborado en este sistema o del inventario anterior de Procesos.

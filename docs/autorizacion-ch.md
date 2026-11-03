@@ -15,8 +15,10 @@ Código: `src/services/AutorizacionCH.gs`, `src/services/Inventario.gs`, `genera
 EN_AUTORIZACION_CH ──(Procesos lo sube a CH y lo registra)──▶ en CH, esperando resultado
         │
         ├── CH autorizó ──▶ AUTORIZADO: entra al inventario, historial de versiones y documento final sin marca
-        └── CH rechazó ───▶ DEVUELTO: el motivo llega al colaborador como observación; corrige,
-                            confirma, reenvía y vuelve a pasar por Procesos (mismo código)
+        └── CH rechazó ───▶ RECHAZADO_CH: regresa al panel de Procesos con el motivo como observación; un
+                            revisor la retoma, la ajusta (o la devuelve al colaborador) y le da otro Vo.Bo.
+                            con el mismo código (decisión 43)
+EN_AUTORIZACION_CH ──(no va a CH)──▶ RESGUARDADO: queda en el inventario como resguardo interno (decisión 44)
 ```
 
 ## Pantalla «Envíos a CH» (revisores)
@@ -47,15 +49,27 @@ En un solo paso (con candado, para que no se registre dos veces):
    conservan su leyenda (§4.4). Si la generación falla, la solicitud ya quedó autorizada y en
    «Resueltas» aparece «Generar documento final».
 
-## Rechazado (provisional, pregunta D)
+## Rechazado (decisión 43, respuesta de Procesos del 03/11/2026)
 
-Mientras Procesos no defina otra cosa:
+- La solicitud pasa a **`RECHAZADO_CH`** («Rechazado en CH») y su Vo.Bo. se borra (`REVISO_*`), porque hay que
+  volver a darlo.
+- El motivo de CH se vuelve una **observación** general por atender («Rechazado en el sistema CH: …»), a nombre
+  de quien registró el rechazo. Se avisa al colaborador y a su revisor.
+- Aparece en la bandeja, pestaña **«Rechazadas en CH»**. Un revisor la **retoma**: pasa a `EN_REVISION` con él.
+  Ahí la corrige (decisión 26), la devuelve al colaborador si necesita algo de él, cierra la observación y da un
+  nuevo Vo.Bo. **con el mismo código** (ya está en CH).
 
-- La solicitud regresa a `DEVUELTO` y su Vo.Bo. se borra (`REVISO_*`), porque hay que volver a darlo.
-- El motivo de CH se vuelve una **observación** general por atender («Rechazado en el sistema CH: …»),
-  a nombre de quien registró el rechazo.
-- El colaborador la atiende, confirma y reenvía; regresa al mismo revisor, que da un nuevo Vo.Bo. **con
-  el mismo código** (ya está en CH) y versión 0.0.
+## Resguardo interno: lo que no pasa por CH (decisión 44)
+
+Consultas internas o temas sensibles que no conviene publicar en CH (respuesta de Procesos del 03/11/2026). En
+«Por subir», **«No va a CH: resguardar en el sistema»** pide el motivo y:
+
+- La solicitud queda **`RESGUARDADO`** (`MOTIVO_CIERRE` = el motivo).
+- Entra al **inventario** con estatus **`RESGUARDO`** («Resguardo interno (sin CH)») y con los archivos generados
+  después del Vo.Bo. (hay que generarlos antes). **Conservan «COPIA NO AUTORIZADA»**: nadie lo autorizó en CH y la
+  marca solo se quita con esa autorización (§4.4).
+- Se anota en su historial de versiones («Resguardo interno, no pasa por CH: …»). Se puede actualizar después,
+  como uno vigente.
 
 ## Inventario documental
 
@@ -65,5 +79,4 @@ finales. La descarga se revisa en el servidor (§4.4): el final lo bajan quien p
 (quien la elaboró, Procesos y Soporte CI) y el administrador; los preliminares, solo quien puede ver la
 solicitud.
 
-Pendiente con Procesos: cargar su inventario actual (pregunta J, con `ORIGEN = HISTORICO`) y qué hacer
-con los documentos que no pasan por CH (pregunta I).
+El inventario anterior de Procesos no se considera por ahora (decisión 37).

@@ -7,8 +7,13 @@
   function iniciarTablero(raiz) {
     const contenido = raiz.querySelector('[data-campo="contenido"]');
 
-    function cifra(titulo, valor, nota, clase) {
-      const c = elemento('div', 'tarjeta cifra' + (clase ? ' ' + clase : ''));
+    /* Un indicador con su color (azul, dorado, verde, rojo o gris) y su ícono, como en SIVET. */
+    function cifra(titulo, valor, nota, clase, icono, color) {
+      const c = elemento('div', 'tarjeta cifra color-' + (color || 'azul') + (clase ? ' ' + clase : ''));
+      const ico = elemento('span', 'cifra-icono');
+      ico.innerHTML = '<i class="ico"></i>';
+      ico.firstChild.setAttribute('data-lucide', icono || 'activity');
+      c.appendChild(ico);
       c.appendChild(elemento('span', 'cifra-titulo', titulo));
       c.appendChild(elemento('strong', 'cifra-valor', valor === null || valor === undefined ? '—' : String(valor)));
       if (nota) c.appendChild(elemento('span', 'nota', nota));
@@ -92,20 +97,22 @@
       contenido.textContent = '';
       const tt = r.totales;
       const cifras = elemento('div', 'cifras');
-      cifras.appendChild(cifra('Procesos', tt.total, tt.canceladas ? tt.canceladas + ' cancelados aparte' : ''));
-      cifras.appendChild(cifra('En captura', tt.enCaptura, 'Borrador o confirmados sin enviar'));
-      cifras.appendChild(cifra('En revisión', tt.enRevision, tt.sinAsignar ? tt.sinAsignar + ' sin que nadie los tome' : 'Todos tienen revisor', tt.sinAsignar ? 'alerta' : ''));
-      cifras.appendChild(cifra('Con observaciones', tt.conObservaciones, 'Esperando al colaborador'));
-      cifras.appendChild(cifra('En CH', tt.enCH, 'Con Vo.Bo., esperando autorización'));
-      cifras.appendChild(cifra('Autorizados', tt.autorizadas, tt.noProcedentes ? tt.noProcedentes + ' no procedentes' : ''));
+      cifras.appendChild(cifra('Procesos', tt.total, tt.canceladas ? tt.canceladas + ' cancelados aparte' : '', '', 'files', 'azul'));
+      cifras.appendChild(cifra('En captura', tt.enCaptura, 'Borrador o confirmados sin enviar', '', 'pen-line', 'gris'));
+      cifras.appendChild(cifra('En revisión', tt.enRevision, tt.sinAsignar ? tt.sinAsignar + ' sin revisor' : 'Todos tienen revisor', tt.sinAsignar ? 'alerta' : '', 'clipboard-check', 'azul'));
+      cifras.appendChild(cifra('Con observaciones', tt.conObservaciones, 'Esperando al colaborador', '', 'message-square-warning', 'dorado'));
+      cifras.appendChild(cifra('En CH', tt.enCH, 'Con Vo.Bo., esperando autorización', '', 'send', 'azul'));
+      cifras.appendChild(cifra('Rechazados en CH', tt.rechazadasCH, 'Procesos los está ajustando', tt.rechazadasCH ? 'alerta' : '', 'undo-2', 'rojo'));
+      cifras.appendChild(cifra('Autorizados', tt.autorizadas, tt.noProcedentes ? tt.noProcedentes + ' no procedentes' : '', '', 'badge-check', 'verde'));
+      cifras.appendChild(cifra('Resguardo interno', tt.resguardadas, 'Con Vo.Bo., sin pasar por CH', '', 'archive', 'dorado'));
       contenido.appendChild(cifras);
 
       const tiempos = elemento('div', 'cifras');
-      tiempos.appendChild(cifra('Revisión de Procesos', dias(r.tiempos.revision), 'Promedio del envío al Vo.Bo.'));
-      tiempos.appendChild(cifra('Autorización en CH', dias(r.tiempos.autorizacion), 'Promedio del Vo.Bo. a la autorización'));
-      tiempos.appendChild(cifra('De principio a fin', dias(r.tiempos.total), 'Promedio de la captura a la autorización'));
+      tiempos.appendChild(cifra('Revisión de Procesos', dias(r.tiempos.revision), 'Promedio del envío al Vo.Bo.', '', 'timer', 'azul'));
+      tiempos.appendChild(cifra('Autorización en CH', dias(r.tiempos.autorizacion), 'Promedio del Vo.Bo. a la autorización', '', 'stamp', 'dorado'));
+      tiempos.appendChild(cifra('De principio a fin', dias(r.tiempos.total), 'Promedio de la captura a la autorización', '', 'flag', 'verde'));
       tiempos.appendChild(cifra('Devueltos al menos una vez', r.devoluciones.porcentaje === null ? null : r.devoluciones.porcentaje + ' %',
-        r.devoluciones.conDevolucion + ' de ' + r.devoluciones.enviadas + ' enviados'));
+        r.devoluciones.conDevolucion + ' de ' + r.devoluciones.enviadas + ' enviados', '', 'rotate-ccw', 'rojo'));
       contenido.appendChild(tiempos);
 
       const dos = elemento('div', 'tablero-dos');

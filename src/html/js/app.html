@@ -335,7 +335,7 @@
       $('[data-campo="mensaje"]', f).textContent = DATOS.error;
     } else {
       $('[data-campo="mensaje"]', f).textContent = correo
-        ? 'Tu cuenta ' + correo + ' aún no está dada de alta. Pide al área de Procesos que te registre y vuelve a intentarlo.'
+        ? 'Tu cuenta ' + correo + ' no está dada de alta o está dada de baja. Pide al área de Procesos que te dé acceso y vuelve a intentarlo.'
         : 'No se pudo identificar tu cuenta de Google. Entra con tu correo de Ciudad Maderas.';
     }
     $('[data-accion="reintentar"]', f).addEventListener('click', function () {
@@ -346,6 +346,53 @@
     pintarIconos();
   }
 
+  /* ─────────── Registro: la primera vez (Registro.gs, decisión 45) ───────────
+     No pide contraseña: Google ya dice quién es. Pide lo que falte (nombre, puesto, departamento) y recarga. */
+  function mostrarRegistro() {
+    const r = DATOS.registro;
+    const pantalla = $('#sin-acceso');
+    const f = clonar('vista-registro');
+    const form = $('form', f);
+    const q = function (c) { return form.querySelector('[data-campo="' + c + '"]'); };
+    const falta = [r.faltaPuesto ? 'tu puesto' : '', r.faltaDepartamento ? 'tu departamento' : ''].filter(Boolean).join(' y ');
+    q('titulo').textContent = r.modo === 'ALTA' ? 'Te damos la bienvenida' : 'Completa tus datos';
+    q('mensaje').textContent = r.modo === 'ALTA'
+      ? 'Es tu primera vez en el sistema de Procesos. Dinos quién eres y entras como colaborador para documentar los procesos de tu departamento.'
+      : 'Hola' + (primerNombre(r.nombre) ? ', ' + primerNombre(r.nombre) : '') + '. Antes de seguir nos falta ' + falta + '.';
+    q('correo').textContent = r.correo;
+    q('bloque-nombre').hidden = r.modo !== 'ALTA';
+    q('bloque-puesto').hidden = !r.faltaPuesto;
+    q('bloque-departamento').hidden = !r.faltaDepartamento;
+    form.nombre.value = r.nombre || '';
+    form.puesto.value = r.puesto || '';
+    r.puestos.forEach(function (p) { const o = document.createElement('option'); o.value = p; q('puestos').appendChild(o); });
+    [{ id: '', nombre: 'Elige tu departamento' }].concat(r.departamentos).forEach(function (d) {
+      const o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = d.nombre;
+      form.departamento.appendChild(o);
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const boton = form.querySelector('button[type="submit"]');
+      boton.disabled = true;
+      q('errores').hidden = true;
+      llamar('apiRegistrarme', { nombre: form.nombre.value, puesto: form.puesto.value, idDepartamento: form.departamento.value }).then(function () {
+        boton.querySelector('span').textContent = 'Entrando…';
+        if (DATOS.urlApp) window.open(DATOS.urlApp, '_top');
+        else location.reload();
+      }).catch(function (err) {
+        q('errores').textContent = err.message;
+        q('errores').hidden = false;
+        boton.disabled = false;
+      });
+    });
+    pantalla.appendChild(f);
+    pantalla.hidden = false;
+    pintarIconos();
+    (r.modo === 'ALTA' ? form.nombre : (r.faltaPuesto ? form.puesto : form.departamento)).focus();
+  }
+
   /* ─────────── Arranque ─────────── */
   function arrancar() {
     aplicarTema(temaInicial());
@@ -353,6 +400,7 @@
       b.addEventListener('click', function () { aplicarTema(b.dataset.tema); guardar('tema', b.dataset.tema); });
     });
 
+    if (DATOS.registro && !DATOS.error) { pintarUsuarioSinAcceso(); mostrarRegistro(); return; }
     if (!DATOS.sesion.registrado) { pintarUsuarioSinAcceso(); mostrarSinAcceso(); return; }
 
     pintarUsuario();

@@ -90,13 +90,16 @@ Parámetros que se pueden ajustar sin tocar código: `CLAVE` · `VALOR` · `DESC
 | `PREFIJO_SOLICITUD` | SOL | Prefijo del folio interno |
 | `CORREO_PROCESOS` | (vacío) | Correo(s) del área de Procesos para avisos (separados por coma); además se avisa a todos los revisores activos |
 | `AVISOS_CORREO` | SI | Avisos por correo de cada etapa (decisión 27, [revision.md](revision.md#avisos-por-correo)); `NO` los apaga |
+| `REGISTRO_ABIERTO` | SI | Quien entra con su correo de la empresa y no está dado de alta se registra solo como colaborador (decisión 45); `NO`: lo da de alta el administrador |
 
 La llave de la IA **no** va aquí: va en las Propiedades del script ([ambientes.md](ambientes.md)).
 
 ### Consecutivos
 `SERIE` · `ULTIMO` · `FECHA_ACTUALIZACION`. Último número usado por cada serie (`USR`, `SOL-2026`…).
 No se edita a mano. Los códigos documentales llevan su propia serie por tipo + departamento + área
-(`COD-P-CI04`): avanza al dar el Vo.Bo. hasta el número usado ([revision.md](revision.md#código)).
+(`COD-P-CI04`): avanza al dar el Vo.Bo. hasta el número usado ([revision.md](revision.md#código)). La serie
+`CARRUSEL_REVISION` no es un número: guarda el `ID_USUARIO` del último revisor que recibió una solicitud por
+turnos (decisión 42).
 
 ---
 
@@ -145,8 +148,8 @@ coma: ayudan a la IA a reconocer al responsable) · `ACTIVO`.
 
 ### TiposDocumento
 `ID_TIPO` · `NOMBRE` · `PREFIJO_CODIGO` · `ID_PLANTILLA_PRELIMINAR` · `ID_PLANTILLA_FINAL` · `ACTIVO` ·
-`EN_SISTEMA` (`SI` = se puede elegir al crear una solicitud). Desde la decisión 36 todos están en `SI` y usan
-la plantilla de Procedimiento si no tienen la suya.
+`EN_SISTEMA` (`SI` = se puede elegir al crear una solicitud). Desde la decisión 36 todos usan la plantilla de
+Procedimiento si no tienen la suya; el Diagrama de proceso queda en `NO` (decisión 41).
 
 | ID | Tipo | Prefijo | En el sistema |
 |---|---|---|---|
@@ -169,7 +172,8 @@ si faltan, la generación las busca por nombre en la carpeta Plantillas.
 
 ### Documentos — inventario documental
 Un renglón por documento oficial. `ID_DOCUMENTO` · `CODIGO` · `NOMBRE` · `ID_TIPO` ·
-`ID_DEPARTAMENTO` · `ID_AREA` · `ID_SUBAREA` · `VERSION_VIGENTE` · `FECHA_VIGENCIA` · `ESTATUS` (`VIGENTE` / `OBSOLETO`) ·
+`ID_DEPARTAMENTO` · `ID_AREA` · `ID_SUBAREA` · `VERSION_VIGENTE` · `FECHA_VIGENCIA` · `ESTATUS` (`VIGENTE` / `OBSOLETO` /
+`RESGUARDO`: con Vo.Bo. de Procesos, sin pasar por CH, decisión 44) ·
 `ID_SOLICITUD_VIGENTE` (la que lo autorizó) · `ID_ARCHIVO_WORD` · `ID_ARCHIVO_PDF` ·
 `CONTENIDO_ESTRUCTURADO` (`SI` si nació en el sistema y se puede actualizar actividad por actividad) ·
 `ORIGEN` (`SISTEMA` o `HISTORICO`, para los que se carguen del inventario actual de Procesos) ·
@@ -257,8 +261,10 @@ Procesos registra aquí el resultado (decisión 15). `ID_ENVIO` · `ID_SOLICITUD
 como viene en CH) · `COMENTARIO` (motivo de un rechazo) · `REGISTRADO_POR` · `FECHA_REGISTRO`.
 Con `AUTORIZADO` se genera el documento final sin marca de agua. `ID_ENVIO` es `ENV-000001`; `RESULTADO`
 queda `PENDIENTE` desde que Procesos registra la subida hasta que registra lo que resolvió CH (a lo más
-uno pendiente por solicitud). Con `RECHAZADO`, `COMENTARIO` es el motivo, que también llega al colaborador
-como observación.
+uno pendiente por solicitud). Con `RECHAZADO`, `COMENTARIO` es el motivo, que también queda como observación
+y la solicitud pasa a `RECHAZADO_CH` (decisión 43). Los estados de `Solicitudes.ESTADO` están en
+[analisis-inicial.md §3.2](analisis-inicial.md#32-estados-de-una-solicitud-actualizados-con-las-respuestas-de-procesos);
+desde el 03/11/2026 también `RECHAZADO_CH` y `RESGUARDADO` (en este último, `MOTIVO_CIERRE` es por qué no pasa por CH).
 
 ### Archivos
 Todo Word/PDF generado. `ID_ARCHIVO` (`ARC-000001`) · `ID_SOLICITUD` · `REVISION` · `TIPO` (`PRELIMINAR` /

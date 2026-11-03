@@ -54,6 +54,11 @@
 | 38 | **El puesto lo escribe cada usuario** (Gael, 30/10; no hay lista oficial): al crear una solicitud y, el revisor, al dar el Vo.Bo. Se recuerda para la siguiente vez y, si no existía, entra al catálogo de puestos, que se forma solo; el administrador corrige o da de baja lo que haga falta. Sale en «Elaboró» y «Revisó». | 30/10/2026 |
 | 39 | **Diseño nuevo** (Gael, 30/10; «moderno, con animaciones como de Gemini, sencillo desde cualquier módulo y perfil»): todo va con la marca, azul marino y dorado (Gael pidió quitar el morado y el rosa el mismo día); el degradado «aurora», del azul al dorado, queda como firma de la IA. El inicio es un saludo y los accesos; las listas son filas sueltas; todo es CSS y respeta a quien pidió menos movimiento en su sistema. | 30/10/2026 |
 | 40 | **Foto de perfil de Google** (Gael, 30/10), como en SIVET: sale del directorio de la organización (servicio avanzado People) en la barra de arriba y en «Usuarios». Solo se muestra: se recuerda 6 horas en la caché, no se guarda en la hoja. Sin foto, o si el directorio falla, salen las iniciales. El dueño da el permiso una vez con `autorizarFotos()` en cada ambiente. | 30/10/2026 |
+| 41 | **El Diagrama de proceso no se elabora en el sistema por ahora** (Procesos, 03/11; precisa la decisión 36): lleva otro formato y no todos los usuarios saben hacerlo ni leerlo. `EN_SISTEMA = NO` (CORRECCIONES_BD). Formato, Manual, Protocolo, Política y Procedimiento siguen con la misma plantilla. | 03/11/2026 |
+| 42 | **Asignación por turnos y a mano** (Procesos, 03/11; responde la pregunta E y reemplaza la bandeja común de la decisión 23): al enviarla, la solicitud se asigna sola al siguiente revisor activo del carrusel (por orden de ID, sin quien la elaboró; el último queda en `Consecutivos`, serie `CARRUSEL_REVISION`). Si se la devuelven, regresa a su mismo revisor. El administrador **y los revisores** la asignan a mano (p. ej. a quien ya conoce el tema). Si no hay a quién asignarla, queda «Sin asignar» y cualquiera la toma. El aviso por correo va al revisor que le tocó y a `CORREO_PROCESOS`. | 03/11/2026 |
+| 43 | **Rechazo en CH: regresa al panel de Procesos** (Procesos, 03/11; responde la pregunta D y reemplaza lo provisional de la decisión 24): estado nuevo `RECHAZADO_CH` («Rechazado en CH»), con el motivo como observación y sin el Vo.Bo.; aparece en la bandeja, pestaña «Rechazadas en CH». Un revisor la **retoma** (pasa a `EN_REVISION` con él): la ajusta, la devuelve al colaborador si hace falta y le da otro Vo.Bo. con el mismo código. Avisa al colaborador y a su revisor. | 03/11/2026 |
+| 44 | **Resguardo interno de lo que no pasa por CH** (Procesos, 03/11; responde la pregunta I): en «Envíos a CH → Por subir», «No va a CH: resguardar en el sistema» con su motivo (consultas internas o temas sensibles). La solicitud queda `RESGUARDADO` y entra al inventario con estatus `RESGUARDO` y los archivos del Vo.Bo., que **conservan «COPIA NO AUTORIZADA»** porque nadie lo autorizó en CH (§4.4). Se puede actualizar como uno vigente. | 03/11/2026 |
+| 45 | **Registro propio la primera vez** (Gael, 03/11): no es un inicio de sesión (no hay usuario ni contraseña; Google ya dice quién es). Quien entra con su correo de la empresa y no está dado de alta escribe su nombre, su puesto y su departamento y queda como **colaborador**; otros perfiles los da el administrador. A quien ya está dado de alta y le falta el puesto (o, si es colaborador, el departamento) se le piden la primera vez. `Config → REGISTRO_ABIERTO = NO` lo apaga. Quien está dado de baja no se registra solo. | 03/11/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 
@@ -148,8 +153,10 @@ registra automáticamente quién elaboró, revisó y autorizó.
 | `CONFIRMADO` | Colaborador (ya puede generar preliminar) | `EN_REVISION` · vuelve a `BORRADOR` si edita algo |
 | `EN_REVISION` | Revisor de Procesos asignado | `DEVUELTO` · `EN_AUTORIZACION_CH` · `NO_PROCEDENTE` |
 | `DEVUELTO` | Colaborador (corrige y atiende observaciones) | `CONFIRMADO` → `EN_REVISION` (regresa al mismo revisor) |
-| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director). Procesos registra aquí la subida y el resultado (decisiones 15 y 24) | `AUTORIZADO` · `DEVUELTO` si CH lo rechaza (provisional, pregunta D) |
+| `EN_AUTORIZACION_CH` | Sistema CH (responsable → director). Procesos registra aquí la subida y el resultado (decisiones 15 y 24) | `AUTORIZADO` · `RECHAZADO_CH` · `RESGUARDADO` si no pasa por CH (decisión 44) |
+| `RECHAZADO_CH` | Procesos (bandeja, «Rechazadas en CH»): CH no lo autorizó (decisión 43) | `EN_REVISION` cuando un revisor la retoma |
 | `AUTORIZADO` | — (documento final sin marca; pasa al inventario como vigente) | — |
+| `RESGUARDADO` | — (no pasa por CH; queda en el inventario como resguardo interno, con su marca de agua) | — |
 | `NO_PROCEDENTE` | — (cerrada por Procesos con motivo, sin consumir código) | — |
 | `CANCELADO` | — (el colaborador desiste de un borrador) | — |
 
@@ -433,19 +440,16 @@ C. ~~Catálogo en Control Interno~~ → no existe; Procesos entregó el catálog
 
 **Para el área de Procesos:**
 
-D. **Rechazo en CH:** si el responsable o el director rechaza, ¿el documento regresa al colaborador
-   en este sistema con observaciones? ¿Quién las captura? *Mientras: regresa al colaborador con el
-   motivo como observación, capturada por Procesos, y vuelve a pasar por su revisión (decisión 24).*
-E. **Revisor asignado:** ¿cómo se asigna cada documento a un colaborador de Procesos (por
-   departamento, a mano, por turnos)? *Mientras: bandeja común y el administrador reasigna (decisión 23).*
+D. ~~Rechazo en CH~~ → resuelto el 03/11: regresa al panel de Procesos como «Rechazado en CH» (decisión 43).
+E. ~~Revisor asignado~~ → resuelto el 03/11: por turnos y a mano (decisión 42).
 F. **Consecutivo del código:** ¿cuenta por tipo + departamento + área o hay otro criterio? (lo dejaron
    pendiente). *Mientras: por tipo + departamento + área, y el revisor puede corregir el que propone el
    sistema (decisión 23).*
 G. **Catálogos:** ~~departamentos y áreas~~ (entregado); faltan **puestos** y la lista de usuarios con su
    perfil (colaborador, revisor, administrador). Además, los pendientes del catálogo
    ([catalogos.md](catalogos.md#pendientes-para-procesos)).
-H. **Formato (F) y Diagrama de proceso (DP):** ¿también se documentan en este sistema?
-I. **Documentos que no están en CH:** ¿cómo se autorizan?
+H. ~~Formato y Diagrama de proceso~~ → resuelto el 03/11: Formato sí, con la misma plantilla; el Diagrama no (decisión 41).
+I. ~~Documentos que no están en CH~~ → resuelto el 03/11: resguardo interno en el sistema (decisión 44).
 J. **Insumos:** el archivo del inventario documental y un documento aprobado de ejemplo.
 K. **Versiones:** validar la propuesta (`0.0` hasta la primera autorización; mayores y menores).
 

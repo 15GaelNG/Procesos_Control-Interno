@@ -2,15 +2,16 @@
   /*
    * Envíos a CH (apiEnviosCH, apiRegistrarEnvioCH, apiResultadoCH, apiGenerarFinal; decisiones 15 y 24).
    * No hay conexión con el sistema CH: Procesos descarga los archivos con marca, los sube a CH y
-   * registra aquí la subida y lo que resolvió. Con «autorizado» se genera enseguida el final sin marca.
+   * registra aquí la subida y lo que resolvió. Con «autorizado» se genera enseguida el final sin marca; con
+   * «rechazado» regresa a la bandeja de Procesos (decisión 43). Lo que no pasa por CH se resguarda (apiResguardar, decisión 44).
    */
   const PESTANAS_CH = [
     { id: 'porSubir', nombre: 'Por subir', vacio: 'No hay documentos con Vo.Bo. pendientes de subir a CH.',
-      ayuda: 'Con Vo.Bo. de Procesos. Genera los archivos (ya llevan el código y quién revisó), descárgalos, súbelos a CH y registra que ya se subieron.' },
+      ayuda: 'Con Vo.Bo. de Procesos. Genera los archivos (ya llevan el código y quién revisó), descárgalos, súbelos a CH y registra que ya se subieron. Si es una consulta interna o un tema sensible que no va a CH, resguárdalo en el sistema.' },
     { id: 'enCH', nombre: 'En CH', vacio: 'No hay documentos esperando la autorización de CH.',
       ayuda: 'Ya están en CH. Cuando CH resuelva, registra el resultado; si lo autorizó: quién firmó (el autorizador final), su puesto y la fecha, como aparecen en CH.' },
     { id: 'resueltas', nombre: 'Resueltas', vacio: 'Todavía no se registra ningún resultado de CH.',
-      ayuda: 'Los últimos resultados registrados. Las rechazadas regresaron al colaborador con el motivo como observación.' }
+      ayuda: 'Los últimos resultados registrados. Las rechazadas regresaron a la bandeja de Procesos («Rechazadas en CH») con el motivo como observación.' }
   ];
 
   function iniciarEnviosCH(raiz) {
@@ -88,7 +89,7 @@
         q('detalle').hidden = false;
         q('detalle').textContent = (e.resultado === 'AUTORIZADO'
           ? 'Autorizó ' + e.autorizo + (e.puesto ? ' (' + e.puesto + ')' : '') + ' el ' + e.fechaAutorizacion + '.'
-          : 'Motivo: ' + e.comentario + ' (regresó al colaborador como observación).') +
+          : 'Motivo: ' + e.comentario + ' (regresó a la bandeja de Procesos para ajustarla).') +
           ' Registró ' + e.registradoPor + (e.fechaRegistro ? ' · ' + e.fechaRegistro : '');
         if (s.finales.length) archivos.appendChild(botonesArchivos(s.finales, 'Documento final (sin marca):'));
         else if (s.faltaFinal) {
@@ -137,6 +138,21 @@
             return cargar();
           }).catch(function (e) { avisar(e.message, 'error'); listo(); });
         });
+        /* No pasa por CH: se queda en el histórico del sistema (resguardo interno). */
+        const resguardo = elemento('button', 'boton secundario chico');
+        resguardo.type = 'button';
+        resguardo.innerHTML = '<i data-lucide="archive" class="ico"></i><span>No va a CH: resguardar en el sistema</span>';
+        resguardo.addEventListener('click', function () {
+          const motivo = (prompt('¿Por qué «' + s.nombre + '» no pasa por CH? (p. ej. consulta interna o tema sensible)\n\n' +
+            'Queda en el inventario como «Resguardo interno», con sus archivos del Vo.Bo. (con la marca de agua, porque nadie lo autorizó en CH).') || '').trim();
+          if (!motivo) return;
+          const listo = ocupar(resguardo, 'Resguardando…');
+          llamar('apiResguardar', s.id, motivo).then(function () {
+            avisar(s.id + ' quedó en el resguardo interno del sistema.', 'exito');
+            return cargar();
+          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+        });
+        archivos.parentNode.appendChild(resguardo);
         return t;
       }
 
@@ -163,10 +179,10 @@
       });
       rechazado.addEventListener('submit', function (ev) {
         ev.preventDefault();
-        if (!confirm('¿Registrar que CH rechazó «' + s.nombre + '»? Regresa al colaborador con el motivo como observación y, ya corregida, vuelve a pasar por Procesos.')) return;
+        if (!confirm('¿Registrar que CH rechazó «' + s.nombre + '»? Regresa a la bandeja de Procesos como «Rechazado en CH», con el motivo como observación, para ajustarla y volver a enviarla.')) return;
         const listo = ocupar(rechazado.querySelector('button[type="submit"]'), 'Registrando…');
         llamar('apiResultadoCH', s.id, { resultado: 'RECHAZADO', comentario: rechazado.comentario.value }).then(function () {
-          avisar('Registrado: regresó al colaborador con el motivo como observación.', 'exito');
+          avisar('Registrado: está en la bandeja, pestaña «Rechazadas en CH», para retomarla.', 'exito');
           irA('resueltas');
           return cargar();
         }).catch(function (err) { avisar(err.message, 'error'); listo(); });

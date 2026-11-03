@@ -43,7 +43,7 @@ test('las hojas retiradas ya no están en el esquema y las correcciones apuntan 
   });
 });
 
-test('prefijos del código documental según Procesos (decisión 11) y todos los tipos en el sistema (decisión 36)', function () {
+test('prefijos del código documental según Procesos (decisión 11); todos en el sistema menos el diagrama de proceso (decisiones 36 y 41)', function () {
   const def = hoja('TiposDocumento');
   const col = function (f, c) { return f[def.columnas.indexOf(c)]; };
   const prefijos = {};
@@ -51,7 +51,9 @@ test('prefijos del código documental según Procesos (decisión 11) y todos los
   assert.deepStrictEqual(prefijos, { 'Manual': 'M', 'Procedimiento': 'P', 'Protocolo': 'PRO', 'Política': 'PL',
     'Formato': 'F', 'Diagrama de proceso': 'DP' });
   const enSistema = def.semilla.filter(function (f) { return col(f, 'EN_SISTEMA') === 'SI'; }).map(function (f) { return col(f, 'NOMBRE'); });
-  assert.deepStrictEqual(plano(enSistema), ['Manual', 'Procedimiento', 'Protocolo', 'Política', 'Formato', 'Diagrama de proceso']);
+  assert.deepStrictEqual(plano(enSistema), ['Manual', 'Procedimiento', 'Protocolo', 'Política', 'Formato']);
+  const dp = gs.CORRECCIONES_BD.filter(function (c) { return c.id === 'TD-06' && c.columna === 'EN_SISTEMA'; });
+  assert.deepStrictEqual(plano(dp.map(function (c) { return c.de + '→' + c.a; })), ['SI→NO'], 'la base que ya lo tenía habilitado lo bloquea');
 });
 
 test('el código se puede armar: departamentos y áreas tienen su clave', function () {
@@ -68,7 +70,7 @@ test('el código se puede armar: departamentos y áreas tienen su clave', functi
 test('sin autorizador interno: no hay perfil AUTORIZADOR y la solicitud pasa por EN_AUTORIZACION_CH', function () {
   assert.ok(!gs.PERFILES.AUTORIZADOR);
   assert.ok(gs.TRANSICIONES.EN_REVISION.indexOf('EN_AUTORIZACION_CH') !== -1);
-  assert.deepStrictEqual(plano(gs.TRANSICIONES.EN_AUTORIZACION_CH), ['AUTORIZADO', 'DEVUELTO']);
+  assert.deepStrictEqual(plano(gs.TRANSICIONES.EN_AUTORIZACION_CH), ['AUTORIZADO', 'RECHAZADO_CH', 'RESGUARDADO']);
 });
 
 test('cada estado tiene transiciones y nombre en pantalla, y cada transición va a un estado que existe', function () {

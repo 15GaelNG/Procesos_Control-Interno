@@ -57,13 +57,25 @@ test('bandeja: sin asignar, mías, de otros, devueltas y en CH; lo más antiguo 
     fila({ ID_SOLICITUD: 'S-4', REVISOR_ASIGNADO_ID: 'USR-0005' }),
     fila({ ID_SOLICITUD: 'S-5', ESTADO: 'DEVUELTO' }),
     fila({ ID_SOLICITUD: 'S-6', ESTADO: 'EN_AUTORIZACION_CH' }),
-    fila({ ID_SOLICITUD: 'S-7', ESTADO: 'BORRADOR' })
+    fila({ ID_SOLICITUD: 'S-7', ESTADO: 'BORRADOR' }),
+    fila({ ID_SOLICITUD: 'S-8', ESTADO: 'RECHAZADO_CH' }),
+    fila({ ID_SOLICITUD: 'S-9', ESTADO: 'RESGUARDADO' })
   ];
   const g = plano(gs.bandejaRevision_(filas, PAOLA, T, USUARIOS, function () { return 'f'; }, AHORA));
   const ids = function (l) { return l.map(function (x) { return x.id; }); };
-  assert.deepStrictEqual([ids(g.sinAsignar), ids(g.mias), ids(g.otros), ids(g.devueltas), ids(g.enCH)],
-    [['S-2', 'S-1'], ['S-3'], ['S-4'], ['S-5'], ['S-6']]);
+  assert.deepStrictEqual([ids(g.sinAsignar), ids(g.mias), ids(g.otros), ids(g.devueltas), ids(g.enCH), ids(g.rechazadas)],
+    [['S-2', 'S-1'], ['S-3'], ['S-4'], ['S-5'], ['S-6'], ['S-8']]);
   assert.deepStrictEqual([g.sinAsignar[0].dias, g.otros[0].revisor, g.mias[0].departamento], [13, 'Carlos Ruiz', 'CONTROL INTERNO']);
+});
+
+test('carrusel: por turnos entre los revisores activos, sin quien la elaboró, y vuelve a empezar', function () {
+  const revisores = [{ id: 'USR-0005' }, { id: 'USR-0004' }, { id: 'USR-0009' }];
+  assert.strictEqual(gs.siguienteEnCarrusel_(revisores, '', 'USR-0002'), 'USR-0004', 'el primero si nadie ha recibido');
+  assert.strictEqual(gs.siguienteEnCarrusel_(revisores, 'USR-0004', 'USR-0002'), 'USR-0005');
+  assert.strictEqual(gs.siguienteEnCarrusel_(revisores, 'USR-0009', 'USR-0002'), 'USR-0004', 'después del último, el primero');
+  assert.strictEqual(gs.siguienteEnCarrusel_(revisores, 'USR-0004', 'USR-0005'), 'USR-0009', 'se salta a quien la elaboró');
+  assert.strictEqual(gs.siguienteEnCarrusel_(revisores, 'USR-0007', ''), 'USR-0009', 'si el último ya no es revisor, el que sigue');
+  assert.strictEqual(gs.siguienteEnCarrusel_([{ id: 'USR-0002' }], '', 'USR-0002'), '', 'nadie más: queda sin asignar');
 });
 
 test('tomar: solo revisores, nunca lo propio, solo en revisión y si nadie más la tiene', function () {
@@ -72,6 +84,11 @@ test('tomar: solo revisores, nunca lo propio, solo en revisión y si nadie más 
   assert.ok(/Ya la tiene Carlos Ruiz/.test(gs.planTomar_(fila({ REVISOR_ASIGNADO_ID: 'USR-0005' }), PAOLA, USUARIOS).join()));
   assert.ok(/Solo un revisor/.test(gs.planTomar_(fila({ REVISOR_ASIGNADO_ID: '' }), ANA, USUARIOS).join()));
   assert.ok(/Solo se toman/.test(gs.planTomar_(fila({ REVISOR_ASIGNADO_ID: '', ESTADO: 'DEVUELTO' }), PAOLA, USUARIOS).join()));
+});
+
+test('reasignar también una rechazada en CH', function () {
+  assert.deepStrictEqual(plano(gs.planReasignar_(fila({ ESTADO: 'RECHAZADO_CH' }), 'USR-0005', [{ id: 'USR-0005' }])), []);
+  assert.ok(/ya no está con Procesos/.test(gs.planReasignar_(fila({ ESTADO: 'RESGUARDADO' }), 'USR-0005', [{ id: 'USR-0005' }]).join()));
 });
 
 test('reasignar: a un revisor activo que no la elaboró, o de regreso a sin asignar', function () {

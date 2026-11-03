@@ -1,9 +1,11 @@
 /**
  * AVISOS POR CORREO (decisión 27).
  *
- *   NUEVA_REVISION → a Procesos (Config → CORREO_PROCESOS y los revisores activos): llegó una solicitud.
+ *   NUEVA_REVISION → a Procesos: al revisor que le tocó y a Config → CORREO_PROCESOS (si no le tocó a
+ *                    nadie, a todos los revisores activos).
  *   DEVUELTA       → al colaborador, con las observaciones que tiene que atender.
- *   VOBO, AUTORIZADA, RECHAZADA_CH, NO_PROCEDENTE → al colaborador: cómo va su documento.
+ *   VOBO, AUTORIZADA, RESGUARDADA, NO_PROCEDENTE → al colaborador: cómo va su documento.
+ *   RECHAZADA_CH   → al colaborador y a su revisor: regresó al panel de Procesos para ajustarlo.
  *
  * Un aviso nunca detiene la acción: si el correo falla, se anota en el registro y la acción sigue.
  * Config → AVISOS_CORREO = NO los apaga. En PRUEBAS los usuarios de prueba (@procesos.test) no tienen
@@ -83,7 +85,9 @@ function contenidoAviso_(tipo, fila, url) {
       asunto: 'Nueva solicitud para revisar: ' + nombre + ' (' + folio + ')',
       titulo: 'Llegó una solicitud a la bandeja de revisión',
       cuerpo: '<p>' + e(fila.ELABORO_NOMBRE) + ' envió <strong>' + e(nombre) + '</strong> (' + e(folio) + ', revisión ' + e(fila.REVISION) +
-        ') a revisión de Procesos.</p><p>Tómala en la bandeja para revisarla.</p>',
+        ') a revisión de Procesos.</p>' + (fila.REVISOR_NOMBRE_AVISO
+          ? '<p>Le tocó a <strong>' + e(fila.REVISOR_NOMBRE_AVISO) + '</strong>; la encuentra en «Mías» de la bandeja.</p>'
+          : '<p>Tómala en la bandeja para revisarla.</p>'),
       boton: 'Abrir la solicitud'
     },
     DEVUELTA: {
@@ -112,10 +116,19 @@ function contenidoAviso_(tipo, fila, url) {
     },
     RECHAZADA_CH: {
       asunto: 'CH no autorizó «' + nombre + '»',
-      titulo: 'Tu documento regresó del sistema CH',
+      titulo: 'El documento regresó del sistema CH',
       cuerpo: '<p><strong>' + e(nombre) + '</strong> (' + e(codigo) + ') no se autorizó en el sistema CH' +
-        (fila.COMENTARIO_CH ? ': «' + e(fila.COMENTARIO_CH) + '»' : '') + '.</p><p>Corrige lo necesario, confirma y vuelve a enviarlo a Procesos.</p>',
-      boton: 'Atender la observación'
+        (fila.COMENTARIO_CH ? ': «' + e(fila.COMENTARIO_CH) + '»' : '') + '.</p><p>Regresó al panel de Procesos, que lo ajustará y lo volverá a ' +
+        'enviar. Si necesita algo del colaborador, se lo pedirá con observaciones.</p>',
+      boton: 'Ver la solicitud'
+    },
+    RESGUARDADA: {
+      asunto: '«' + nombre + '» quedó en el resguardo interno',
+      titulo: 'Tu documento no pasa por CH',
+      cuerpo: '<p>Procesos decidió que <strong>' + e(nombre) + '</strong> (' + e(codigo) + ', versión ' + e(fila.VERSION) +
+        ') no se publica en el sistema CH y lo conserva en el histórico del sistema.</p>' +
+        (fila.MOTIVO_CIERRE ? '<p>Motivo: ' + e(fila.MOTIVO_CIERRE) + '</p>' : ''),
+      boton: 'Ver mi solicitud'
     },
     NO_PROCEDENTE: {
       asunto: 'Procesos cerró «' + nombre + '» como no procedente',

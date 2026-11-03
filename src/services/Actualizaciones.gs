@@ -20,14 +20,16 @@
 
 // Estados en los que una solicitud ya no está «en curso».
 function solicitudCerrada_(estado) {
-  return [ESTADOS.AUTORIZADO, ESTADOS.NO_PROCEDENTE, ESTADOS.CANCELADO].indexOf(estado) !== -1;
+  return [ESTADOS.AUTORIZADO, ESTADOS.RESGUARDADO, ESTADOS.NO_PROCEDENTE, ESTADOS.CANCELADO].indexOf(estado) !== -1;
 }
 
 /** Los documentos vigentes que la persona puede actualizar (sin tocar Google). */
 function documentosActualizables_(documentos, solicitudes, idsDepartamentos, t) {
   const nombreDe = function (lista, campo, id) { const x = lista.filter(function (r) { return r[campo] === id; })[0]; return x ? String(x.NOMBRE) : ''; };
   return documentos.filter(function (d) {
-    return String(d.ESTATUS).trim().toUpperCase() === ESTATUS_DOCUMENTO.VIGENTE && idsDepartamentos.indexOf(d.ID_DEPARTAMENTO) !== -1;
+    // Los del resguardo interno también se actualizan (decisión 44).
+    const estatus = String(d.ESTATUS).trim().toUpperCase();
+    return (estatus === ESTATUS_DOCUMENTO.VIGENTE || estatus === ESTATUS_DOCUMENTO.RESGUARDO) && idsDepartamentos.indexOf(d.ID_DEPARTAMENTO) !== -1;
   }).map(function (d) {
     const tipo = t.tipos.filter(function (x) { return x.ID_TIPO === d.ID_TIPO; })[0] || {};
     const enCurso = solicitudes.filter(function (s) { return s.ID_DOCUMENTO === d.ID_DOCUMENTO && !solicitudCerrada_(s.ESTADO); })[0];

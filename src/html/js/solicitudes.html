@@ -77,7 +77,7 @@
       q('tipos-solicitud').appendChild(opcionTarjeta('tipoSolicitud', t.id, t.nombre, t.nota, t.disponible));
     });
     o.tiposDocumento.forEach(function (t) {
-      q('tipos-documento').appendChild(opcionTarjeta('idTipo', t.id, t.nombre, t.disponible ? '' : 'Pronto: falta su plantilla', t.disponible));
+      q('tipos-documento').appendChild(opcionTarjeta('idTipo', t.id, t.nombre, t.disponible ? '' : 'No se elabora en el sistema por ahora', t.disponible));
     });
     const primeraDisponible = function (nombre) {
       const r = form.querySelector('input[name="' + nombre + '"]:not(:disabled)');

@@ -22,12 +22,26 @@ function fotoDeRespuesta_(respuesta, correo) {
   return foto.url.replace(/=s\d+(-c)?$/, '') + '=s' + FOTO_PERFIL_PX + '-c';
 }
 
+/** El nombre de `correo` como sale en el directorio; '' si no viene. */
+function nombreDeRespuesta_(respuesta, correo) {
+  const persona = ((respuesta && respuesta.people) || []).filter(function (p) {
+    return (p.emailAddresses || []).some(function (e) { return String(e.value || '').trim().toLowerCase() === correo; });
+  })[0];
+  const nombres = ((persona && persona.names) || []).filter(function (n) { return n.displayName; });
+  return String(((nombres.filter(function (n) { return n.metadata && n.metadata.primary; })[0] || nombres[0]) || {}).displayName || '').trim();
+}
+
+function buscarEnDirectorio_(correo, campos) {
+  return People.People.searchDirectoryPeople({ query: correo, readMask: campos, sources: ['DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE'] });
+}
+
 function fotoDirectorio_(correo) {
-  return fotoDeRespuesta_(People.People.searchDirectoryPeople({
-    query: correo,
-    readMask: 'emailAddresses,photos',
-    sources: ['DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE']
-  }), correo);
+  return fotoDeRespuesta_(buscarEnDirectorio_(correo, 'emailAddresses,photos'), correo);
+}
+
+/** Para sugerir el nombre en el registro (Registro.gs). */
+function nombreDirectorio_(correo) {
+  return nombreDeRespuesta_(buscarEnDirectorio_(correo, 'emailAddresses,names'), correo);
 }
 
 /**

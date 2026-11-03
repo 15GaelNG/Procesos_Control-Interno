@@ -8,8 +8,11 @@
  *   registrarResultadoCH_() → AUTORIZADO: quién autorizó, su puesto y la fecha, como vienen en CH. La
  *                             solicitud queda autorizada, entra al inventario documental y a su historial,
  *                             y se genera el final sin marca (Documentos.gs → generarFinal_).
- *                             RECHAZADO: con el motivo de CH, regresa al colaborador como observación y
- *                             vuelve a pasar por Procesos, con el mismo código (pregunta D, provisional).
+ *                             RECHAZADO: queda RECHAZADO_CH en el panel de Procesos, con el motivo como
+ *                             observación; un revisor la retoma para ajustarla (Revision.gs) y le da otro
+ *                             Vo.Bo. con el mismo código (decisión 43).
+ *   resguardar_()           → no pasa por CH (consultas internas o temas sensibles): queda en el histórico del
+ *                             sistema con estatus RESGUARDO (decisión 44).
  *
  * Lo registra cualquier revisor de Procesos, nunca de una solicitud que elaboró (decisión 19).
  * Lo puro está probado en tests/autorizacion-ch.test.js.
@@ -127,7 +130,7 @@ function planResultadoCH_(fila, sesion, envio, datos, ahora, quien) {
     if (fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.ACTUALIZACION) {
       // Una actualización: el mismo renglón del inventario pasa a la versión nueva (hasta aquí no cambió).
       plan.documentoCambios = { NOMBRE: String(fila.NOMBRE_DOCUMENTO), VERSION_VIGENTE: version, FECHA_VIGENCIA: f.fecha,
-        ID_SOLICITUD_VIGENTE: fila.ID_SOLICITUD, ID_ARCHIVO_WORD: '', ID_ARCHIVO_PDF: '', CONTENIDO_ESTRUCTURADO: 'SI' };
+        ESTATUS: ESTATUS_DOCUMENTO.VIGENTE, ID_SOLICITUD_VIGENTE: fila.ID_SOLICITUD, ID_ARCHIVO_WORD: '', ID_ARCHIVO_PDF: '', CONTENIDO_ESTRUCTURADO: 'SI' };
     } else {
       plan.documento = { CODIGO: String(fila.CODIGO), NOMBRE: String(fila.NOMBRE_DOCUMENTO), ID_TIPO: fila.ID_TIPO,
         ID_DEPARTAMENTO: fila.ID_DEPARTAMENTO, ID_AREA: fila.ID_AREA, ID_SUBAREA: String(fila.ID_SUBAREA || ''),
@@ -144,11 +147,11 @@ function planResultadoCH_(fila, sesion, envio, datos, ahora, quien) {
 
   if (d.resultado === 'RECHAZADO') {
     const prefijo = 'Rechazado en el sistema CH: ';
-    if (!comentario) e.push('Escribe el motivo del rechazo: el colaborador lo verá como observación.');
+    if (!comentario) e.push('Escribe el motivo del rechazo: queda como observación para ajustarla.');
     if ((prefijo + comentario).length > OBSERVACION_MAX) e.push('El motivo es demasiado largo.');
     if (e.length) return plan;
-    // Regresa al colaborador; el Vo.Bo. de Procesos ya no vale (se vuelve a dar), pero el código se conserva.
-    plan.solicitud = { ESTADO: ESTADOS.DEVUELTO, REVISO_ID: '', REVISO_NOMBRE: '', REVISO_PUESTO: '', FECHA_REVISION: '', FECHA_ACTUALIZACION: ahora };
+    // Regresa al panel de Procesos; el Vo.Bo. ya no vale (se vuelve a dar), pero el código se conserva.
+    plan.solicitud = { ESTADO: ESTADOS.RECHAZADO_CH, REVISO_ID: '', REVISO_NOMBRE: '', REVISO_PUESTO: '', FECHA_REVISION: '', FECHA_ACTUALIZACION: ahora };
     plan.envio = Object.assign({ RESULTADO: 'RECHAZADO', COMENTARIO: comentario }, registro);
     plan.observacion = { ID_SOLICITUD: fila.ID_SOLICITUD, REVISION: String(fila.REVISION || ''), APARTADO: 'GENERAL', ID_ACTIVIDAD: '',
       AUTOR_ID: sesion.idUsuario, AUTOR_NOMBRE: sesion.nombre, PERFIL: 'REVISOR', TEXTO: prefijo + comentario, ESTADO: 'ABIERTA',
@@ -193,8 +196,70 @@ function registrarResultadoCH_(sesion, idSolicitud, datos) {
     autorizado ? 'Autorizó ' + plan.envio.AUTORIZO_NOMBRE + ' (' + plan.envio.AUTORIZO_PUESTO + '). Versión ' + plan.solicitud.VERSION + '.'
       : plan.envio.COMENTARIO, idSolicitud, fila.ESTADO, plan.solicitud.ESTADO);
   avisar_(sesion, autorizado ? 'AUTORIZADA' : 'RECHAZADA_CH', Object.assign({}, fila, plan.solicitud,
-    { AUTORIZO_NOMBRE: plan.envio.AUTORIZO_NOMBRE, COMENTARIO_CH: plan.envio.COMENTARIO }), [correoDeUsuario_(fila.ELABORO_ID)]);
+    { AUTORIZO_NOMBRE: plan.envio.AUTORIZO_NOMBRE, COMENTARIO_CH: plan.envio.COMENTARIO }),
+    [correoDeUsuario_(fila.ELABORO_ID)].concat(autorizado || !fila.REVISOR_ASIGNADO_ID ? [] : [correoDeUsuario_(fila.REVISOR_ASIGNADO_ID)]));
   return { estado: plan.solicitud.ESTADO };
+}
+
+// ─────────────────────────────── Resguardo interno (no pasa por CH) ───────────────────────────────
+
+/**
+ * Lo que cambia cuando Procesos decide que un documento con Vo.Bo. no pasa por CH (sin tocar Google). Son
+ * consultas internas o temas sensibles que no conviene publicar en CH (Procesos, 03/11/2026): se conservan en
+ * el histórico del sistema. Entra al inventario con estatus RESGUARDO y con los archivos del Vo.Bo., que siguen
+ * con «COPIA NO AUTORIZADA» porque nadie lo autorizó en CH (§4.4).
+ */
+function planResguardo_(fila, sesion, envios, archivos, motivo, ahora) {
+  const plan = { errores: [], solicitud: {}, documento: null, documentoCambios: null, historial: null };
+  const e = plan.errores;
+  if (!puedeOperarCH_(sesion, fila)) { e.push('Solo Procesos decide el resguardo (y nunca de una solicitud que elaboró).'); return plan; }
+  if (fila.ESTADO !== ESTADOS.EN_AUTORIZACION_CH) { e.push('Solo se resguardan las solicitudes con Vo.Bo. de Procesos.'); return plan; }
+  if (envioPendiente_(envios, fila.ID_SOLICITUD)) { e.push('Ya se registró que se subió a CH: registra lo que resolvió.'); return plan; }
+  const texto = String(motivo || '').replace(/\r\n/g, '\n').trim();
+  if (!texto) e.push('Escribe por qué no pasa por CH.');
+  if (texto.length > OBSERVACION_MAX) e.push('El motivo pasa de ' + OBSERVACION_MAX + ' caracteres.');
+  const docs = archivosParaCH_(archivos, fila);
+  if (!docs.length) e.push('Primero genera los archivos: son los que se quedan en el resguardo, con el código y el Vo.Bo.');
+  if (e.length) return plan;
+  const version = String(fila.VERSION || '').trim() || '0.0';
+  const archivo = function (formato) { return String((docs.filter(function (a) { return a.FORMATO === formato; })[0] || {}).ID_ARCHIVO || ''); };
+  plan.solicitud = { ESTADO: ESTADOS.RESGUARDADO, MOTIVO_CIERRE: texto, VERSION: version, FECHA_ACTUALIZACION: ahora };
+  const comun = { NOMBRE: String(fila.NOMBRE_DOCUMENTO), VERSION_VIGENTE: version, FECHA_VIGENCIA: ahora, ESTATUS: ESTATUS_DOCUMENTO.RESGUARDO,
+    ID_SOLICITUD_VIGENTE: fila.ID_SOLICITUD, ID_ARCHIVO_WORD: archivo('DOCX'), ID_ARCHIVO_PDF: archivo('PDF'), CONTENIDO_ESTRUCTURADO: 'SI' };
+  if (fila.TIPO_SOLICITUD === TIPOS_SOLICITUD.ACTUALIZACION) plan.documentoCambios = comun;
+  else {
+    plan.documento = Object.assign({ CODIGO: String(fila.CODIGO), ID_TIPO: fila.ID_TIPO, ID_DEPARTAMENTO: fila.ID_DEPARTAMENTO, ID_AREA: fila.ID_AREA,
+      ID_SUBAREA: String(fila.ID_SUBAREA || ''), ORIGEN: ORIGENES_DOCUMENTO.SISTEMA, FECHA_REGISTRO: ahora }, comun);
+  }
+  const motivos = listaJson_(fila.MOTIVOS_CAMBIO).map(function (m) { return MOTIVOS_CAMBIO[m] || m; }).join('; ');
+  plan.historial = { VERSION: version, FECHA: ahora, MOTIVOS: motivos,
+    DESCRIPCION: 'Resguardo interno, no pasa por CH: ' + texto + (fila.REVISO_NOMBRE ? ' (Vo.Bo. de ' + fila.REVISO_NOMBRE + ')' : ''),
+    RESPONSABLE: String(fila.ELABORO_NOMBRE || ''), AUTORIZO_NOMBRE: '', AUTORIZO_PUESTO: '', ID_SOLICITUD: fila.ID_SOLICITUD };
+  return plan;
+}
+
+function resguardar_(sesion, idSolicitud, motivo) {
+  let fila, plan;
+  conCandado_(20000, function () {
+    fila = filaSolicitud_(idSolicitud);
+    plan = planResguardo_(fila, sesion, leerTabla_('EnviosCH'), leerTabla_('Archivos'), motivo, marcaDeTiempo_(new Date()));
+    if (plan.errores.length) throw new Error(plan.errores.join(' '));
+    let idDocumento = fila.ID_DOCUMENTO;
+    if (plan.documentoCambios) {
+      const doc = leerTabla_('Documentos').filter(function (x) { return x.ID_DOCUMENTO === fila.ID_DOCUMENTO; })[0];
+      if (!doc) throw new Error('No está en el inventario el documento que se actualiza (' + fila.ID_DOCUMENTO + ').');
+      actualizarFila_('Documentos', doc._fila, plan.documentoCambios);
+    } else {
+      idDocumento = siguienteId_('DOC', 4);
+      agregarFila_('Documentos', Object.assign({ ID_DOCUMENTO: idDocumento }, plan.documento));
+    }
+    agregarFila_('HistorialCambios', Object.assign({ ID_CAMBIO: siguienteId_('CAM', 6), ID_DOCUMENTO: idDocumento }, plan.historial));
+    plan.solicitud.ID_DOCUMENTO = idDocumento;
+    actualizarFila_('Solicitudes', fila._fila, plan.solicitud);
+  });
+  registrarBitacora_(sesion, 'RESGUARDO_INTERNO', plan.solicitud.MOTIVO_CIERRE, idSolicitud, fila.ESTADO, ESTADOS.RESGUARDADO);
+  avisar_(sesion, 'RESGUARDADA', Object.assign({}, fila, plan.solicitud), [correoDeUsuario_(fila.ELABORO_ID)]);
+  return { estado: ESTADOS.RESGUARDADO };
 }
 
 // ─────────────────────────────── Pantalla «Envíos a CH» ───────────────────────────────

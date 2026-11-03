@@ -26,10 +26,10 @@ const SOLICITUDES = [
 
 test('totales por etapa; las canceladas solo aparte', function () {
   const r = plano(gs.tablero_(SOLICITUDES, T, AHORA, function () { return 'hoy'; }));
-  assert.deepStrictEqual(r.totales, { total: 5, enCaptura: 1, conObservaciones: 1, enRevision: 2, sinAsignar: 1, enCH: 0,
-    autorizadas: 1, noProcedentes: 0, canceladas: 1 });
+  assert.deepStrictEqual(r.totales, { total: 5, enCaptura: 1, conObservaciones: 1, enRevision: 2, sinAsignar: 1, enCH: 0, rechazadasCH: 0,
+    autorizadas: 1, resguardadas: 0, noProcedentes: 0, canceladas: 1 });
   assert.deepStrictEqual(r.etapas.map(function (e) { return e.estado + ':' + e.n; }),
-    ['BORRADOR:1', 'CONFIRMADO:0', 'EN_REVISION:2', 'DEVUELTO:1', 'EN_AUTORIZACION_CH:0', 'AUTORIZADO:1', 'NO_PROCEDENTE:0']);
+    ['BORRADOR:1', 'CONFIRMADO:0', 'EN_REVISION:2', 'DEVUELTO:1', 'EN_AUTORIZACION_CH:0', 'RECHAZADO_CH:0', 'AUTORIZADO:1', 'RESGUARDADO:0', 'NO_PROCEDENTE:0']);
 });
 
 test('tiempos promedio, devoluciones y lo que más lleva esperando', function () {

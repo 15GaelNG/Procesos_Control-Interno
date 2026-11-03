@@ -31,6 +31,8 @@
       if (d.estado === 'EN_AUTORIZACION_CH') return 'Ya tiene el Vo.Bo. de Procesos (código ' + d.codigo + '); está en autorización en el sistema CH.';
       if (d.estado === 'NO_PROCEDENTE') return 'Se cerró como no procedente.' + (d.motivoCierre ? ' Motivo: ' + d.motivoCierre : '');
       if (d.estado === 'AUTORIZADO') return 'Autorizada en el sistema CH.';
+      if (d.estado === 'RECHAZADO_CH') return 'CH no la autorizó (el motivo está en las observaciones). Retómala desde la bandeja, pestaña «Rechazadas en CH», para ajustarla y darle otro Vo.Bo.';
+      if (d.estado === 'RESGUARDADO') return 'Quedó en el resguardo interno: no pasa por CH.' + (d.motivoCierre ? ' Motivo: ' + d.motivoCierre : '');
       return 'Todavía no se ha enviado a revisión.';
     }
 

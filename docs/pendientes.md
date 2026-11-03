@@ -4,7 +4,21 @@ Lista viva de lo que falta hacer o revisar **fuera del código**: lo que Gael co
 que Procesos debe entregar o decidir, y lo que hay que validar en pruebas. Se actualiza en cada commit
 que agregue algo aquí; lo hecho se tacha con la fecha.
 
-## 0. Versión 14 en pruebas (30/10/2026): foto de perfil de Google
+## 0. Versión 17 en pruebas (03/11/2026): respuestas de Marco, registro, logos y aro de luz
+
+Decisiones 41 a 45. Después de que Claude la suba:
+
+1. En el editor de **BD Procesos - PRUEBAS**, correr **`instalarPruebas()`** otra vez: agrega `REGISTRO_ABIERTO`
+   (Config) y bloquea el Diagrama de proceso.
+2. Recargar la app con Ctrl + F5. Si a tu usuario le falta el puesto, la primera vez te lo pide.
+3. Probar:
+   - Con «Ver como» Ana, enviar una solicitud: debe quedar asignada sola a un revisor (lo dice el aviso).
+   - Bandeja: el selector de cada solicitud la asigna a mano.
+   - Envíos a CH: «Lo rechazó» → aparece en la bandeja, pestaña «Rechazadas en CH» → «Retomar y ajustar».
+   - Envíos a CH → Por subir: «No va a CH: resguardar en el sistema» → en el Inventario, «Resguardo interno».
+   - Registro: abrir la app con una cuenta de la empresa que no esté dada de alta (o pedirle a alguien que entre).
+
+## 0.0 Versión 14 en pruebas (30/10/2026): foto de perfil de Google
 
 Pide un permiso nuevo. Mientras no se acepte, la app funciona, pero todos salen con iniciales:
 
@@ -16,7 +30,7 @@ Pide un permiso nuevo. Mientras no se acepte, la app funciona, pero todos salen 
 
 **Al pasar a producción:** correr `autorizarFotos()` también en **BD Procesos**, justo después de subir.
 
-## 0.0 Versión 13 en pruebas (30/10/2026)
+## 0.0.1 Versión 13 en pruebas (30/10/2026)
 
 Puesto escrito por cada usuario y diseño nuevo (decisiones 38 y 39). **No hay que correr nada**: solo
 recargar la app con Ctrl + F5 y revisar. Lo de la versión 9 y la 12 que siga pendiente está aquí abajo.
@@ -126,16 +140,16 @@ Mandar capturas de lo que se vea raro.
   departamentos que ya no vienen y unas posibles erratas.
 - [x] ~~Catálogo de puestos~~ → no hay lista: cada usuario escribe su puesto y el catálogo se forma solo (decisión 38).
 - [ ] **Lista de usuarios** con su perfil y departamento.
-- [ ] Respuestas D–I del [análisis](analisis-inicial.md#9-preguntas-abiertas), sobre todo **D** (qué pasa si
-  CH rechaza; hoy regresa al colaborador como observación), **E** (cómo se asigna el revisor), **F**
-  (consecutivo del código) e **I** (documentos que no pasan por CH).
+- [x] ~~Respuestas D, E, H e I~~ → llegaron el 03/11/2026 (decisiones 41 a 44). Queda **F** (si el consecutivo del
+  código cuenta por tipo + departamento + área; hoy así funciona) y confirmar quién sube el PDF a CH: Marco dijo
+  que «el usuario carga al sistema de CH el pdf ya autorizado»; hoy lo descarga y registra Procesos.
 - [x] ~~Plantillas de los otros tipos~~ → todos usan la misma plantilla (decisión 36).
 - [x] ~~Inventario anterior~~ → no se considera por ahora (decisión 37).
 
 ## 3. Decisiones por confirmar con Gael
 
-- [ ] **Lunes 2/11/2026 (Gael lo confirma con Procesos):** ¿Formato y Diagrama de proceso se documentan aquí o se
-  vuelven a bloquear? ¿La misma plantilla sirve para Manual, Protocolo y Política, o darán una propia? (decisión 36)
+- [x] ~~Formato y Diagrama de proceso; misma plantilla para todos~~ → Marco, 03/11/2026: todos con la misma
+  plantilla; el Diagrama no se elabora en el sistema (decisión 41).
 
 - [ ] Regla «nadie cambia sus propios perfiles ni se da de baja» (agregada el 20/10/2026 junto con la
   decisión 19). Si no se quiere, se quita en `planGuardarUsuario_`.

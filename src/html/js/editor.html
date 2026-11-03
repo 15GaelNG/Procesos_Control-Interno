@@ -575,6 +575,8 @@
       const motivos = {
         EN_REVISION: 'Está en revisión de Procesos' + (sol.revisor ? ' (la revisa ' + sol.revisor + ')' : '') + ': podrás editarla si te la regresan con observaciones.',
         EN_AUTORIZACION_CH: 'Procesos ya le dio su Vo.Bo.; está en autorización en el sistema CH.',
+        RECHAZADO_CH: 'CH no la autorizó y regresó a Procesos, que la está ajustando. Si necesita algo de ti, te lo pedirá con observaciones.',
+        RESGUARDADO: 'Quedó en el resguardo interno del sistema: no pasa por CH.',
         AUTORIZADO: 'Ya está autorizada.', CANCELADO: 'Cancelaste esta solicitud.', NO_PROCEDENTE: 'Procesos la cerró como no procedente.'
       };
       return motivos[sol.estado] || 'No se puede editar en este momento.';

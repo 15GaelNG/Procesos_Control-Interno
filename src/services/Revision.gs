@@ -2,8 +2,10 @@
  * REVISIÓN DE PROCESOS (fase 5; requerimiento §4.3, respuestas de Procesos y decisión 23).
  *
  *   enviarARevision_()   → el colaborador manda su solicitud confirmada (foto del contenido en JSON).
- *   bandejaRevision_()   → sin asignar, mías, de otros revisores, devueltas y en CH.
- *   tomar_ / liberar_ / reasignar_ → bandeja común: un revisor la toma; un administrador reasigna.
+ *   bandejaRevision_()   → sin asignar, mías, de otros revisores, devueltas, en CH y rechazadas en CH.
+ *   siguienteEnCarrusel_() → al enviarla se asigna sola, por turnos entre los revisores (decisión 42).
+ *   tomar_ / liberar_ / reasignar_ → si no hay a quién asignarla, un revisor la toma; el administrador reasigna a mano.
+ *   retomarRechazada_()  → una rechazada en CH regresa a revisión para ajustarla (decisión 43).
  *   observaciones        → por apartado o actividad: ABIERTA → ATENDIDA (colaborador) → CERRADA (revisor).
  *   devolver_ / noProcedente_ / darVoBo_ → las tres salidas de la revisión.
  *
@@ -44,6 +46,28 @@ function contenidoAprobado_(fila, huella) {
 function esRevisorAsignado_(sesion, fila) {
   return !!sesion.registrado && sesion.perfiles.indexOf('REVISOR') !== -1 && fila.REVISOR_ASIGNADO_ID === sesion.idUsuario &&
     fila.ELABORO_ID !== sesion.idUsuario;
+}
+
+/**
+ * A quién le toca la siguiente solicitud (carrusel; respuesta de Procesos del 03/11/2026): los revisores
+ * activos en orden de ID, el que sigue del último que recibió una; nunca quien la elaboró. '' si no hay nadie.
+ */
+function siguienteEnCarrusel_(revisores, ultimo, idElaboro) {
+  const ids = revisores.map(function (r) { return r.id; }).filter(function (id) { return id && id !== idElaboro; }).sort();
+  if (!ids.length) return '';
+  return ids.filter(function (id) { return id > String(ultimo || ''); })[0] || ids[0];
+}
+
+/** Elige con el carrusel y deja anotado a quién le tocó (Consecutivos, serie CARRUSEL_REVISION). */
+function asignarPorCarrusel_(revisores, idElaboro) {
+  return conCandado_(20000, function () {
+    const fila = leerTabla_('Consecutivos').filter(function (r) { return r.SERIE === SERIE_CARRUSEL_REVISION; })[0];
+    const elegido = siguienteEnCarrusel_(revisores, fila ? fila.ULTIMO : '', idElaboro);
+    if (!elegido) return '';
+    if (fila) actualizarFila_('Consecutivos', fila._fila, { ULTIMO: elegido, FECHA_ACTUALIZACION: new Date() });
+    else agregarFila_('Consecutivos', { SERIE: SERIE_CARRUSEL_REVISION, ULTIMO: elegido, FECHA_ACTUALIZACION: new Date() });
+    return elegido;
+  });
 }
 
 // ─────────────────────────────── Instantáneas ───────────────────────────────
@@ -96,11 +120,21 @@ function enviarARevision_(sesion, idSolicitud) {
   const plan = planEnvio_(fila, huella, leerTabla_('Observaciones'));
   if (plan.errores.length) throw new Error(plan.errores.join(' '));
   const ahora = marcaDeTiempo_(new Date());
+  // Si se la devolvieron, regresa a su mismo revisor (si sigue activo); si es nueva, le toca al siguiente del carrusel.
+  const revisores = revisoresActivos_(leerTabla_('Usuarios'), leerTabla_('UsuarioPerfiles'));
+  const sigue = fila.REVISOR_ASIGNADO_ID && fila.REVISOR_ASIGNADO_ID !== fila.ELABORO_ID &&
+    revisores.some(function (r) { return r.id === fila.REVISOR_ASIGNADO_ID; });
+  const revisor = sigue ? fila.REVISOR_ASIGNADO_ID : asignarPorCarrusel_(revisores, fila.ELABORO_ID);
+  plan.cambios.REVISOR_ASIGNADO_ID = revisor;
   guardarInstantanea_(sesion, fila, det, plan.cambios.REVISION, 'ENVIO', huella);
   actualizarFila_('Solicitudes', fila._fila, Object.assign({ FECHA_ENVIO_REVISION: ahora, FECHA_ACTUALIZACION: ahora }, plan.cambios));
   registrarBitacora_(sesion, 'ENVIAR_REVISION', 'Revisión ' + plan.cambios.REVISION + '.', idSolicitud, fila.ESTADO, ESTADOS.EN_REVISION);
-  avisar_(sesion, 'NUEVA_REVISION', Object.assign({}, fila, plan.cambios), correosProcesos_());
-  return { estado: ESTADOS.EN_REVISION, revision: plan.cambios.REVISION };
+  const nombreRevisor = (revisores.filter(function (r) { return r.id === revisor; })[0] || {}).nombre || '';
+  if (revisor && !sigue) registrarBitacora_(sesion, 'ASIGNACION_AUTOMATICA', 'Le tocó a ' + nombreRevisor + ' (por turnos).', idSolicitud);
+  // Con revisor, el aviso es para él y el buzón de Procesos; si no hubo a quién asignarla, para todos los revisores.
+  const correos = revisor ? String(obtenerConfig_('CORREO_PROCESOS', '')).split(/[,;\s]+/).concat([correoDeUsuario_(revisor)]) : correosProcesos_();
+  avisar_(sesion, 'NUEVA_REVISION', Object.assign({}, fila, plan.cambios, { REVISOR_NOMBRE_AVISO: nombreRevisor }), correos);
+  return { estado: ESTADOS.EN_REVISION, revision: plan.cambios.REVISION, revisor: nombreRevisor };
 }
 
 // ─────────────────────────────── Bandeja ───────────────────────────────
@@ -109,9 +143,9 @@ function enviarARevision_(sesion, idSolicitud) {
 function bandejaRevision_(filas, sesion, t, usuarios, formatear, ahora) {
   const nombreDe = function (lista, campo, id) { const x = lista.filter(function (r) { return r[campo] === id; })[0]; return x ? String(x.NOMBRE) : ''; };
   const dia = 24 * 60 * 60 * 1000;
-  const grupos = { sinAsignar: [], mias: [], otros: [], devueltas: [], enCH: [] };
+  const grupos = { sinAsignar: [], mias: [], otros: [], devueltas: [], enCH: [], rechazadas: [] };
   filas.forEach(function (s) {
-    if ([ESTADOS.EN_REVISION, ESTADOS.DEVUELTO, ESTADOS.EN_AUTORIZACION_CH].indexOf(s.ESTADO) === -1) return;
+    if ([ESTADOS.EN_REVISION, ESTADOS.DEVUELTO, ESTADOS.EN_AUTORIZACION_CH, ESTADOS.RECHAZADO_CH].indexOf(s.ESTADO) === -1) return;
     const enviada = marcaDe_(s.FECHA_ENVIO_REVISION);
     const item = {
       id: s.ID_SOLICITUD, nombre: String(s.NOMBRE_DOCUMENTO), codigo: String(s.CODIGO || ''),
@@ -124,6 +158,7 @@ function bandejaRevision_(filas, sesion, t, usuarios, formatear, ahora) {
       esSuya: s.ELABORO_ID === sesion.idUsuario
     };
     if (s.ESTADO === ESTADOS.DEVUELTO) grupos.devueltas.push(item);
+    else if (s.ESTADO === ESTADOS.RECHAZADO_CH) grupos.rechazadas.push(item);
     else if (s.ESTADO === ESTADOS.EN_AUTORIZACION_CH) grupos.enCH.push(item);
     else if (!item.revisorId) grupos.sinAsignar.push(item);
     else if (item.revisorId === sesion.idUsuario) grupos.mias.push(item);
@@ -149,7 +184,7 @@ function planTomar_(fila, sesion, usuarios) {
 
 function planReasignar_(fila, idRevisor, revisores) {
   const e = [];
-  if ([ESTADOS.EN_REVISION, ESTADOS.DEVUELTO, ESTADOS.EN_AUTORIZACION_CH].indexOf(fila.ESTADO) === -1) e.push('Esta solicitud ya no está con Procesos.');
+  if ([ESTADOS.EN_REVISION, ESTADOS.DEVUELTO, ESTADOS.EN_AUTORIZACION_CH, ESTADOS.RECHAZADO_CH].indexOf(fila.ESTADO) === -1) e.push('Esta solicitud ya no está con Procesos.');
   if (idRevisor && !revisores.some(function (r) { return r.id === idRevisor; })) e.push('Esa persona no es revisora de Procesos activa.');
   if (idRevisor && idRevisor === fila.ELABORO_ID) e.push('No se le puede asignar a quien la elaboró.');
   return e;
@@ -183,6 +218,34 @@ function reasignarSolicitud_(sesion, idSolicitud, idRevisor) {
   const nombre = (revisores.filter(function (r) { return r.id === idRevisor; })[0] || {}).nombre || 'nadie (sin asignar)';
   registrarBitacora_(sesion, 'REASIGNAR_SOLICITUD', 'Asignada a ' + nombre + '.', idSolicitud);
   return { revisorId: idRevisor || '' };
+}
+
+/** ¿Puede esta sesión retomar una solicitud rechazada en CH? (sin tocar Google) */
+function planRetomar_(fila, sesion) {
+  const e = [];
+  if (fila.ESTADO !== ESTADOS.RECHAZADO_CH) e.push('Solo se retoman las solicitudes rechazadas en CH.');
+  else if (sesion.perfiles.indexOf('REVISOR') === -1) e.push('Solo un revisor de Procesos la puede retomar.');
+  else if (fila.ELABORO_ID === sesion.idUsuario) e.push('No puedes revisar una solicitud que tú elaboraste.');
+  return e;
+}
+
+/**
+ * Una rechazada en CH regresa a revisión con quien la retoma (decisión 43): ahí la corrige, la devuelve al
+ * colaborador si hace falta y le da otro Vo.Bo. con el mismo código. El motivo de CH ya está como observación.
+ */
+function retomarRechazada_(sesion, idSolicitud) {
+  let anterior;
+  conCandado_(20000, function () {
+    const fila = filaSolicitud_(idSolicitud);
+    const e = planRetomar_(fila, sesion);
+    if (e.length) throw new Error(e.join(' '));
+    anterior = fila.ESTADO;
+    const ahora = marcaDeTiempo_(new Date());
+    actualizarFila_('Solicitudes', fila._fila, { ESTADO: ESTADOS.EN_REVISION, REVISOR_ASIGNADO_ID: sesion.idUsuario,
+      FECHA_ENVIO_REVISION: ahora, FECHA_ACTUALIZACION: ahora });
+  });
+  registrarBitacora_(sesion, 'RETOMAR_RECHAZADA', 'La retomó ' + sesion.nombre + ' para ajustarla.', idSolicitud, anterior, ESTADOS.EN_REVISION);
+  return { estado: ESTADOS.EN_REVISION, revisorId: sesion.idUsuario };
 }
 
 // ─────────────────────────────── Observaciones ───────────────────────────────

@@ -43,13 +43,15 @@
       const info = elemento('div', 'solicitud-datos');
       const cabeza = elemento('div', 'solicitud-cabeza');
       cabeza.appendChild(elemento('span', 'folio', d.codigo));
-      cabeza.appendChild(elemento('span', 'chip ' + (d.estatus === 'VIGENTE' ? 'exito' : 'neutro'), d.estatus === 'VIGENTE' ? 'Vigente' : 'Obsoleto'));
+      const estatus = { VIGENTE: ['exito', 'Vigente'], RESGUARDO: ['dorado', 'Resguardo interno (sin CH)'] }[d.estatus] || ['neutro', 'Obsoleto'];
+      cabeza.appendChild(elemento('span', 'chip ' + estatus[0], estatus[1]));
       if (d.version) cabeza.appendChild(elemento('span', 'chip neutro', 'Versión ' + d.version));
       info.appendChild(cabeza);
       info.appendChild(elemento('div', 'solicitud-nombre', d.nombre));
       info.appendChild(elemento('div', 'nota', [d.tipoDocumento, d.departamento + (d.area ? ' / ' + d.area : '') + (d.subarea ? ' / ' + d.subarea : '')]
         .filter(Boolean).join(' · ')));
-      info.appendChild(elemento('div', 'nota', [d.vigencia ? 'Vigente desde ' + d.vigencia : '', d.origen].filter(Boolean).join(' · ')));
+      info.appendChild(elemento('div', 'nota', [d.vigencia ? (d.estatus === 'RESGUARDO' ? 'Resguardado desde ' : 'Vigente desde ') + d.vigencia : '', d.origen]
+        .filter(Boolean).join(' · ')));
       f.appendChild(info);
 
       const botones = elemento('div', 'solicitud-botones');

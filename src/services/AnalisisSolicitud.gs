@@ -646,7 +646,7 @@ function confirmarYEnviar_(sesion, idSolicitud, huellaVista) {
       motivo: 'Quedó confirmada, pero antes de enviarla atiende ' + (porAtender === 1 ? 'la observación' : 'las ' + porAtender + ' observaciones') + ' de Procesos.' };
   }
   const r = enviarARevision_(sesion, idSolicitud);
-  return { estado: r.estado, enviada: true, revision: r.revision };
+  return { estado: r.estado, enviada: true, revision: r.revision, revisor: r.revisor };
 }
 
 /**

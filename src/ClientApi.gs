@@ -18,6 +18,14 @@ function apiSesion(comoUsuario) {
   return { sesion: sesion, modulos: sesion.registrado ? modulosDe_(sesion.perfiles) : [] };
 }
 
+/**
+ * Registro propio, o completar el puesto y el departamento que falten (Registro.gs). Es la única que no exige
+ * estar dado de alta: el correo sale de la sesión de Google, nunca del navegador.
+ */
+function apiRegistrarme(comoUsuario, datos) {
+  return registrarme_(sesionEfectiva_(comoUsuario), datos);
+}
+
 /** La foto de Google de quien usa la app (o de a quien está viendo con «ver como»). Sin `url` si el directorio falló. */
 function apiMiFoto(comoUsuario) {
   const sesion = sesionEfectiva_(comoUsuario);
@@ -298,7 +306,7 @@ function apiBandeja(comoUsuario) {
   return {
     grupos: bandejaRevision_(leerTabla_('Solicitudes'), sesion, t, t.usuarios, formatoFecha_, new Date()),
     soyRevisor: sesion.perfiles.indexOf('REVISOR') !== -1,
-    puedeReasignar: sesion.perfiles.indexOf('ADMINISTRADOR') !== -1,
+    puedeReasignar: sesion.perfiles.indexOf('ADMINISTRADOR') !== -1 || sesion.perfiles.indexOf('REVISOR') !== -1,
     revisores: revisoresActivos_(t.usuarios, leerTabla_('UsuarioPerfiles'))
   };
 }
@@ -314,8 +322,9 @@ function apiLiberar(comoUsuario, idSolicitud) {
 }
 
 /** idRevisor vacío = de regreso a «sin asignar». */
+/** Asignación a mano (decisión 42): el administrador o cualquier revisor, p. ej. a quien ya conoce el tema. */
 function apiReasignar(comoUsuario, idSolicitud, idRevisor) {
-  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'REVISOR']);
   return reasignarSolicitud_(sesion, idSolicitud, idRevisor);
 }
 
@@ -382,6 +391,18 @@ function apiEnviosCH(comoUsuario) {
 function apiRegistrarEnvioCH(comoUsuario, idSolicitud, datos) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
   return registrarEnvioCH_(sesion, idSolicitud, datos);
+}
+
+/** Una rechazada en CH regresa a revisión con quien la retoma (decisión 43). */
+function apiRetomarRechazada(comoUsuario, idSolicitud) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return retomarRechazada_(sesion, idSolicitud);
+}
+
+/** No pasa por CH: queda en el resguardo interno del sistema (decisión 44). */
+function apiResguardar(comoUsuario, idSolicitud, motivo) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);
+  return resguardar_(sesion, idSolicitud, motivo);
 }
 
 /** Lo que resolvió CH. datos: { resultado: 'AUTORIZADO' | 'RECHAZADO', nombre, puesto, fecha, comentario }. */

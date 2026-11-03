@@ -53,20 +53,26 @@ que atender antes, una confirmación adelantada lo dejaría sin poder enviar.
 
 ## Bandeja de revisión
 
-Cada solicitud dice **quién la tomó** («La tomó …» o «Nadie la ha tomado») y su barra de progreso.
+**Asignación (decisión 42):** al enviarla, cada solicitud se asigna sola al siguiente revisor activo, por
+turnos (carrusel por orden de ID; nunca a quien la elaboró). Si se la devuelven al colaborador, al reenviarla
+regresa a su mismo revisor. El **administrador y los revisores** la asignan a mano con el selector de cada
+solicitud (p. ej. a quien ya conoce el tema). Si no había a quién asignarla, queda «Sin asignar» y cualquier
+revisor la **toma**.
+
+Cada solicitud dice **quién la revisa** y su barra de progreso.
 
 | Pestaña | Qué hay |
 |---|---|
 | **Mías** | Las que el revisor tiene en revisión |
-| **Sin asignar** | En revisión sin revisor; botón **Tomar** |
+| **Sin asignar** | En revisión sin revisor (no había a quién asignarla o alguien la liberó); botón **Tomar** |
 | **De otros revisores** | En revisión con otra persona (consulta) |
 | **Devueltas** | Con el colaborador para que corrija |
 | **En CH** | Con Vo.Bo., en autorización en el sistema CH |
+| **Rechazadas en CH** | CH no la autorizó (decisión 43); botón **Retomar y ajustar**: pasa a revisión con quien la retoma, que la corrige o la devuelve al colaborador y le da otro Vo.Bo. con el mismo código |
 
-Lo que más tiempo lleva esperando aparece primero, con la fecha de envío y los días. El
-**administrador** ve la bandeja **solo para reasignar** (un selector por solicitud, también «Sin
-asignar»); no abre ni revisa (decisión 19: ser administrador no da facultades de revisar). Un revisor
-puede **liberar** la que tomó para que otro la tome; sus observaciones se quedan.
+Lo que más tiempo lleva esperando aparece primero, con la fecha de envío y los días. El administrador no
+abre ni revisa (decisión 19: ser administrador no da facultades de revisar). Un revisor puede **liberar** la
+que tiene para que otro la tome; sus observaciones se quedan.
 
 ## Código
 

@@ -362,6 +362,14 @@
       return { clase: 'exito', icono: 'stamp', titulo: 'Procesos le dio su Vo.Bo.',
         texto: 'Código ' + d.codigo + ', versión ' + d.version + '. Sigue la autorización en el sistema CH; Procesos registrará el resultado.' };
     }
+    if (d.estado === 'RECHAZADO_CH') {
+      return { clase: 'dorado', icono: 'undo-2', titulo: 'CH no autorizó el documento.',
+        texto: 'Regresó a Procesos, que lo ajustará y lo volverá a enviar con el mismo código (' + d.codigo + '). Si necesita algo de ti, te lo pedirá con observaciones.' };
+    }
+    if (d.estado === 'RESGUARDADO') {
+      return { clase: 'exito', icono: 'archive', titulo: 'Quedó en el resguardo interno del sistema.',
+        texto: 'Código ' + d.codigo + ', versión ' + d.version + '. Procesos decidió que no pasa por CH' + (d.motivoCierre ? ': ' + d.motivoCierre : '.') };
+    }
     if (d.estado === 'AUTORIZADO') {
       return { clase: 'exito', icono: 'circle-check-big', titulo: 'Autorizado en el sistema CH.',
         texto: 'Código ' + d.codigo + ', versión ' + d.version + '.' + (d.autorizo ? ' Autorizó ' + d.autorizo + (d.autorizoPuesto ? ' (' + d.autorizoPuesto + ')' : '') +
@@ -480,8 +488,8 @@
         if (!confirm('¿Enviar «' + d.nombre + '» a revisión de Procesos? Mientras la revisan no podrás editarla.')) return;
         enviar.disabled = true;
         enviar.querySelector('span').textContent = 'Enviando…';
-        llamar('apiEnviarRevision', idSolicitud).then(function () {
-          avisar('Listo: se envió a Procesos. Si tiene observaciones te llegará un correo.', 'exito');
+        llamar('apiEnviarRevision', idSolicitud).then(function (r) {
+          avisar('Listo: se envió a Procesos' + (r.revisor ? '; la revisará ' + r.revisor : '') + '. Si tiene observaciones te llegará un correo.', 'exito');
           return cargar();
         }).catch(function (e) {
           avisar(e.message, 'error');
@@ -521,7 +529,7 @@
         confirmar.querySelector('span').textContent = 'Enviando…';
         llamar('apiConfirmarYEnviar', idSolicitud, d.huella).then(function (r) {
           delete estado.ajustando[idSolicitud];
-          if (r.enviada) avisar('Listo: confirmaste el documento y se envió a Procesos. Si tiene observaciones te llegará un correo.', 'exito');
+          if (r.enviada) avisar('Listo: confirmaste el documento y se envió a Procesos' + (r.revisor ? '; la revisará ' + r.revisor : '') + '. Si tiene observaciones te llegará un correo.', 'exito');
           else avisar(r.motivo, '');
           return cargar();
         }).catch(function (e) {

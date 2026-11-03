@@ -122,7 +122,7 @@ function coincidenciasNombre_(nombre, documentos, solicitudes, excluir) {
     }
   });
   solicitudes.forEach(function (s) {
-    if (s.ID_SOLICITUD === excluir || ['CANCELADO', 'NO_PROCEDENTE', 'AUTORIZADO'].indexOf(s.ESTADO) !== -1) return;
+    if (s.ID_SOLICITUD === excluir || ['CANCELADO', 'NO_PROCEDENTE', 'AUTORIZADO', 'RESGUARDADO'].indexOf(s.ESTADO) !== -1) return;
     const p = parecido_(nombre, s.NOMBRE_DOCUMENTO);
     if (p >= COINCIDENCIAS_PARECIDO_MIN) {
       resultado.push({ tipo: 'SOLICITUD', id: s.ID_SOLICITUD, codigo: String(s.CODIGO || ''), nombre: String(s.NOMBRE_DOCUMENTO),

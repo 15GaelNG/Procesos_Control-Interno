@@ -16,13 +16,15 @@ function doGet() {
   plantilla.datosIniciales = JSON.stringify(datos).replace(/</g, '\\u003c');
   return plantilla.evaluate()
     .setTitle(APP_NOMBRE + (datos.ambiente === AMBIENTES.PRODUCCION.clave ? '' : ' · ' + datos.ambiente))
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setFaviconUrl(ICONO_APP_URL);
 }
 
 /**
  * Lo que la app necesita al abrir: ambiente, sesión, las pantallas que le tocan y catálogos fijos
  * para pintar estados y perfiles. En PRUEBAS, a un administrador también le llega la lista de
- * usuarios para «ver como».
+ * usuarios para «ver como». Si es su primera vez (o le falta el puesto o el departamento), `registro`
+ * trae lo que pinta la pantalla de registro (Registro.gs).
  */
 function datosIniciales_() {
   const ambiente = ambienteActual_();
@@ -45,6 +47,9 @@ function datosIniciales_() {
     datos.sesion = correo ? buscarSesion_(correo, usuarios, perfiles) : sesionVacia_('');
     datos.modulos = datos.sesion.registrado ? modulosDe_(datos.sesion.perfiles) : [];
     if (puedeVerComo_(ambiente, datos.sesion)) datos.verComo = usuariosParaVerComo_(usuarios, perfiles);
+    const pendiente = registroPendiente_(correo, { usuarios: usuarios, perfiles: perfiles, usuarioDeptos: leerTabla_('UsuarioDepartamentos'),
+      puestos: leerTabla_('Puestos') }, ambiente, registroAbierto_());
+    if (pendiente) datos.registro = pantallaRegistro_(pendiente, correo, leerTabla_('Departamentos'), leerTabla_('Puestos'));
   } catch (e) {
     datos.error = 'No se pudo leer la base de datos: ' + e.message;
   }

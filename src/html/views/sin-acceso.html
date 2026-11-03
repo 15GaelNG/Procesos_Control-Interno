@@ -1,6 +1,7 @@
 <template id="vista-sin-acceso">
   <div class="tarjeta sin-acceso">
-    <img class="menu-logo" src="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/logo.png" alt="">
+    <span class="logo-recorte logo-procesos-v logo-claro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_light.png" alt="Procesos · Documentación y Control"></span>
+    <span class="logo-recorte logo-procesos-v logo-oscuro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_dark.png" alt="Procesos · Documentación y Control"></span>
     <div class="vacio">
       <span class="vacio-icono"><i data-lucide="shield-alert" class="ico"></i></span>
       <h2 data-campo="titulo">Todavía no tienes acceso</h2>
@@ -10,4 +11,34 @@
       </button>
     </div>
   </div>
+</template>
+
+<!-- La primera vez que alguien entra (o si le falta el puesto o el departamento): js/app.html → mostrarRegistro. -->
+<template id="vista-registro">
+  <form class="tarjeta sin-acceso registro" novalidate>
+    <span class="logo-recorte logo-procesos-v logo-claro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_light.png" alt="Procesos · Documentación y Control"></span>
+    <span class="logo-recorte logo-procesos-v logo-oscuro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_dark.png" alt="Procesos · Documentación y Control"></span>
+    <div class="registro-texto">
+      <h1 data-campo="titulo">Te damos la bienvenida</h1>
+      <p class="subtitulo" data-campo="mensaje"></p>
+    </div>
+    <label class="campo" data-campo="bloque-nombre">
+      <span>Tu nombre completo</span>
+      <input type="text" name="nombre" maxlength="120" autocomplete="name" placeholder="Nombre y apellidos">
+    </label>
+    <label class="campo" data-campo="bloque-puesto">
+      <span>Tu puesto</span>
+      <input type="text" name="puesto" list="registro-puestos" maxlength="120" autocomplete="off" placeholder="Ej. Auxiliar de Compras">
+      <datalist id="registro-puestos" data-campo="puestos"></datalist>
+      <small>Sale en «Elaboró» o «Revisó» de los documentos. Si no está en la lista, escríbelo.</small>
+    </label>
+    <label class="campo" data-campo="bloque-departamento">
+      <span>Tu departamento</span>
+      <select class="selector" name="departamento"></select>
+      <small>Es el de los documentos que vas a elaborar. Si necesitas otro, pídeselo a Procesos.</small>
+    </label>
+    <p class="errores" data-campo="errores" hidden></p>
+    <button type="submit" class="boton boton-grande"><i data-lucide="log-in" class="ico"></i><span>Entrar al sistema</span></button>
+    <p class="nota registro-nota"><i data-lucide="shield-check" class="ico"></i><span>Entras con tu cuenta de Google <strong data-campo="correo"></strong>: no necesitas contraseña.</span></p>
+  </form>
 </template>

@@ -157,6 +157,12 @@ const ENVIOS_CH_RESUELTOS_MAX = 50;
 const ANCHO_IMAGEN_DOCUMENTO = 560;
 const ALTO_IMAGEN_DOCUMENTO = 600;
 
+// Imágenes del área de Procesos (repositorio de imágenes de Ciudad Maderas). El ícono va en la pestaña del navegador.
+const ICONO_APP_URL = 'https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_icono_dark.png';
+
+// Serie de Consecutivos donde se anota a quién le tocó la última solicitud del carrusel (decisión 42).
+const SERIE_CARRUSEL_REVISION = 'CARRUSEL_REVISION';
+
 // Fotos de perfil de Google (Fotos.gs): tamaño, cuánto se recuerdan (6 horas) y cuántas se le piden al
 // directorio en una llamada (las demás, en la siguiente).
 const FOTO_PERFIL_PX = 96;

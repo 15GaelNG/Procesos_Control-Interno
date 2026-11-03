@@ -101,10 +101,10 @@ test('autorizado: pide nombre, puesto y una fecha entre el envío y hoy', functi
   assert.ok(/Elige si CH/.test(gs.planResultadoCH_(fila(), PAOLA, envio(), { resultado: '' }, AHORA, 'p').errores.join()));
 });
 
-test('rechazado: regresa al colaborador como observación, sin el Vo.Bo. pero con su código', function () {
+test('rechazado: regresa al panel de Procesos como «Rechazado en CH», con el motivo como observación, sin el Vo.Bo. pero con su código', function () {
   const p = plano(gs.planResultadoCH_(fila(), CARLOS, envio(), { resultado: 'RECHAZADO', comentario: 'El director pide incluir el plazo de pago.' }, AHORA, 'carlos@x'));
   assert.deepStrictEqual(p.errores, []);
-  assert.deepStrictEqual([p.solicitud.ESTADO, p.solicitud.REVISO_NOMBRE, p.solicitud.FECHA_REVISION, p.solicitud.CODIGO], ['DEVUELTO', '', '', undefined],
+  assert.deepStrictEqual([p.solicitud.ESTADO, p.solicitud.REVISO_NOMBRE, p.solicitud.FECHA_REVISION, p.solicitud.CODIGO], ['RECHAZADO_CH', '', '', undefined],
     'el código no se toca');
   assert.deepStrictEqual([p.envio.RESULTADO, p.envio.COMENTARIO], ['RECHAZADO', 'El director pide incluir el plazo de pago.']);
   assert.deepStrictEqual([p.observacion.APARTADO, p.observacion.ESTADO, p.observacion.AUTOR_NOMBRE, p.observacion.REVISION], ['GENERAL', 'ABIERTA', 'Carlos Ruiz', '2']);
@@ -119,6 +119,32 @@ test('tras un rechazo en CH, el nuevo Vo.Bo. conserva el código que ya tenía',
   assert.deepStrictEqual([p.errores, p.cambios.CODIGO], [[], 'P-CI04-001']);
   assert.ok(!gs.codigoEditable_(devuelta));
   assert.ok(gs.codigoEditable_(fila({ CODIGO: '' })));
+});
+
+test('retomar una rechazada en CH: un revisor que no la elaboró; queda en revisión con él', function () {
+  const rechazada = fila({ ESTADO: 'RECHAZADO_CH' });
+  assert.deepStrictEqual(plano(gs.planRetomar_(rechazada, CARLOS)), []);
+  assert.ok(/rechazadas en CH/.test(gs.planRetomar_(fila(), CARLOS).join()));
+  assert.ok(/revisor/.test(gs.planRetomar_(rechazada, SOFIA).join()));
+  assert.ok(/tú elaboraste/.test(gs.planRetomar_(fila({ ESTADO: 'RECHAZADO_CH', ELABORO_ID: 'USR-0005' }), CARLOS).join()));
+});
+
+test('resguardo interno: con Vo.Bo., sin subir a CH, con motivo y archivos; entra al inventario como RESGUARDO con su marca', function () {
+  const archivos = [archivo('ARC-1', { FECHA: new Date(2026, 9, 24) }), archivo('ARC-2', { FORMATO: 'DOCX', FECHA: new Date(2026, 9, 24) })];
+  const p = plano(gs.planResguardo_(fila(), PAOLA, [], archivos, ' Tema sensible de nómina. ', AHORA));
+  assert.deepStrictEqual(p.errores, []);
+  assert.deepStrictEqual([p.solicitud.ESTADO, p.solicitud.MOTIVO_CIERRE, p.solicitud.VERSION], ['RESGUARDADO', 'Tema sensible de nómina.', '0.0']);
+  assert.deepStrictEqual([p.documento.CODIGO, p.documento.ESTATUS, p.documento.ID_ARCHIVO_PDF, p.documento.ID_ARCHIVO_WORD, p.documento.ORIGEN],
+    ['P-CI04-001', 'RESGUARDO', 'ARC-1', 'ARC-2', 'SISTEMA']);
+  assert.ok(/^Resguardo interno, no pasa por CH: Tema sensible/.test(p.historial.DESCRIPCION));
+  assert.strictEqual(p.historial.AUTORIZO_NOMBRE, '', 'nadie lo autorizó');
+  const act = plano(gs.planResguardo_(fila({ TIPO_SOLICITUD: 'ACTUALIZACION', VERSION: '1.1' }), PAOLA, [], archivos, 'Interno', AHORA));
+  assert.deepStrictEqual([act.documento, act.documentoCambios.VERSION_VIGENTE, act.documentoCambios.ESTATUS], [null, '1.1', 'RESGUARDO']);
+  assert.ok(/motivo|por qué/.test(gs.planResguardo_(fila(), PAOLA, [], archivos, ' ', AHORA).errores.join()));
+  assert.ok(/genera los archivos/.test(gs.planResguardo_(fila(), PAOLA, [], [], 'Interno', AHORA).errores.join()));
+  assert.ok(/subió a CH/.test(gs.planResguardo_(fila(), PAOLA, [envio()], archivos, 'Interno', AHORA).errores.join()));
+  assert.ok(/Solo Procesos/.test(gs.planResguardo_(fila(), ANA, [], archivos, 'Interno', AHORA).errores.join()));
+  assert.ok(/Vo.Bo./.test(gs.planResguardo_(fila({ ESTADO: 'EN_REVISION' }), PAOLA, [], archivos, 'Interno', AHORA).errores.join()));
 });
 
 // ─────────────────────────────── Archivos y pantalla ───────────────────────────────

@@ -288,3 +288,33 @@ Separación de actividades: La IA propondrá la distribución del contenido en a
 Validación del colaborador: Antes de continuar, el colaborador deberá revisar la información extraída y podrá corregir, agregar, eliminar o reorganizar las actividades propuestas.
 
 Actualización del proceso: Una vez validada la estructura, el colaborador podrá realizar las modificaciones necesarias y enviar el documento a revisión del área de Procesos.
+
+---
+
+# Respuestas del 03/11/2026 (Marco, por Gael)
+
+Las cuatro preguntas que quedaban abiertas (D, E, H, I del análisis). Transcripción de lo que Gael compartió.
+
+## Formato de los documentos y diagramas de procesos
+
+Todos los documentos utilizan la misma plantilla, a excepción del diagrama de procesos, que requiere un formato
+distinto. Por el momento, considero conveniente no integrar la elaboración de diagramas al sistema, ya que no todos
+los usuarios están familiarizados con su elaboración e interpretación.
+
+## Rechazo de un documento por Capital Humano
+
+Si te refieres al rechazo dentro del sistema de CH, el documento debe regresar a nuestro panel con el estatus
+"Rechazado", habilitando la opción de realizar los ajustes correspondientes y volver a enviarlo para su revisión.
+Recuerda que este nuevo sistema no tiene nada de relación con el sistema de CH, ya que el usuario carga al sistema
+de CH el pdf ya autorizado.
+
+## Asignación de nuevas solicitudes
+
+Nos funciona la asignación automática por carrusel, distribuyendo las solicitudes entre los integrantes del equipo.
+También me gustaría contar con la opción de asignación manual, ya que habrá casos en los que alguna persona tenga
+contexto o haya trabajado previamente en el tema.
+
+## Resguardo de documentos que no pasan por CH
+
+Estos documentos deben conservarse en el histórico del sistema, ya que pueden corresponder a consultas internas o
+temas sensibles cuya publicación en el sistema de CH no resulte conveniente.
