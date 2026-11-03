@@ -18,7 +18,8 @@
     alSalir: null,     /* La pantalla abierta puede dejar aquí qué hacer antes de cambiar (p. ej. guardar). */
     analizarAlAbrir: null, /* { id, operacion } que el paso 4 corre en cuanto abre (botón del paso 3). */
     enfocar: null,     /* { id, apartado, idActividad }: la parte que la pantalla enfoca al abrir (irACorregir). */
-    ajustando: {}      /* Solicitudes en las que se eligió «Necesito corregir algo» en la vista previa. */
+    ajustando: {},     /* Solicitudes en las que se eligió «Necesito corregir algo» en la vista previa. */
+    entro: false       /* Ya se armó la app (menú, barra): al volver a entrar después de cerrar sesión no se arma otra vez. */
   };
 
   /* Pantallas que piden datos al servidor al abrirse: id del módulo → función(contenedor, parámetro). */
@@ -30,6 +31,7 @@
     nueva: iniciarNuevaSolicitud,
     revision: iniciarBandeja,
     'envios-ch': iniciarEnviosCH,
+    plantillas: iniciarPlantillas,
     inventario: iniciarInventario,
     catalogos: iniciarCatalogos,
     usuarios: iniciarUsuarios,
@@ -318,7 +320,7 @@
     }).catch(function (e) {
       estado.comoUsuario = anterior;
       guardarPestana('verComo', anterior);
-      alert('No se pudo cambiar de usuario: ' + e.message);
+      avisar('No se pudo cambiar de usuario: ' + e.message, 'error');
     }).then(function () {
       lista.value = estado.comoUsuario;
       lista.disabled = false;
@@ -395,6 +397,53 @@
     (r.modo === 'ALTA' ? form.nombre : (r.faltaPuesto ? form.puesto : form.departamento)).focus();
   }
 
+  /* ─────────── Cerrar sesión y volver a entrar (decisión 50) ───────────
+     La cuenta la da Google y no hay contraseña: «Cerrar sesión» cierra el sistema en este navegador y deja la
+     pantalla de entrada con «Continuar como» y el botón «Ingresar». El puesto y el departamento ya se pidieron
+     la primera vez. Para entrar con otra cuenta hay que cambiarla en Google (el enlace lleva a elegirla). */
+  function cerrarSesion() {
+    confirmar('Se cierra el sistema en este navegador. Para volver a entrar solo da clic en «Ingresar».',
+      { titulo: '¿Cerrar sesión?', aceptar: 'Cerrar sesión', icono: 'log-out' }).then(function (ok) {
+      if (!ok) return;
+      guardar('sesionCerrada', 'SI');
+      if (estado.alSalir) { try { estado.alSalir(); } catch (e) { /* que no impida salir */ } estado.alSalir = null; }
+      estado.comoUsuario = '';
+      guardarPestana('verComo', '');
+      estado.sesion = DATOS.sesion;
+      estado.modulos = DATOS.modulos;
+      olvidarVistas();
+      $('#app').hidden = true;
+      mostrarLogin();
+    });
+  }
+
+  function mostrarLogin() {
+    const s = DATOS.sesion;
+    const f = clonar('vista-login');
+    const q = function (c) { return f.querySelector('[data-campo="' + c + '"]'); };
+    q('nombre').textContent = s.nombre;
+    q('correo').textContent = s.correo;
+    ponerAvatar(q('avatar'), s.nombre, leer('foto.' + s.correo));
+    if (DATOS.urlApp) q('otra').href += '?continue=' + encodeURIComponent(DATOS.urlApp);
+    f.querySelectorAll('[data-accion="ingresar"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        guardar('sesionCerrada', 'NO');
+        if (estado.entro) {
+          $('#app').hidden = false;
+          pintarUsuario();
+          pintarMenu();
+          if (DATOS.verComo.length) { $('#ver-como-lista').value = ''; $('#btn-volver-yo').hidden = true; }
+          ir('inicio', false);
+        } else {
+          entrar();
+        }
+        quitarEntrada();
+      });
+    });
+    montarEntrada(f);
+    document.querySelector('.login .boton[data-accion="ingresar"]').focus();
+  }
+
   /* ─────────── Arranque ─────────── */
   function arrancar() {
     aplicarTema(temaInicial());
@@ -404,11 +453,14 @@
 
     if (DATOS.registro && !DATOS.error) { pintarUsuarioSinAcceso(); mostrarRegistro(); return; }
     if (!DATOS.sesion.registrado) { pintarUsuarioSinAcceso(); mostrarSinAcceso(); return; }
+    if (leer('sesionCerrada') === 'SI') { pintarUsuarioSinAcceso(); mostrarLogin(); return; }
     entrar();
   }
 
   /* La app en sí: barra, menú y la primera pantalla. También después del registro, sin recargar. */
   function entrar() {
+    estado.entro = true;
+    $('#btn-salir').addEventListener('click', cerrarSesion);
     pintarUsuario();
     prepararVerComo();
     const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

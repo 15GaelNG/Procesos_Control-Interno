@@ -222,12 +222,15 @@
     let lista = null;
 
     function cancelar(s) {
-      if (!confirm('¿Cancelar la solicitud ' + s.id + ' «' + s.nombre + '»? Ya no se podrá editar ni enviar a revisión.')) return;
-      const motivo = prompt('¿Por qué la cancelas? (opcional)') || '';
-      llamar('apiCancelarSolicitud', s.id, motivo).then(function () {
-        avisar('Solicitud ' + s.id + ' cancelada.', 'exito');
-        cargar();
-      }).catch(function (e) { avisar(e.message, 'error'); });
+      pedirTexto(s.id + ' «' + s.nombre + '» ya no se podrá editar ni enviar a revisión.',
+        { titulo: '¿Cancelar la solicitud?', aceptar: 'Sí, cancelarla', cancelar: 'No', peligro: true, icono: 'ban',
+          campo: { multilinea: true, placeholder: '¿Por qué la cancelas? (opcional)' } }).then(function (motivo) {
+        if (motivo === null) return;
+        llamar('apiCancelarSolicitud', s.id, motivo).then(function () {
+          avisar('Solicitud ' + s.id + ' cancelada.', 'exito');
+          cargar();
+        }).catch(function (e) { avisar(e.message, 'error'); });
+      });
     }
 
     function pintar() {

@@ -485,7 +485,9 @@
       enviar.hidden = !d.puedeEnviar;
       enviar.disabled = deMemoria;
       enviar.addEventListener('click', function () {
-        if (!confirm('¿Enviar «' + d.nombre + '» a revisión de Procesos? Mientras la revisan no podrás editarla.')) return;
+        confirmar('Mientras Procesos la revisa no podrás editarla. Si tiene observaciones, te llegará un correo.',
+          { titulo: '¿Enviar a revisión de Procesos?', aceptar: 'Enviar', icono: 'send' }).then(function (ok) {
+        if (!ok) return;
         enviar.disabled = true;
         enviar.querySelector('span').textContent = 'Enviando…';
         llamar('apiEnviarRevision', idSolicitud).then(function (r) {
@@ -495,6 +497,7 @@
           avisar(e.message, 'error');
           enviar.disabled = false;
           enviar.querySelector('span').textContent = 'Enviar a revisión de Procesos';
+        });
         });
       });
 

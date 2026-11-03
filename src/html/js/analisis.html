@@ -328,8 +328,9 @@
           const pendientesP = datos.propuestas.filter(function (p) {
             return p.decision === 'PENDIENTE' && (x[1] === 'REDACCION' ? p.campo === 'TEXTO' : p.campo !== 'TEXTO');
           }).length;
-          if (pendientesP && !confirm('Tienes ' + pendientesP + ' propuestas sin decidir. Al volver a pedirlo se reemplazan por nuevas. ¿Continuar?')) return;
-          analizarAhora(x[1]);
+          (pendientesP ? confirmar('Tienes ' + pendientesP + ' propuestas sin decidir. Al volver a pedirlo se reemplazan por nuevas.',
+            { titulo: '¿Volver a pedirlo a la IA?', aceptar: 'Sí, volver a pedir', icono: 'sparkles' }) : Promise.resolve(true))
+            .then(function (ok) { if (ok) analizarAhora(x[1]); });
         });
       });
       pintarResultado();

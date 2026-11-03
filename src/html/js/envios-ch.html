@@ -64,14 +64,17 @@
       /* Después del Vo.Bo. Procesos todavía puede corregir el código (decisión 28). */
       if (s.puedeOperar && ['EN_AUTORIZACION_CH', 'AUTORIZADO'].indexOf(s.estado) !== -1) {
         q('codigo').after(botonIcono('pencil', 'Cambiar el código', function (b) {
-          const nuevo = (prompt('Código nuevo para «' + s.nombre + '» (ahora ' + s.codigo + '):', s.codigo) || '').trim().toUpperCase();
-          if (!nuevo || nuevo === s.codigo) return;
-          b.disabled = true;
-          llamar('apiCambiarCodigo', s.id, nuevo).then(function (r) {
-            avisar('Código cambiado a ' + r.codigo + '.', 'exito');
-            if (r.regenerar) avisar('Vuelve a generar el documento para que lleve el código nuevo.', '');
-            return cargar();
-          }).catch(function (e) { avisar(e.message, 'error'); b.disabled = false; });
+          pedirTexto('«' + s.nombre + '» tiene ahora el código ' + s.codigo + '. Mismo tipo, departamento y área; sin repetir.',
+            { titulo: 'Cambiar el código', aceptar: 'Cambiar', icono: 'pencil', campo: { valor: s.codigo } }).then(function (texto) {
+            const nuevo = (texto || '').trim().toUpperCase();
+            if (!nuevo || nuevo === s.codigo) return;
+            b.disabled = true;
+            llamar('apiCambiarCodigo', s.id, nuevo).then(function (r) {
+              avisar('Código cambiado a ' + r.codigo + '.', 'exito');
+              if (r.regenerar) avisar('Vuelve a generar el documento para que lleve el código nuevo.', '');
+              return cargar();
+            }).catch(function (e) { avisar(e.message, 'error'); b.disabled = false; });
+          });
         }));
       }
       q('version').textContent = 'Versión ' + (s.version || '0.0');
@@ -143,14 +146,16 @@
         resguardo.type = 'button';
         resguardo.innerHTML = '<i data-lucide="archive" class="ico"></i><span>No va a CH: resguardar en el sistema</span>';
         resguardo.addEventListener('click', function () {
-          const motivo = (prompt('¿Por qué «' + s.nombre + '» no pasa por CH? (p. ej. consulta interna o tema sensible)\n\n' +
-            'Queda en el inventario como «Resguardo interno», con sus archivos del Vo.Bo. (con la marca de agua, porque nadie lo autorizó en CH).') || '').trim();
-          if (!motivo) return;
-          const listo = ocupar(resguardo, 'Resguardando…');
-          llamar('apiResguardar', s.id, motivo).then(function () {
-            avisar(s.id + ' quedó en el resguardo interno del sistema.', 'exito');
-            return cargar();
-          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          pedirTexto('«' + s.nombre + '» queda en el inventario como «Resguardo interno», con sus archivos del Vo.Bo. (con la marca de agua, porque nadie lo autorizó en CH).',
+            { titulo: '¿Por qué no pasa por CH?', aceptar: 'Resguardar', icono: 'archive',
+              campo: { multilinea: true, placeholder: 'Por ejemplo: consulta interna o tema sensible', obligatorio: 'Escribe el motivo.' } }).then(function (motivo) {
+            if (!motivo) return;
+            const listo = ocupar(resguardo, 'Resguardando…');
+            llamar('apiResguardar', s.id, motivo).then(function () {
+              avisar(s.id + ' quedó en el resguardo interno del sistema.', 'exito');
+              return cargar();
+            }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          });
         });
         archivos.parentNode.appendChild(resguardo);
         return t;
@@ -170,22 +175,28 @@
       autorizado.addEventListener('submit', function (ev) {
         ev.preventDefault();
         const d = { resultado: 'AUTORIZADO', nombre: autorizado.nombre.value, puesto: autorizado.puesto.value, fecha: autorizado.fecha.value };
-        if (!confirm('¿Registrar que CH autorizó «' + s.nombre + '»? Entra al inventario como documento vigente y se genera el documento final sin marca de agua.')) return;
-        const listo = ocupar(autorizado.querySelector('button[type="submit"]'), 'Registrando…');
-        llamar('apiResultadoCH', s.id, d).then(function () {
-          irA('resueltas');
-          return generarFinal(s).then(cargar);
-        }).catch(function (err) { avisar(err.message, 'error'); listo(); });
+        confirmar('«' + s.nombre + '» entra al inventario como documento vigente y se genera el documento final sin marca de agua.',
+          { titulo: '¿CH lo autorizó?', aceptar: 'Sí, registrar', icono: 'badge-check' }).then(function (ok) {
+          if (!ok) return;
+          const listo = ocupar(autorizado.querySelector('button[type="submit"]'), 'Registrando…');
+          llamar('apiResultadoCH', s.id, d).then(function () {
+            irA('resueltas');
+            return generarFinal(s).then(cargar);
+          }).catch(function (err) { avisar(err.message, 'error'); listo(); });
+        });
       });
       rechazado.addEventListener('submit', function (ev) {
         ev.preventDefault();
-        if (!confirm('¿Registrar que CH rechazó «' + s.nombre + '»? Regresa a la bandeja de Procesos como «Rechazado en CH», con el motivo como observación, para ajustarla y volver a enviarla.')) return;
-        const listo = ocupar(rechazado.querySelector('button[type="submit"]'), 'Registrando…');
-        llamar('apiResultadoCH', s.id, { resultado: 'RECHAZADO', comentario: rechazado.comentario.value }).then(function () {
-          avisar('Registrado: está en la bandeja, pestaña «Rechazadas en CH», para retomarla.', 'exito');
-          irA('resueltas');
-          return cargar();
-        }).catch(function (err) { avisar(err.message, 'error'); listo(); });
+        confirmar('«' + s.nombre + '» regresa a la bandeja de Procesos como «Rechazado en CH», con el motivo como observación, para ajustarla y volver a enviarla.',
+          { titulo: '¿CH lo rechazó?', aceptar: 'Sí, registrar', peligro: true, icono: 'undo-2' }).then(function (ok) {
+          if (!ok) return;
+          const listo = ocupar(rechazado.querySelector('button[type="submit"]'), 'Registrando…');
+          llamar('apiResultadoCH', s.id, { resultado: 'RECHAZADO', comentario: rechazado.comentario.value }).then(function () {
+            avisar('Registrado: está en la bandeja, pestaña «Rechazadas en CH», para retomarla.', 'exito');
+            irA('resueltas');
+            return cargar();
+          }).catch(function (err) { avisar(err.message, 'error'); listo(); });
+        });
       });
       return t;
     }

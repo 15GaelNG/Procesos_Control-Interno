@@ -76,3 +76,23 @@
     <p class="nota registro-nota"><i data-lucide="shield-check" class="ico"></i><span>Entras con tu cuenta de Google <strong data-campo="correo"></strong>: no necesitas contraseña.</span></p>
   </form>
 </template>
+
+<!-- Después de «Cerrar sesión»: continuar como la misma cuenta de Google (js/app.html → mostrarLogin). -->
+<template id="vista-login">
+  <div class="tarjeta sin-acceso registro login">
+    <span class="logo-recorte logo-procesos-v logo-claro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_light.png" alt="Procesos · Documentación y Control"></span>
+    <span class="logo-recorte logo-procesos-v logo-oscuro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_dark.png" alt="Procesos · Documentación y Control"></span>
+    <div class="registro-texto">
+      <h1>Hola de nuevo</h1>
+      <p class="subtitulo">Entra con tu cuenta de Google de Ciudad Maderas.</p>
+    </div>
+    <button type="button" class="login-cuenta" data-accion="ingresar">
+      <span class="avatar login-avatar" data-campo="avatar"></span>
+      <span class="login-datos"><small>Continuar como</small><strong data-campo="nombre"></strong><span data-campo="correo"></span></span>
+      <i data-lucide="chevron-right" class="ico"></i>
+    </button>
+    <button type="button" class="boton boton-grande" data-accion="ingresar"><i data-lucide="log-in" class="ico"></i><span>Ingresar</span></button>
+    <a class="login-otra" data-campo="otra" href="https://accounts.google.com/AccountChooser" target="_top">¿No eres tú? Entra con otra cuenta de Google</a>
+    <p class="nota registro-nota"><i data-lucide="shield-check" class="ico"></i><span>No necesitas contraseña: el sistema usa tu cuenta de Google.</span></p>
+  </div>
+</template>

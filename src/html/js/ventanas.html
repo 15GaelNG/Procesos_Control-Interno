@@ -1,0 +1,86 @@
+<script>
+  /*
+   * Ventanas con el diseño del sistema en lugar de las del navegador (confirm, prompt y alert, que salen con
+   * «Una página incorporada en … dice» y no se pueden adaptar). Las dos devuelven una promesa:
+   *
+   *   confirmar(texto, { titulo, aceptar, cancelar, peligro, icono })            → true o false
+   *   pedirTexto(texto, { titulo, aceptar, cancelar, peligro, icono,
+   *                       campo: { valor, placeholder, multilinea, obligatorio } }) → el texto, o null si cancela
+   *
+   * Escape o un clic afuera cancelan; Enter acepta (salvo en un campo de varias líneas).
+   */
+  function ventana(op) {
+    return new Promise(function (resolver) {
+      const fondo = elemento('div', 'dialogo-fondo ventana-fondo');
+      fondo.setAttribute('role', 'dialog');
+      fondo.setAttribute('aria-modal', 'true');
+      const caja = elemento('div', 'tarjeta dialogo ventana' + (op.peligro ? ' peligro' : ''));
+      const cabeza = elemento('div', 'ventana-cabeza');
+      const icono = elemento('span', 'ventana-icono');
+      icono.innerHTML = '<i class="ico"></i>';
+      icono.firstChild.setAttribute('data-lucide', op.icono || (op.peligro ? 'triangle-alert' : (op.campo ? 'pencil-line' : 'circle-help')));
+      cabeza.appendChild(icono);
+      cabeza.appendChild(elemento('h2', '', op.titulo || '¿Continuar?'));
+      caja.appendChild(cabeza);
+      if (op.texto) caja.appendChild(elemento('p', 'ventana-texto', op.texto));
+      let campo = null;
+      if (op.campo) {
+        campo = elemento(op.campo.multilinea ? 'textarea' : 'input', 'ventana-campo');
+        if (op.campo.multilinea) campo.rows = 3; else campo.type = 'text';
+        campo.value = op.campo.valor || '';
+        campo.placeholder = op.campo.placeholder || '';
+        caja.appendChild(campo);
+      }
+      const error = elemento('p', 'errores');
+      error.hidden = true;
+      caja.appendChild(error);
+      const botones = elemento('div', 'ventana-botones');
+      const no = elemento('button', 'boton secundario', op.cancelar || 'Cancelar');
+      const si = elemento('button', 'boton' + (op.peligro ? ' peligro' : ''), op.aceptar || 'Aceptar');
+      no.type = 'button';
+      si.type = 'button';
+      botones.appendChild(no);
+      botones.appendChild(si);
+      caja.appendChild(botones);
+      fondo.appendChild(caja);
+
+      const cancelado = campo ? null : false;
+      function cerrar(valor) {
+        document.removeEventListener('keydown', teclas, true);
+        fondo.classList.add('saliendo');
+        setTimeout(function () { fondo.remove(); }, 180);
+        resolver(valor);
+      }
+      function aceptar() {
+        if (!campo) { cerrar(true); return; }
+        const valor = campo.value.trim();
+        if (op.campo.obligatorio && !valor) {
+          error.textContent = op.campo.obligatorio;
+          error.hidden = false;
+          campo.focus();
+          return;
+        }
+        cerrar(valor);
+      }
+      function teclas(e) {
+        if (e.key === 'Escape') { e.preventDefault(); cerrar(cancelado); }
+        else if (e.key === 'Enter' && !(campo && op.campo.multilinea && e.target === campo)) { e.preventDefault(); aceptar(); }
+      }
+      no.addEventListener('click', function () { cerrar(cancelado); });
+      si.addEventListener('click', aceptar);
+      fondo.addEventListener('click', function (e) { if (e.target === fondo) cerrar(cancelado); });
+      document.addEventListener('keydown', teclas, true);
+      document.body.appendChild(fondo);
+      pintarIconos();
+      (campo || si).focus();
+    });
+  }
+
+  function confirmar(texto, op) {
+    return ventana(Object.assign({}, op, { texto: texto, campo: null }));
+  }
+
+  function pedirTexto(texto, op) {
+    return ventana(Object.assign({}, op, { texto: texto, campo: Object.assign({}, op && op.campo) }));
+  }
+</script>

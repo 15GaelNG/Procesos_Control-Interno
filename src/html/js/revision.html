@@ -109,10 +109,13 @@
       const liberar = accion('liberar');
       liberar.hidden = !d.puedeDecidir;
       liberar.addEventListener('click', function () {
-        if (!confirm('¿Liberarla? Regresa a «Sin asignar» para que otro revisor la tome. Las observaciones que hiciste se quedan.')) return;
-        liberar.disabled = true;
-        llamar('apiLiberar', idSolicitud).then(function () { avisar('Regresó a la bandeja sin asignar.', 'exito'); volverABandeja(); })
-          .catch(function (e) { avisar(e.message, 'error'); liberar.disabled = false; });
+        confirmar('Regresa a «Sin asignar» para que otro revisor la tome. Las observaciones que hiciste se quedan.',
+          { titulo: '¿Liberarla?', aceptar: 'Liberar', icono: 'undo-2' }).then(function (ok) {
+          if (!ok) return;
+          liberar.disabled = true;
+          llamar('apiLiberar', idSolicitud).then(function () { avisar('Regresó a la bandeja sin asignar.', 'exito'); volverABandeja(); })
+            .catch(function (e) { avisar(e.message, 'error'); liberar.disabled = false; });
+        });
       });
       const aviso = textoAviso();
       q('aviso').hidden = !aviso;
@@ -219,12 +222,15 @@
           const tipo = ui.querySelector('input[name="tipoCambio"]:checked');
           if (d.actualizacion && !tipo) { avisar('Elige si es una actualización mayor o menor.', 'error'); return; }
           if (!q('mi-puesto').value.trim()) { avisar('Escribe tu puesto: sale en «Revisó» del documento.', 'error'); q('mi-puesto').focus(); return; }
-          if (!confirm('¿Dar el Vo.Bo. de Procesos a «' + d.nombre + '» con el código ' + c + '? Quedará lista para la autorización en el sistema CH.')) return;
-          const listo = ocupar(vobo, 'Registrando…');
-          llamar('apiVoBo', idSolicitud, c, tipo ? tipo.value : '', q('mi-puesto').value).then(function (r) {
-            avisar('Vo.Bo. registrado: ' + r.codigo + '.', 'exito');
-            volverABandeja();
-          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          confirmar('«' + d.nombre + '» queda con el código ' + c + ', lista para la autorización en el sistema CH.',
+            { titulo: '¿Dar el Vo.Bo. de Procesos?', aceptar: 'Dar el Vo.Bo.', icono: 'stamp' }).then(function (ok) {
+            if (!ok) return;
+            const listo = ocupar(vobo, 'Registrando…');
+            llamar('apiVoBo', idSolicitud, c, tipo ? tipo.value : '', q('mi-puesto').value).then(function (r) {
+              avisar('Vo.Bo. registrado: ' + r.codigo + '.', 'exito');
+              volverABandeja();
+            }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          });
         });
 
         const devolver = accion('devolver');
@@ -232,24 +238,30 @@
         q('devolver-impedimento').hidden = !!porAtender;
         q('devolver-impedimento').textContent = 'Para devolverla agrega al menos una observación: el colaborador necesita saber qué corregir.';
         devolver.addEventListener('click', function () {
-          if (!confirm('¿Devolver «' + d.nombre + '» al colaborador con ' + porAtender + (porAtender === 1 ? ' observación' : ' observaciones') + ' por atender?')) return;
-          const listo = ocupar(devolver, 'Devolviendo…');
-          llamar('apiDevolver', idSolicitud).then(function () {
-            avisar('Devuelta al colaborador con observaciones.', 'exito');
-            volverABandeja();
-          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          confirmar('«' + d.nombre + '» regresa al colaborador con ' + porAtender + (porAtender === 1 ? ' observación' : ' observaciones') + ' por atender. Le llega un correo.',
+            { titulo: '¿Devolver al colaborador?', aceptar: 'Devolver', icono: 'message-square-warning' }).then(function (ok) {
+            if (!ok) return;
+            const listo = ocupar(devolver, 'Devolviendo…');
+            llamar('apiDevolver', idSolicitud).then(function () {
+              avisar('Devuelta al colaborador con observaciones.', 'exito');
+              volverABandeja();
+            }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          });
         });
 
         const cerrar = accion('no-procedente');
         cerrar.addEventListener('click', function () {
           const motivo = q('motivo').value.trim();
           if (!motivo) { avisar('Escribe el motivo: el colaborador lo verá.', 'error'); q('motivo').focus(); return; }
-          if (!confirm('¿Cerrar «' + d.nombre + '» como no procedente? Ya no se podrá editar ni reenviar.')) return;
-          const listo = ocupar(cerrar, 'Cerrando…');
-          llamar('apiNoProcedente', idSolicitud, motivo).then(function () {
-            avisar('Se cerró como no procedente.', 'exito');
-            volverABandeja();
-          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          confirmar('«' + d.nombre + '» se cierra y ya no se podrá editar ni reenviar. No consume código.',
+            { titulo: '¿Cerrar como no procedente?', aceptar: 'Cerrar', peligro: true }).then(function (ok) {
+            if (!ok) return;
+            const listo = ocupar(cerrar, 'Cerrando…');
+            llamar('apiNoProcedente', idSolicitud, motivo).then(function () {
+              avisar('Se cerró como no procedente.', 'exito');
+              volverABandeja();
+            }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          });
         });
       }
 
@@ -262,13 +274,16 @@
         cambiarB.addEventListener('click', function () {
           const c = nuevo.value.trim().toUpperCase();
           if (!c || c === d.codigo) { avisar('Escribe el código nuevo.', 'error'); nuevo.focus(); return; }
-          if (!confirm('¿Cambiar el código de ' + d.codigo + ' a ' + c + '?')) return;
-          const listo = ocupar(cambiarB, 'Cambiando…');
-          llamar('apiCambiarCodigo', idSolicitud, c).then(function (r) {
-            avisar('Código cambiado a ' + r.codigo + '.', 'exito');
-            if (r.regenerar) avisar('Vuelve a generar el documento para que lleve el código nuevo.', '');
-            return cargar();
-          }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          confirmar('El código pasa de ' + d.codigo + ' a ' + c + '. Si ya había documento generado, hay que volver a generarlo.',
+            { titulo: '¿Cambiar el código?', aceptar: 'Cambiar', icono: 'pencil' }).then(function (ok) {
+            if (!ok) return;
+            const listo = ocupar(cambiarB, 'Cambiando…');
+            llamar('apiCambiarCodigo', idSolicitud, c).then(function (r) {
+              avisar('Código cambiado a ' + r.codigo + '.', 'exito');
+              if (r.regenerar) avisar('Vuelve a generar el documento para que lleve el código nuevo.', '');
+              return cargar();
+            }).catch(function (e) { avisar(e.message, 'error'); listo(); });
+          });
         });
       }
 

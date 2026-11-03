@@ -88,6 +88,10 @@ Script ligado a la hoja **BD Procesos** (y su copia de pruebas). Qué es, decisi
 - Los colores salen de los tokens de `:root`; en oscuro `--primario` es claro, así que el texto encima
   usa `--sobre-primario`, nunca blanco fijo.
 
+## Pantallas
+- Nada de `confirm`, `prompt` ni `alert` del navegador: `confirmar(texto, op)` y `pedirTexto(texto, op)`
+  (js/ventanas.html) devuelven una promesa y tienen el diseño del sistema (decisión 51).
+
 ## Trampas de Apps Script en archivos `.html` (aprendidas en Control Interno)
 - **Nunca `//` seguido de texto en código real de un `.html`:** Apps Script lo toma como comentario
   aunque esté dentro de un string y corta la línea. Las URLs en JS van como `'https:\/\/…'`.

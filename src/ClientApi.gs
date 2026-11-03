@@ -393,6 +393,24 @@ function apiRegistrarEnvioCH(comoUsuario, idSolicitud, datos) {
   return registrarEnvioCH_(sesion, idSolicitud, datos);
 }
 
+/** Pantalla «Plantillas y parámetros» (decisión 49). Soporte CI la consulta. */
+function apiPlantillasParametros(comoUsuario) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR', 'SOPORTE_CI']);
+  return pantallaPlantillasParametros_(sesion);
+}
+
+/** Cambia parámetros de Config. cambios: { CLAVE: 'valor' } (solo los de PARAMETROS_PANTALLA). */
+function apiGuardarParametros(comoUsuario, cambios) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  return guardarParametros_(sesion, cambios);
+}
+
+/** Habilita o quita un tipo de documento de los que se pueden elegir al crear una solicitud. */
+function apiCambiarTipoDocumento(comoUsuario, idTipo, enSistema) {
+  const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['ADMINISTRADOR']);
+  return cambiarTipoDocumento_(sesion, idTipo, enSistema);
+}
+
 /** Una rechazada en CH regresa a revisión con quien la retoma (decisión 43). */
 function apiRetomarRechazada(comoUsuario, idSolicitud) {
   const sesion = requierePerfil_(sesionEfectiva_(comoUsuario), ['REVISOR']);

@@ -62,6 +62,9 @@
 | 46 | **Consecutivo del código por tipo + departamento + área** (Gael, 03/11; responde la pregunta F): confirma lo que ya hace el sistema (`P-CI04-001`, `P-CI04-002`…). | 03/11/2026 |
 | 47 | **A CH solo sube Procesos** (Gael, 03/11: «Solo lo sube Marquitos»): el colaborador no sube nada a CH. Procesos descarga los archivos con el Vo.Bo., los sube y registra aquí la subida y el resultado (como en la decisión 15). | 03/11/2026 |
 | 48 | **Pantalla de entrada como la de SIVET** (Gael, 03/11): fotos de Ciudad Maderas que cambian solas (claras u oscuras según el tema), logos de Ciudad Maderas, Control Interno y Procesos, y cambio de tema. Sale la primera vez (registro) o si no hay acceso; al registrarse se entra sin volver a cargar la página. | 03/11/2026 |
+| 49 | **Pantalla «Plantillas y parámetros»** (Gael, 03/11; requerimiento §1 del administrador): una sola plantilla para todos los tipos (decisión 36), así que muestra la plantilla institucional (preliminar y final, con su fecha y enlace), qué tipos se pueden elegir (el administrador los habilita o quita; siempre queda uno) y los parámetros de `Config` editables (`PARAMETROS_PANTALLA`, validados por tipo). La marca de agua solo se ve: va dentro de la plantilla. Soporte CI consulta. | 03/11/2026 |
+| 50 | **Cerrar sesión y volver a entrar** (Gael, 03/11): botón arriba a la derecha. Como la cuenta la da Google (no hay contraseña), cierra el sistema en ese navegador y deja la pantalla de entrada con «Continuar como» (foto, nombre y correo) y «Ingresar»; el puesto y el departamento ya se pidieron la primera vez. Para entrar con otra cuenta, el enlace lleva a elegirla en Google. | 03/11/2026 |
+| 51 | **Ventanas con el diseño del sistema** (Gael, 03/11): ninguna pantalla usa `confirm`, `prompt` ni `alert` del navegador (salen con «Una página incorporada en … dice»); se usan `confirmar` y `pedirTexto` (js/ventanas.html). | 03/11/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 

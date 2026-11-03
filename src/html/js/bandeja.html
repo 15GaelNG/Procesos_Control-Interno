@@ -57,12 +57,15 @@
 
     function reasignar(s, lista) {
       const nombre = lista.options[lista.selectedIndex].textContent;
-      if (!confirm('¿Asignar ' + s.id + ' «' + s.nombre + '» a ' + nombre + '?')) { lista.value = s.revisorId; return; }
-      lista.disabled = true;
-      llamar('apiReasignar', s.id, lista.value).then(function () {
-        avisar(s.id + ' ahora está asignada a ' + nombre + '.', 'exito');
-        return cargar();
-      }).catch(function (e) { avisar(e.message, 'error'); lista.value = s.revisorId; lista.disabled = false; });
+      const elegido = lista.value;
+      confirmar(s.id + ' «' + s.nombre + '» pasará a ' + nombre + '.', { titulo: '¿Asignar a ' + nombre + '?', aceptar: 'Asignar', icono: 'user-check' }).then(function (ok) {
+        if (!ok) { lista.value = s.revisorId; return; }
+        lista.disabled = true;
+        llamar('apiReasignar', s.id, elegido).then(function () {
+          avisar(s.id + ' ahora está asignada a ' + nombre + '.', 'exito');
+          return cargar();
+        }).catch(function (e) { avisar(e.message, 'error'); lista.value = s.revisorId; lista.disabled = false; });
+      });
     }
 
     function selectorRevisor(s) {

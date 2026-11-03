@@ -153,12 +153,29 @@ Mandar capturas de lo que se vea raro.
 - [ ] Regla «nadie cambia sus propios perfiles ni se da de baja» (agregada el 20/10/2026 junto con la
   decisión 19). Si no se quiere, se quita en `planGuardarUsuario_`.
 
-## 4. Antes de pasar a producción
+## 4. Pasar a producción (paso a paso)
 
-- [ ] Gael valida en pruebas.
-- [ ] `npm run produccion -- "…"` desde un commit limpio.
-- [ ] En el editor de **BD Procesos**: `instalarProduccion()`, `verificarBase()`, `importarCatalogoInicial()`.
-- [ ] Crear la implementación de la web app de producción y poner su ID en `tools/subir.js`.
-- [ ] Dar de alta a los usuarios reales (Procesos, colaboradores) en la pantalla de usuarios.
-- [ ] Capturar `IA_LLAVE` de producción (ya está, revisar que siga) y poner `Config → IA_ACTIVA = SI`
-  cuando la fase 3 esté lista.
+**A. En pruebas (Gael)**
+- [ ] Recorrer la versión 19: Plantillas y parámetros, cerrar sesión, las ventanas nuevas y lo de la sección 1.2.
+- [ ] Decirle a Claude «sube a producción».
+
+**B. Subir el código (Claude)**
+- [ ] `npm run produccion -- "Versión 1.0"`: sube el código a **BD Procesos** desde el último commit (ya en GitHub).
+
+**C. Preparar BD Procesos (Gael, en su editor de Apps Script: Extensiones → Apps Script, elegir la función, Ejecutar)**
+1. [ ] `instalarProduccion()`: crea o pone al día las hojas, carpetas y el valor de cada parámetro, y te da de alta como administrador.
+2. [ ] `verificarBase()`: debe decir `"correcto": true`.
+3. [ ] `importarCatalogoInicial()`: departamentos, áreas y subáreas.
+4. [ ] Subir `plantillas/Procedimiento.docx` a la carpeta `01 Producción/Plantillas` (si no está) y correr `prepararPlantillas()`.
+5. [ ] `probarAvisos()` (acepta el permiso de correo; te llega uno de prueba) y `autorizarFotos()` (dos veces, marcando todas las casillas).
+6. [ ] Propiedades del script → que exista `IA_LLAVE`. En la hoja `Config`: `IA_ACTIVA = SI` y `CORREO_PROCESOS = procesos.ci@ciudadmaderas.com`.
+
+**D. Publicar la web app (Claude)**
+- [ ] Crear la implementación de producción con clasp, poner su ID en `tools/subir.js` (las siguientes subidas usan el mismo link) y pasarle a Gael el link.
+
+**E. Usuarios (Gael, en la app de producción → Usuarios y perfiles)**
+- [ ] procesos.ci@ciudadmaderas.com (Marco): **Administrador y Revisor**. Los demás revisores de Procesos: **Revisor**.
+- [ ] Los colaboradores no se dan de alta: se registran solos la primera vez (nombre, puesto y departamento).
+
+**F. Avisar**
+- [ ] Compartir el link y el manual de usuario.

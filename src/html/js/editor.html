@@ -328,9 +328,12 @@
         usar.querySelector('span').textContent = hayCaptura ? 'Reemplazar mis actividades' : 'Usar estas actividades';
         agregar.hidden = !hayCaptura;
         usar.addEventListener('click', function () {
-          if (hayCaptura && !confirm('¿Reemplazar tus actividades actuales (con sus imágenes) por las del documento?')) return;
-          cerrar();
-          usarImportacion(r, true);
+          (hayCaptura ? confirmar('Tus actividades actuales (con sus imágenes) se cambian por las del documento.',
+            { titulo: '¿Reemplazar tus actividades?', aceptar: 'Reemplazar', peligro: true }) : Promise.resolve(true)).then(function (ok) {
+            if (!ok) return;
+            cerrar();
+            usarImportacion(r, true);
+          });
         });
         agregar.addEventListener('click', function () { cerrar(); usarImportacion(r, false); });
       }).catch(function (e) {
@@ -437,10 +440,12 @@
         fig.querySelector('[data-accion="izquierda"]').addEventListener('click', function () { mover(-1); });
         fig.querySelector('[data-accion="derecha"]').addEventListener('click', function () { mover(1); });
         fig.querySelector('[data-accion="quitar"]').addEventListener('click', function () {
-          if (!confirm('¿Quitar esta imagen de la actividad?')) return;
-          actividad.imagenes.splice(actividad.imagenes.indexOf(im), 1);
-          pintarImagenesDe(actividad);
-          marcarCambio();
+          confirmar('La imagen se quita de esta actividad.', { titulo: '¿Quitar la imagen?', aceptar: 'Quitar', peligro: true, icono: 'image-off' }).then(function (ok) {
+            if (!ok) return;
+            actividad.imagenes.splice(actividad.imagenes.indexOf(im), 1);
+            pintarImagenesDe(actividad);
+            marcarCambio();
+          });
         });
         caja.appendChild(f);
       });
@@ -516,12 +521,15 @@
         nodo.querySelector('[data-accion="eliminar"]').addEventListener('click', function () {
           if (actividad.imagenes.some(function (im) { return im.subiendo; })) { avisar('Espera a que terminen de subir sus imágenes.', 'error'); return; }
           const tieneAlgo = actividad.texto.trim() || actividad.imagenes.length || actividad.enlaces.length;
-          if (tieneAlgo && !confirm('¿Eliminar la actividad ' + (i + 1) + (actividad.imagenes.length ? ' y sus imágenes' : '') + '?')) return;
-          sol.actividades.splice(i, 1);
-          if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
-          pintarActividades();
-          pintarComentarios();
-          marcarCambio();
+          (tieneAlgo ? confirmar('Se borra lo que escribiste en ella' + (actividad.imagenes.length ? ' y sus imágenes' : '') + '.',
+            { titulo: '¿Eliminar la actividad ' + (i + 1) + '?', aceptar: 'Eliminar', peligro: true, icono: 'trash-2' }) : Promise.resolve(true)).then(function (ok) {
+            if (!ok) return;
+            sol.actividades.splice(sol.actividades.indexOf(actividad), 1);
+            if (!sol.actividades.length) sol.actividades.push(nuevaActividad());
+            pintarActividades();
+            pintarComentarios();
+            marcarCambio();
+          });
         });
 
         nodo.querySelector('[data-accion="agregar-enlace"]').addEventListener('click', function () {

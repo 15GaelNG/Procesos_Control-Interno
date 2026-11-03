@@ -1,0 +1,150 @@
+<script>
+  /*
+   * «Plantillas y parámetros» (apiPlantillasParametros, apiGuardarParametros, apiCambiarTipoDocumento; decisión 49).
+   * La plantilla institucional (una para todos los tipos), qué tipos se pueden elegir y los parámetros de Config.
+   * El administrador cambia; Soporte CI consulta.
+   */
+  function iniciarPlantillas(raiz) {
+    const contenido = raiz.querySelector('[data-campo="contenido"]');
+    let datos = null;
+
+    function tarjetaPlantilla() {
+      const t = elemento('div', 'tarjeta parametros-bloque');
+      t.appendChild(elemento('h2', 'subtitulo-seccion', 'Plantilla institucional'));
+      t.appendChild(elemento('p', 'nota', 'Todos los tipos de documento usan esta plantilla: el tipo sale escrito en la portada. ' +
+        'La preliminar lleva «' + datos.plantilla.marcaAgua + '»; la final, sin marca, solo se usa cuando CH autoriza.'));
+      const lista = elemento('div', 'archivos');
+      [['Preliminar (con marca de agua)', datos.plantilla.preliminar], ['Final (sin marca)', datos.plantilla.final]].forEach(function (x) {
+        const fila = elemento('div', 'archivo');
+        fila.appendChild(elemento('span', 'archivo-formato', 'DOC'));
+        const d = elemento('div', 'archivo-datos');
+        d.appendChild(elemento('strong', '', x[0]));
+        d.appendChild(elemento('span', 'nota', x[1] ? x[1].nombre + (x[1].actualizado ? ' · cambió el ' + x[1].actualizado : '') : 'Todavía no se registra: corre prepararPlantillas en el editor.'));
+        fila.appendChild(d);
+        if (x[1] && x[1].url) {
+          const a = elemento('a', 'boton secundario chico');
+          a.href = x[1].url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.innerHTML = '<i data-lucide="external-link" class="ico"></i><span>Abrir</span>';
+          fila.appendChild(a);
+        }
+        lista.appendChild(fila);
+      });
+      t.appendChild(lista);
+      t.appendChild(elemento('p', 'nota', 'Para cambiarla: sube el Word nuevo a la carpeta «Plantillas» del ambiente y corre prepararPlantillas en el editor de Apps Script.'));
+      return t;
+    }
+
+    function tarjetaTipos() {
+      const t = elemento('div', 'tarjeta parametros-bloque');
+      t.appendChild(elemento('h2', 'subtitulo-seccion', 'Tipos de documento'));
+      t.appendChild(elemento('p', 'nota', 'Los que se pueden elegir al crear una solicitud. El prefijo es el inicio del código (P-CI04-001).'));
+      datos.tipos.forEach(function (tipo) {
+        const fila = elemento('div', 'parametro');
+        const d = elemento('div', 'parametro-datos');
+        const nombre = elemento('strong', '', tipo.nombre);
+        nombre.appendChild(elemento('span', 'chip neutro', tipo.prefijo));
+        d.appendChild(nombre);
+        d.appendChild(elemento('span', 'nota', tipo.propia ? 'Con plantilla propia' : 'Usa la plantilla institucional'));
+        fila.appendChild(d);
+        const sw = elemento('label', 'interruptor');
+        const caja = elemento('input');
+        caja.type = 'checkbox';
+        caja.checked = tipo.enSistema;
+        caja.disabled = !datos.puedeEditar;
+        sw.appendChild(caja);
+        sw.appendChild(elemento('span', '', 'Se puede elegir'));
+        caja.addEventListener('change', function () {
+          caja.disabled = true;
+          llamar('apiCambiarTipoDocumento', tipo.id, caja.checked).then(function () {
+            tipo.enSistema = caja.checked;
+            avisar(tipo.nombre + (caja.checked ? ' ya se puede elegir.' : ' ya no se puede elegir.'), 'exito');
+          }).catch(function (e) { caja.checked = tipo.enSistema; avisar(e.message, 'error'); })
+            .then(function () { caja.disabled = false; });
+        });
+        fila.appendChild(sw);
+        t.appendChild(fila);
+      });
+      return t;
+    }
+
+    function control(p) {
+      if (p.tipo === 'SI_NO') {
+        const sw = elemento('label', 'interruptor');
+        const caja = elemento('input');
+        caja.type = 'checkbox';
+        caja.checked = p.valor.toUpperCase() === 'SI';
+        caja.disabled = !datos.puedeEditar || !p.editable;
+        sw.appendChild(caja);
+        sw.appendChild(elemento('span', '', caja.checked ? 'Sí' : 'No'));
+        caja.addEventListener('change', function () { sw.lastChild.textContent = caja.checked ? 'Sí' : 'No'; });
+        return { nodo: sw, valor: function () { return caja.checked ? 'SI' : 'NO'; } };
+      }
+      const campo = elemento('input', 'parametro-campo');
+      campo.type = p.tipo === 'NUMERO' ? 'number' : 'text';
+      if (p.tipo === 'NUMERO') { campo.min = p.min; campo.max = p.max; campo.step = p.max <= 1 ? '0.01' : '1'; }
+      campo.value = p.valor;
+      campo.readOnly = !datos.puedeEditar || !p.editable;
+      return { nodo: campo, valor: function () { return campo.value; } };
+    }
+
+    function tarjetaParametros() {
+      const t = elemento('div', 'tarjeta parametros-bloque');
+      t.appendChild(elemento('h2', 'subtitulo-seccion', 'Parámetros del sistema'));
+      const controles = [];
+      let grupo = '';
+      datos.parametros.forEach(function (p) {
+        if (p.grupo !== grupo) { grupo = p.grupo; t.appendChild(elemento('h3', 'parametros-grupo', grupo)); }
+        const fila = elemento('div', 'parametro');
+        const d = elemento('div', 'parametro-datos');
+        d.appendChild(elemento('strong', '', p.etiqueta));
+        d.appendChild(elemento('span', 'nota', p.ayuda));
+        fila.appendChild(d);
+        const c = control(p);
+        fila.appendChild(c.nodo);
+        t.appendChild(fila);
+        if (p.editable) controles.push({ p: p, c: c });
+      });
+      if (datos.puedeEditar) {
+        const pie = elemento('div', 'acciones-formulario');
+        const guardar = elemento('button', 'boton');
+        guardar.type = 'button';
+        guardar.innerHTML = '<i data-lucide="check" class="ico"></i><span>Guardar cambios</span>';
+        guardar.addEventListener('click', function () {
+          const cambios = {};
+          controles.forEach(function (x) { if (String(x.c.valor()).trim() !== String(x.p.valor).trim()) cambios[x.p.clave] = x.c.valor(); });
+          if (!Object.keys(cambios).length) { avisar('No cambiaste nada.'); return; }
+          guardar.disabled = true;
+          llamar('apiGuardarParametros', cambios).then(function (r) {
+            avisar(r.cambios === 1 ? 'Se guardó 1 cambio.' : 'Se guardaron ' + r.cambios + ' cambios.', 'exito');
+            olvidarVistas();
+            return cargar();
+          }).catch(function (e) { avisar(e.message, 'error'); guardar.disabled = false; });
+        });
+        pie.appendChild(guardar);
+        t.appendChild(pie);
+      }
+      return t;
+    }
+
+    function cargar() {
+      return llamar('apiPlantillasParametros').then(function (r) {
+        if (!contenido.isConnected) return;
+        datos = r;
+        raiz.querySelector('[data-campo="solo-lectura"]').hidden = r.puedeEditar;
+        contenido.textContent = '';
+        contenido.appendChild(tarjetaPlantilla());
+        contenido.appendChild(tarjetaTipos());
+        contenido.appendChild(tarjetaParametros());
+        pintarIconos();
+      }).catch(function (e) {
+        if (!contenido.isConnected) return;
+        contenido.textContent = '';
+        contenido.appendChild(estadoVacio('triangle-alert', 'No se pudo cargar', e.message));
+        pintarIconos();
+      });
+    }
+    cargar();
+  }
+</script>

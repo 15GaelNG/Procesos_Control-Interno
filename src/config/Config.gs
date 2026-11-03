@@ -169,6 +169,37 @@ const FOTO_PERFIL_PX = 96;
 const FOTO_CACHE_SEGUNDOS = 21600;
 const FOTOS_POR_LLAMADA = 25;
 
+// Pantalla «Plantillas y parámetros» (PlantillasParametros.gs, decisión 49): qué parámetros de Config se ven y
+// cuáles se cambian ahí, con su tipo (SI_NO, NUMERO con su rango, CORREOS o TEXTO). La marca de agua va dentro de
+// la plantilla misma: aquí solo se ve. Los que no están en la lista (proveedor y modelo de la IA, prefijo del folio)
+// se quedan en la hoja.
+const PARAMETROS_PANTALLA = {
+  REGISTRO_ABIERTO: { grupo: 'Acceso', etiqueta: 'Registro la primera vez', tipo: 'SI_NO',
+    ayuda: 'Quien entra con su correo de la empresa y no está dado de alta se registra solo como colaborador. Con No, lo da de alta el administrador.' },
+  AVISOS_CORREO: { grupo: 'Avisos por correo', etiqueta: 'Mandar avisos por correo', tipo: 'SI_NO',
+    ayuda: 'A Procesos cuando llega una solicitud y al colaborador con observaciones, Vo.Bo. y el resultado de CH.' },
+  CORREO_PROCESOS: { grupo: 'Avisos por correo', etiqueta: 'Correo del área de Procesos', tipo: 'CORREOS',
+    ayuda: 'Recibe el aviso de cada solicitud que llega, además del revisor al que le tocó. Varios, separados por coma.' },
+  IA_ACTIVA: { grupo: 'Inteligencia artificial', etiqueta: 'IA activa', tipo: 'SI_NO',
+    ayuda: 'Con No, el sistema funciona sin la IA: todo se escribe a mano.' },
+  IA_SUGERIR_AL_ESCRIBIR: { grupo: 'Inteligencia artificial', etiqueta: 'Sugerir redacción mientras se escribe', tipo: 'SI_NO',
+    ayuda: 'La IA sugiere cómo redactar cada actividad en el paso 3.' },
+  IA_MAX_LLAMADAS_DIA: { grupo: 'Inteligencia artificial', etiqueta: 'Análisis por día (tope)', tipo: 'NUMERO', min: 0, max: 1500,
+    ayuda: 'Cuántas veces al día se puede pedir corregir o analizar con IA, para no rebasar la cuota gratuita.' },
+  IA_MAX_SUGERENCIAS_DIA: { grupo: 'Inteligencia artificial', etiqueta: 'Sugerencias por día (tope)', tipo: 'NUMERO', min: 0, max: 5000,
+    ayuda: 'Tope aparte para las sugerencias mientras se escribe.' },
+  IMG_MAX_POR_ACTIVIDAD: { grupo: 'Imágenes', etiqueta: 'Imágenes por actividad', tipo: 'NUMERO', min: 1, max: 30,
+    ayuda: 'Cuántas capturas se pueden agregar a cada actividad.' },
+  IMG_ANCHO_MAX: { grupo: 'Imágenes', etiqueta: 'Ancho máximo (px)', tipo: 'NUMERO', min: 800, max: 3000,
+    ayuda: 'Las imágenes más anchas se reducen al subirlas.' },
+  IMG_CALIDAD: { grupo: 'Imágenes', etiqueta: 'Calidad de compresión', tipo: 'NUMERO', min: 0.5, max: 1,
+    ayuda: 'De 0.5 a 1. Más alto = más nítida y más pesada.' },
+  IMG_PESO_OBJETIVO_KB: { grupo: 'Imágenes', etiqueta: 'Peso objetivo por imagen (KB)', tipo: 'NUMERO', min: 50, max: 2000,
+    ayuda: 'El peso al que se intenta llegar al optimizar cada imagen.' },
+  MARCA_AGUA_TEXTO: { grupo: 'Documentos', etiqueta: 'Leyenda de la marca de agua', tipo: 'TEXTO', editable: false,
+    ayuda: 'Va dentro de la plantilla; para cambiarla hay que cambiar la plantilla.' }
+};
+
 // El tipo cuya plantilla usan todos los que no tengan la suya (decisión 36): Procedimiento.
 const TIPO_PLANTILLA_GENERAL = 'TD-02';
 
