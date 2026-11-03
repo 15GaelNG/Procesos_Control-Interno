@@ -108,5 +108,10 @@ function registrarme_(sesion, datos) {
     registrarBitacora_(yo, modo === 'ALTA' ? 'REGISTRO_PROPIO' : 'DATOS_PROPIOS',
       [modo === 'ALTA' ? correo + ' como colaborador' : '', puesto ? 'puesto ' + puesto : '', depto ? 'departamento ' + depto : ''].filter(Boolean).join('; '));
   });
-  return { modo: modo };
+  // La sesión y las pantallas de regreso: la app entra sin volver a cargar la página (que tarda varios segundos).
+  const usuarios = leerTablaFresca_('Usuarios');
+  const perfiles = leerTablaFresca_('UsuarioPerfiles');
+  const nueva = buscarSesion_(correo, usuarios, perfiles);
+  return { modo: modo, sesion: nueva, modulos: nueva.registrado ? modulosDe_(nueva.perfiles) : [],
+    verComo: puedeVerComo_(ambienteActual_(), nueva) ? usuariosParaVerComo_(usuarios, perfiles) : [] };
 }

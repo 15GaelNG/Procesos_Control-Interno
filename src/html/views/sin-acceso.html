@@ -1,3 +1,37 @@
+<!-- Pantalla de entrada (js/entrada.html → montarEntrada): fotos y logos a la izquierda, la tarjeta a la derecha. -->
+<template id="vista-entrada">
+  <div class="entrada">
+    <section class="entrada-hero">
+      <div class="entrada-escenas" data-base="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/"></div>
+      <div class="entrada-velo"></div>
+      <div class="entrada-marcas">
+        <img class="entrada-cm" src="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/CMTC-Dark.png" alt="Ciudad Maderas">
+        <span class="entrada-separador"></span>
+        <span class="entrada-ci"><img src="https://raw.githubusercontent.com/15GaelNG/Inventario_Control-Interno/master/assets/logo.png" alt=""><span>Control<br>Interno</span></span>
+      </div>
+      <div class="entrada-cuerpo">
+        <span class="logo-recorte logo-procesos-h entrada-procesos"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_horizontal_dark.png" alt="Procesos · Documentación y Control"></span>
+        <h1 class="entrada-titulo">Tus procesos, <em>documentados y en orden</em>.</h1>
+        <p class="entrada-sub">Escribe cómo trabajas actividad por actividad, con sus capturas. La IA te ayuda con la redacción y el área de Procesos lo revisa antes de su autorización.</p>
+      </div>
+      <div class="entrada-funciones">
+        <div class="entrada-funcion"><i data-lucide="pen-line" class="ico"></i><span>Documenta</span></div>
+        <div class="entrada-funcion"><i data-lucide="sparkles" class="ico"></i><span>La IA te ayuda</span></div>
+        <div class="entrada-funcion"><i data-lucide="clipboard-check" class="ico"></i><span>Procesos revisa</span></div>
+        <div class="entrada-funcion"><i data-lucide="library" class="ico"></i><span>Inventario</span></div>
+      </div>
+    </section>
+    <section class="entrada-panel">
+      <div class="selector-tema entrada-tema" role="group" aria-label="Tema">
+        <button type="button" class="btn-tema" data-tema="light" title="Modo claro"><i data-lucide="sun" class="ico"></i></button>
+        <button type="button" class="btn-tema" data-tema="dark" title="Modo oscuro"><i data-lucide="moon" class="ico"></i></button>
+      </div>
+      <div data-campo="tarjeta"></div>
+      <p class="entrada-pie">Ciudad Maderas · Control Interno · Procesos</p>
+    </section>
+  </div>
+</template>
+
 <template id="vista-sin-acceso">
   <div class="tarjeta sin-acceso">
     <span class="logo-recorte logo-procesos-v logo-claro"><img src="https://raw.githubusercontent.com/15GaelNG/Imagenes-Ciudad-Maderas/main/procesos_logo_vertical_light.png" alt="Procesos · Documentación y Control"></span>

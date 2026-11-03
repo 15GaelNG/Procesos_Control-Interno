@@ -59,6 +59,9 @@
 | 43 | **Rechazo en CH: regresa al panel de Procesos** (Procesos, 03/11; responde la pregunta D y reemplaza lo provisional de la decisión 24): estado nuevo `RECHAZADO_CH` («Rechazado en CH»), con el motivo como observación y sin el Vo.Bo.; aparece en la bandeja, pestaña «Rechazadas en CH». Un revisor la **retoma** (pasa a `EN_REVISION` con él): la ajusta, la devuelve al colaborador si hace falta y le da otro Vo.Bo. con el mismo código. Avisa al colaborador y a su revisor. | 03/11/2026 |
 | 44 | **Resguardo interno de lo que no pasa por CH** (Procesos, 03/11; responde la pregunta I): en «Envíos a CH → Por subir», «No va a CH: resguardar en el sistema» con su motivo (consultas internas o temas sensibles). La solicitud queda `RESGUARDADO` y entra al inventario con estatus `RESGUARDO` y los archivos del Vo.Bo., que **conservan «COPIA NO AUTORIZADA»** porque nadie lo autorizó en CH (§4.4). Se puede actualizar como uno vigente. | 03/11/2026 |
 | 45 | **Registro propio la primera vez** (Gael, 03/11): no es un inicio de sesión (no hay usuario ni contraseña; Google ya dice quién es). Quien entra con su correo de la empresa y no está dado de alta escribe su nombre, su puesto y su departamento y queda como **colaborador**; otros perfiles los da el administrador. A quien ya está dado de alta y le falta el puesto (o, si es colaborador, el departamento) se le piden la primera vez. `Config → REGISTRO_ABIERTO = NO` lo apaga. Quien está dado de baja no se registra solo. | 03/11/2026 |
+| 46 | **Consecutivo del código por tipo + departamento + área** (Gael, 03/11; responde la pregunta F): confirma lo que ya hace el sistema (`P-CI04-001`, `P-CI04-002`…). | 03/11/2026 |
+| 47 | **A CH solo sube Procesos** (Gael, 03/11: «Solo lo sube Marquitos»): el colaborador no sube nada a CH. Procesos descarga los archivos con el Vo.Bo., los sube y registra aquí la subida y el resultado (como en la decisión 15). | 03/11/2026 |
+| 48 | **Pantalla de entrada como la de SIVET** (Gael, 03/11): fotos de Ciudad Maderas que cambian solas (claras u oscuras según el tema), logos de Ciudad Maderas, Control Interno y Procesos, y cambio de tema. Sale la primera vez (registro) o si no hay acceso; al registrarse se entra sin volver a cargar la página. | 03/11/2026 |
 
 ## Respuestas de Procesos (13/10/2026)
 
@@ -442,9 +445,7 @@ C. ~~Catálogo en Control Interno~~ → no existe; Procesos entregó el catálog
 
 D. ~~Rechazo en CH~~ → resuelto el 03/11: regresa al panel de Procesos como «Rechazado en CH» (decisión 43).
 E. ~~Revisor asignado~~ → resuelto el 03/11: por turnos y a mano (decisión 42).
-F. **Consecutivo del código:** ¿cuenta por tipo + departamento + área o hay otro criterio? (lo dejaron
-   pendiente). *Mientras: por tipo + departamento + área, y el revisor puede corregir el que propone el
-   sistema (decisión 23).*
+F. ~~Consecutivo del código~~ → resuelto el 03/11: por tipo + departamento + área (decisión 46).
 G. **Catálogos:** ~~departamentos y áreas~~ (entregado); faltan **puestos** y la lista de usuarios con su
    perfil (colaborador, revisor, administrador). Además, los pendientes del catálogo
    ([catalogos.md](catalogos.md#pendientes-para-procesos)).

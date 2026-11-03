@@ -9,7 +9,8 @@ que agregue algo aquí; lo hecho se tacha con la fecha.
 Decisiones 41 a 45. Después de que Claude la suba:
 
 1. En el editor de **BD Procesos - PRUEBAS**, correr **`instalarPruebas()`** otra vez: agrega `REGISTRO_ABIERTO`
-   (Config) y bloquea el Diagrama de proceso.
+   (Config) y bloquea el Diagrama de proceso. Cómo: en la hoja, **Extensiones → Apps Script**; arriba, en la lista
+   de funciones, elegir `instalarPruebas` y dar **Ejecutar**; abajo, en el registro, debe terminar sin error.
 2. Recargar la app con Ctrl + F5. Si a tu usuario le falta el puesto, la primera vez te lo pide.
 3. Probar:
    - Con «Ver como» Ana, enviar una solicitud: debe quedar asignada sola a un revisor (lo dice el aviso).
@@ -140,9 +141,7 @@ Mandar capturas de lo que se vea raro.
   departamentos que ya no vienen y unas posibles erratas.
 - [x] ~~Catálogo de puestos~~ → no hay lista: cada usuario escribe su puesto y el catálogo se forma solo (decisión 38).
 - [ ] **Lista de usuarios** con su perfil y departamento.
-- [x] ~~Respuestas D, E, H e I~~ → llegaron el 03/11/2026 (decisiones 41 a 44). Queda **F** (si el consecutivo del
-  código cuenta por tipo + departamento + área; hoy así funciona) y confirmar quién sube el PDF a CH: Marco dijo
-  que «el usuario carga al sistema de CH el pdf ya autorizado»; hoy lo descarga y registra Procesos.
+- [x] ~~Respuestas D, E, F, H e I~~ → llegaron el 03/11/2026 (decisiones 41 a 46). A CH solo sube Procesos (decisión 47).
 - [x] ~~Plantillas de los otros tipos~~ → todos usan la misma plantilla (decisión 36).
 - [x] ~~Inventario anterior~~ → no se considera por ahora (decisión 37).
 

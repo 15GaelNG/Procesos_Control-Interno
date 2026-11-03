@@ -327,7 +327,6 @@
 
   /* ─────────── Sin acceso ─────────── */
   function mostrarSinAcceso() {
-    const pantalla = $('#sin-acceso');
     const f = clonar('vista-sin-acceso');
     const correo = DATOS.sesion.correo;
     if (DATOS.error) {
@@ -341,16 +340,14 @@
     $('[data-accion="reintentar"]', f).addEventListener('click', function () {
       if (DATOS.urlApp) window.open(DATOS.urlApp, '_top');
     });
-    pantalla.appendChild(f);
-    pantalla.hidden = false;
-    pintarIconos();
+    montarEntrada(f);
   }
 
   /* ─────────── Registro: la primera vez (Registro.gs, decisión 45) ───────────
-     No pide contraseña: Google ya dice quién es. Pide lo que falte (nombre, puesto, departamento) y recarga. */
+     No pide contraseña: Google ya dice quién es. Pide lo que falte (nombre, puesto, departamento) y entra ahí
+     mismo, sin volver a cargar la página: el servidor regresa la sesión y las pantallas. */
   function mostrarRegistro() {
     const r = DATOS.registro;
-    const pantalla = $('#sin-acceso');
     const f = clonar('vista-registro');
     const form = $('form', f);
     const q = function (c) { return form.querySelector('[data-campo="' + c + '"]'); };
@@ -377,19 +374,24 @@
       const boton = form.querySelector('button[type="submit"]');
       boton.disabled = true;
       q('errores').hidden = true;
-      llamar('apiRegistrarme', { nombre: form.nombre.value, puesto: form.puesto.value, idDepartamento: form.departamento.value }).then(function () {
+      llamar('apiRegistrarme', { nombre: form.nombre.value, puesto: form.puesto.value, idDepartamento: form.departamento.value }).then(function (res) {
         boton.querySelector('span').textContent = 'Entrando…';
-        if (DATOS.urlApp) window.open(DATOS.urlApp, '_top');
-        else location.reload();
+        if (!res.sesion || !res.sesion.registrado) { if (DATOS.urlApp) window.open(DATOS.urlApp, '_top'); else location.reload(); return; }
+        DATOS.sesion = res.sesion;
+        DATOS.modulos = res.modulos;
+        DATOS.verComo = res.verComo || [];
+        DATOS.registro = null;
+        estado.sesion = res.sesion;
+        estado.modulos = res.modulos;
+        entrar();
+        quitarEntrada();
       }).catch(function (err) {
         q('errores').textContent = err.message;
         q('errores').hidden = false;
         boton.disabled = false;
       });
     });
-    pantalla.appendChild(f);
-    pantalla.hidden = false;
-    pintarIconos();
+    montarEntrada(f);
     (r.modo === 'ALTA' ? form.nombre : (r.faltaPuesto ? form.puesto : form.departamento)).focus();
   }
 
@@ -402,7 +404,11 @@
 
     if (DATOS.registro && !DATOS.error) { pintarUsuarioSinAcceso(); mostrarRegistro(); return; }
     if (!DATOS.sesion.registrado) { pintarUsuarioSinAcceso(); mostrarSinAcceso(); return; }
+    entrar();
+  }
 
+  /* La app en sí: barra, menú y la primera pantalla. También después del registro, sin recargar. */
+  function entrar() {
     pintarUsuario();
     prepararVerComo();
     const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

@@ -1,0 +1,112 @@
+<script>
+  /*
+   * Pantalla de entrada (registro la primera vez, o «sin acceso»), como el acceso de SIVET: del lado izquierdo
+   * las fotos de Ciudad Maderas que se funden una tras otra con un zoom lento, con los logos de Ciudad Maderas,
+   * Control Interno y Procesos; del lado derecho la tarjeta y el cambio de tema.
+   *
+   * Cada escena tiene su foto clara y su foto oscura (repositorio de imágenes, data-base en la plantilla); solo
+   * se baja la del tema activo y la primera se revela cuando ya llegó: mientras, se ve el degradado de respaldo.
+   * Las demás se piden después, para no competir con la tarjeta.
+   */
+  const ESCENAS_ENTRADA = ['FC_SM', 'CMC_Colinas', 'Merida', 'DronCM'];
+  const MS_POR_ESCENA = 5200;
+  const carrusel = { timer: null, idx: 0, raiz: null };
+
+  function urlEscena(nombre) {
+    const base = carrusel.raiz.querySelector('.entrada-escenas').dataset.base;
+    return base + nombre + (document.documentElement.getAttribute('data-theme') === 'dark' ? '_Dark.png' : '_Light.png');
+  }
+
+  function encenderEscena(capa) {
+    capa.classList.add('sin-transicion');
+    capa.classList.remove('zoom');
+    void capa.offsetWidth;
+    capa.classList.remove('sin-transicion');
+    capa.classList.add('activa');
+    requestAnimationFrame(function () { capa.classList.add('zoom'); });
+  }
+
+  function apagarEscena(capa) {
+    capa.classList.remove('activa');
+    setTimeout(function () {
+      if (capa.classList.contains('activa')) return;
+      capa.classList.add('sin-transicion');
+      capa.classList.remove('zoom');
+      void capa.offsetWidth;
+      capa.classList.remove('sin-transicion');
+    }, 1600);
+  }
+
+  /* Baja la foto de una escena y, si sigue siendo su turno, la revela. */
+  function pintarEscena(i, revelar) {
+    const capa = carrusel.raiz.querySelectorAll('.entrada-escena')[i];
+    const url = urlEscena(ESCENAS_ENTRADA[i]);
+    const img = new Image();
+    img.onload = function () {
+      capa.style.backgroundImage = 'url("' + url + '")';
+      if (revelar && carrusel.idx === i) encenderEscena(capa);
+    };
+    img.src = url;
+  }
+
+  /* Arranca (o, al cambiar de tema, vuelve a pintar) el carrusel de fotos de la pantalla de entrada. */
+  function iniciarEscenas(raiz) {
+    detenerEscenas();
+    carrusel.raiz = raiz;
+    carrusel.idx = 0;
+    const cont = raiz.querySelector('.entrada-escenas');
+    cont.textContent = '';
+    ESCENAS_ENTRADA.forEach(function () { cont.appendChild(elemento('div', 'entrada-escena')); });
+    pintarEscena(0, true);
+    setTimeout(function () { for (let i = 1; i < ESCENAS_ENTRADA.length; i++) pintarEscena(i, false); }, 1800);
+    carrusel.timer = setInterval(function () {
+      const capas = cont.querySelectorAll('.entrada-escena');
+      if (!cont.isConnected) { detenerEscenas(); return; }
+      /* Solo pasa a la siguiente si ya bajó su foto: con conexión lenta se queda en la que hay. */
+      const siguiente = (carrusel.idx + 1) % capas.length;
+      if (!capas[siguiente].style.backgroundImage) return;
+      apagarEscena(capas[carrusel.idx]);
+      carrusel.idx = siguiente;
+      encenderEscena(capas[carrusel.idx]);
+    }, MS_POR_ESCENA);
+  }
+
+  function detenerEscenas() {
+    if (carrusel.timer) clearInterval(carrusel.timer);
+    carrusel.timer = null;
+  }
+
+  /* Monta la pantalla de entrada con `tarjeta` del lado derecho y su cambio de tema. */
+  function montarEntrada(tarjeta) {
+    const pantalla = document.getElementById('sin-acceso');
+    const f = clonar('vista-entrada');
+    f.querySelector('[data-campo="tarjeta"]').appendChild(tarjeta);
+    pantalla.textContent = '';
+    pantalla.appendChild(f);
+    pantalla.classList.add('con-entrada');
+    pantalla.hidden = false;
+    pantalla.querySelectorAll('.entrada-tema .btn-tema').forEach(function (b) {
+      b.addEventListener('click', function () {
+        aplicarTema(b.dataset.tema);
+        guardar('tema', b.dataset.tema);
+        iniciarEscenas(pantalla);
+      });
+    });
+    aplicarTema(document.documentElement.getAttribute('data-theme') || 'light');
+    iniciarEscenas(pantalla);
+    pintarIconos();
+    return pantalla;
+  }
+
+  /* Quita la pantalla de entrada con un fundido mientras la app aparece debajo. */
+  function quitarEntrada() {
+    const pantalla = document.getElementById('sin-acceso');
+    detenerEscenas();
+    pantalla.classList.add('saliendo');
+    setTimeout(function () {
+      pantalla.hidden = true;
+      pantalla.textContent = '';
+      pantalla.classList.remove('saliendo', 'con-entrada');
+    }, 450);
+  }
+</script>

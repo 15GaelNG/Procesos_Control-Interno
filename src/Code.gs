@@ -10,11 +10,16 @@
  */
 
 function doGet() {
+  const inicio = Date.now();
   const plantilla = HtmlService.createTemplateFromFile(PREFIJO_ARCHIVOS_HTML + 'Index');
   const datos = datosIniciales_();
+  const conDatos = Date.now();
   // "<" escapado para que ningún texto de la base pueda cerrar el <script> donde se inserta.
   plantilla.datosIniciales = JSON.stringify(datos).replace(/</g, '\\u003c');
-  return plantilla.evaluate()
+  const pagina = plantilla.evaluate();
+  // En «Ejecuciones» se ve cuánto tardó cada parte de abrir la app.
+  console.log('[INICIO] datos ' + (conDatos - inicio) + ' ms · página ' + (Date.now() - conDatos) + ' ms');
+  return pagina
     .setTitle(APP_NOMBRE + (datos.ambiente === AMBIENTES.PRODUCCION.clave ? '' : ' · ' + datos.ambiente))
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setFaviconUrl(ICONO_APP_URL);

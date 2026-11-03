@@ -1334,6 +1334,84 @@
     .logo-procesos-v { height: 110px; }
   }
 
+  /* ═══════════ Pantalla de entrada como la de SIVET (03/11/2026): fotos, logos y tarjeta ═══════════ */
+  .pantalla-completa.con-entrada { display: block; padding: 0; min-height: 100vh; min-height: 100dvh; }
+  body.con-aviso .pantalla-completa.con-entrada { padding-top: 26px; }
+  .pantalla-completa.saliendo { position: fixed; inset: 0; z-index: 70; animation: salir-entrada .45s ease forwards; }
+  @keyframes salir-entrada { to { opacity: 0; transform: scale(1.02); } }
+  .entrada { display: grid; grid-template-columns: 1.15fr 1fr; min-height: inherit; }
+  .entrada-hero {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 40px 52px 46px; color: #fff;
+    background: radial-gradient(circle at 18% 22%, rgba(180,161,105,.28) 0%, transparent 46%), linear-gradient(145deg, #041a29 0%, #06263A 44%, #0f3a56 100%);
+  }
+  .entrada-escenas { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .entrada-escena {
+    position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.02);
+    transition: opacity 1.4s ease; will-change: opacity, transform;
+  }
+  .entrada-escena.activa { opacity: 1; }
+  .entrada-escena.zoom { transform: scale(1.12); transition: opacity 1.4s ease, transform 11s linear; }
+  .entrada-escena.sin-transicion { transition: none !important; }
+  .entrada-velo {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(105deg, rgba(4,20,31,.94) 0%, rgba(4,20,31,.80) 38%, rgba(4,20,31,.55) 72%, rgba(4,20,31,.42) 100%);
+  }
+  :root[data-theme="dark"] .entrada-velo { background: linear-gradient(105deg, rgba(3,10,15,.95) 0%, rgba(3,10,15,.86) 38%, rgba(3,10,15,.66) 72%, rgba(3,10,15,.52) 100%); }
+  /* Malla de puntos y un halo dorado que respira, por encima de la foto. */
+  .entrada-hero::before {
+    content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px); background-size: 26px 26px;
+  }
+  .entrada-hero::after {
+    content: ''; position: absolute; z-index: 2; width: 520px; height: 520px; right: -180px; bottom: -220px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(180,161,105,.2) 0%, transparent 68%); animation: halo 9s ease-in-out infinite;
+  }
+  @keyframes halo { 0%, 100% { transform: scale(1); opacity: .75; } 50% { transform: scale(1.14); opacity: 1; } }
+  .entrada-hero > :not(.entrada-escenas):not(.entrada-velo) { position: relative; z-index: 3; }
+  .entrada-marcas { display: flex; align-items: center; gap: 16px; animation: aparecer .5s var(--suave) backwards; }
+  .entrada-cm { height: 42px; width: auto; }
+  .entrada-separador { width: 1px; height: 36px; background: linear-gradient(180deg, transparent, rgba(255,255,255,.4), transparent); }
+  .entrada-ci { display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; line-height: 1.15; color: rgba(255,255,255,.85); }
+  .entrada-ci img { width: 38px; height: 38px; border-radius: 999px; background: #fff; padding: 4px; object-fit: contain; }
+  .entrada-cuerpo { max-width: 520px; margin-top: 7vh; animation: aparecer .6s var(--suave) .1s backwards; }
+  .entrada-procesos { height: 66px; margin-bottom: 26px; }
+  .entrada-titulo { margin: 0 0 14px; font-size: clamp(28px, 3vw, 38px); font-weight: 700; line-height: 1.2; letter-spacing: -.025em; }
+  .entrada-titulo em { font-style: normal; color: #DAC891; }
+  .entrada-sub { margin: 0; font-size: 15px; line-height: 1.65; color: rgba(255,255,255,.74); }
+  .entrada-funciones { margin-top: auto; padding-top: 32px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .entrada-funcion {
+    position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 15px 8px; text-align: center;
+    border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,.9); animation: aparecer .55s var(--suave) backwards;
+    transition: background-color .25s ease, transform .25s var(--suave);
+  }
+  .entrada-funcion .ico { width: 21px; height: 21px; color: #DAC891; }
+  .entrada-funcion:hover { background: rgba(180,161,105,.2); transform: translateY(-3px); }
+  .entrada-funcion:nth-child(1) { animation-delay: .15s; }
+  .entrada-funcion:nth-child(2) { animation-delay: .25s; }
+  .entrada-funcion:nth-child(3) { animation-delay: .35s; }
+  .entrada-funcion:nth-child(4) { animation-delay: .45s; }
+  .entrada-panel { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 32px 24px; }
+  .entrada-panel > [data-campo="tarjeta"] { width: 100%; display: flex; justify-content: center; }
+  .entrada-tema { position: absolute; top: 18px; right: 20px; }
+  .entrada-pie { margin: 0; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--texto-suave); }
+  .entrada .sin-acceso { box-shadow: var(--sombra-grande); animation: brotar .55s var(--rebote) backwards; }
+  .entrada .sin-acceso .logo-procesos-v { height: 104px; }
+  @media (max-width: 900px) {
+    .entrada { grid-template-columns: 1fr; }
+    .entrada-hero { padding: 26px 22px 24px; min-height: 0; }
+    .entrada-marcas { gap: 10px; }
+    .entrada-cm { height: 30px; }
+    .entrada-separador { height: 26px; }
+    .entrada-ci img { width: 30px; height: 30px; }
+    .entrada-ci span { display: none; }
+    .entrada-cuerpo { margin-top: 18px; }
+    .entrada-procesos { height: 48px; margin-bottom: 14px; }
+    .entrada-titulo { font-size: 24px; }
+    .entrada-sub, .entrada-funciones { display: none; }
+    .entrada-panel { padding: 64px 16px 28px; }
+  }
+
   /* Quien pidió menos movimiento en su sistema no ve animaciones. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
