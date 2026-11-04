@@ -98,6 +98,10 @@ pedir acceso. En pruebas, una franja dorada arriba lo recuerda.
 3. Copiar el **ID de implementación** y pegarlo en `tools/subir.js` (campo `implementacion` del
    ambiente). Desde ahí, `npm run pruebas` publica cada cambio en el **mismo link**.
 
+También se puede crear con clasp: `clasp -P .clasp.prod.json deploy -d "…"` toma la configuración de
+`appsscript.json`. Así se creó la de **producción** el 04/11/2026 (versión 1.0, commit 6b75d75):
+https://script.google.com/a/macros/ciudadmaderas.com/s/AKfycbzmJYQ9G-FEUn0FWj_g51hXjmtyA_SJmeLG1X8sfSEiQ7D7m_6G4juB6o37fENVvUGi/exec
+
 ### Perfiles y «Ver como» (solo pruebas)
 
 Cada perfil ve solo sus pantallas (`MODULOS_APP` en `src/config/Catalogos.gs`):

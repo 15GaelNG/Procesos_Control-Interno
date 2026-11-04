@@ -18,7 +18,8 @@ const fs = require('fs');
 const AMBIENTES = {
   pruebas: { nombre: 'PRUEBAS', proyecto: '.clasp.json',
     implementacion: 'AKfycbzWShA86OdUiycoA6Jmlhn49o7WSjHWrxVTOSnnavc-ZPXTGSOJ0P0VQKYZCQzRg-YH' },
-  produccion: { nombre: 'PRODUCCION', proyecto: '.clasp.prod.json', implementacion: '' }
+  produccion: { nombre: 'PRODUCCION', proyecto: '.clasp.prod.json',
+    implementacion: 'AKfycbzmJYQ9G-FEUn0FWj_g51hXjmtyA_SJmeLG1X8sfSEiQ7D7m_6G4juB6o37fENVvUGi' }
 };
 
 const ambiente = AMBIENTES[process.argv[2]];

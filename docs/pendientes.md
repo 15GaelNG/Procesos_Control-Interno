@@ -160,7 +160,7 @@ Mandar capturas de lo que se vea raro.
 - [ ] Decirle a Claude «sube a producción».
 
 **B. Subir el código (Claude)**
-- [ ] `npm run produccion -- "Versión 1.0"`: sube el código a **BD Procesos** desde el último commit (ya en GitHub).
+- [x] `npm run produccion -- "Versión 1.0"`: código subido a **BD Procesos** el 04/11/2026 (commit 6b75d75).
 
 **C. Preparar BD Procesos (Gael, en su editor de Apps Script: Extensiones → Apps Script, elegir la función, Ejecutar)**
 1. [ ] `instalarProduccion()`: crea o pone al día las hojas, carpetas y el valor de cada parámetro, y te da de alta como administrador.
@@ -171,7 +171,8 @@ Mandar capturas de lo que se vea raro.
 6. [ ] Propiedades del script → que exista `IA_LLAVE`. En la hoja `Config`: `IA_ACTIVA = SI` y `CORREO_PROCESOS = procesos.ci@ciudadmaderas.com`.
 
 **D. Publicar la web app (Claude)**
-- [ ] Crear la implementación de producción con clasp, poner su ID en `tools/subir.js` (las siguientes subidas usan el mismo link) y pasarle a Gael el link.
+- [x] Implementación de producción creada el 04/11/2026 y su ID en `tools/subir.js` (las siguientes subidas usan el
+  mismo link): https://script.google.com/a/macros/ciudadmaderas.com/s/AKfycbzmJYQ9G-FEUn0FWj_g51hXjmtyA_SJmeLG1X8sfSEiQ7D7m_6G4juB6o37fENVvUGi/exec
 
 **E. Usuarios (Gael, en la app de producción → Usuarios y perfiles)**
 - [ ] procesos.ci@ciudadmaderas.com (Marco): **Administrador y Revisor**. Los demás revisores de Procesos: **Revisor**.
